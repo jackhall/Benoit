@@ -3,29 +3,26 @@
 
 #include <iostream>
 #include "NeuralElement.h"
-class Node;
+#include "Node.h"
 #include "SignalOperand.h"
 
 class Connection_base : public NeuralElement {
 private:
 	Connection_base() 
-	: NeuralElement(NULL, false, 1),
-		mpSource(NULL), mpTarget(NULL) {} //hidden default constructor
+	: NeuralElement(NULL,false), mbTimeDelay(false) {} //hidden default constructor
 
 protected:
-	Node* const mpSource;
-	Node* const mpTarget;
+	const Node* mcpSource, mcpTarget;
 	bool mbSignalFlag, mbErrorFlag;
+	const bool mbTimeDelay;
 	
+	Connection_base( const bool bTimeDelay,
+		   		const SignalOperand* cpSignalOperand,
+		   		const double dWeight=1.0,
+		   		const bool bTrainable=true);
 	virtual ostream& printElement(ostream& out) const;
 	
 public:
-	Connection_base(Node* pSource,
-					Node* pTarget,
-			   		const SignalOperand* pSignalOperand,
-			   		const unsigned int nTimeSteps=1,
-			   		const double dWeight=1.0,
-			   		const bool bTrainable=true);
 	virtual ~Connection_base();
 	bool checkSignalFlag() const { return mbSignalFlag; }
 	bool checkErrorFlag() const { return mbErrorFlag; }
