@@ -13,7 +13,7 @@ private:
 
 protected:
 	const ActivationFcn* mpActivationFcn; //Activation Functions: fLinear, fRBF, fTanh
-	virtual ostream& print(ostream &out) const; //not finished
+	virtual ostream& print(ostream &out) const;
 	
 public:
 	Neuron( const int nID,
@@ -29,7 +29,7 @@ public:
 			mpActivationFcn(cSource.mpActivationFcn) {}
 	virtual ~Neuron() {}
 	virtual Node& fire();
-	virtual Node& backPropagate(); //not finished
+	virtual Node& backPropagate();
 	Connection& addInput(const Node* pNewIn,
 					 	const SignalOperand* pSignalOperand,
 					 	const unsigned int nTimeSteps);

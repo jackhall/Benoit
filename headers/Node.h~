@@ -29,7 +29,7 @@ protected:
 		: mnID(nID), mbGroup(bGroup) {}
 	Node(const Node& cSource)
 		: mnID(cSource.mnID), mbGroup(cSource.mbGroup) {}
-	virtual ostream& print(ostream &out) const; //not finished
+	virtual ostream& print(ostream &out) const;
 
 public: 
 	unsigned int mnID;

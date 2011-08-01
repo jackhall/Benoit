@@ -19,6 +19,8 @@ Connection_base::~Connection_base() {
 	mpSource->disconnectOutput(this);
 }
 
+//define copy constructor
+
 ostream& Connection_base::print(ostream& out) const {	
 	NeuralElement::print(out);
 	return out;

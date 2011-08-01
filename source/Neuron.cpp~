@@ -15,6 +15,10 @@ Node& Neuron::backPropagate() { //not finished
 	return *this;
 }
 
+Neuron* Neuron::clone() {
+	return new Neuron(*this);
+}
+
 ostream& Neuron::print(ostream &out) const {
 	out << "Activation Function is " << mcpActivationFcn->getName() << endl; 
 	Neuron_base::print(out);

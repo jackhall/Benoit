@@ -13,7 +13,7 @@ protected:
 	vector<Node*> mvNodes;
 	Node& addNode(Node* const pNew);
 	Node& removeNode(Node* const pOld);
-	virtual ostream& print(ostream& out) const; //not finished
+	virtual ostream& print(ostream& out) const;
 	
 public:
 	NodeGroup() : Node(0,true), mvNodes() {}

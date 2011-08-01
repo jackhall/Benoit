@@ -37,8 +37,5 @@ State& fTanh::eval(const State& cSignal, State& cOutput) const {
 }
 
 State& fTanh::evalDerivative(const State& cSignal, State& cOutput) const {
-	for(unsigned int i=cSignal.samples()-1;i>=0;--i) {
-		cOutput(i) = (1.0/cosh(cSignal(i)))^2.0;
-	}
-	return cOutput;
+	return (1.0/cosh(dSignal))^2.0;
 }

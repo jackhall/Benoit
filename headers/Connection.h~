@@ -26,8 +26,12 @@ public:
 	virtual ~Connection_base();
 	bool checkSignalFlag() const { return mbSignalFlag; }
 	bool checkErrorFlag() const { return mbErrorFlag; }
-	Connection_base& transmitSignal(const State& dSignal);
-	Connection_base& transmitError(const State& dError);
+	Connection_base& resetSignalFlag();
+	Connection_base& resetErrorFlag();
+	virtual double getSignal() = 0;
+	virtual double getError() = 0;
+	virtual Connection_base& transmitSignal(double dSignal) = 0;
+	virtual Connection_base& transmitError(double dError) = 0;
 	
 };
 

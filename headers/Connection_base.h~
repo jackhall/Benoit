@@ -17,7 +17,7 @@ protected:
 	Node* const mpTarget;
 	bool mbSignalFlag, mbErrorFlag;
 	
-	virtual ostream& print(ostream& out) const; //not finished
+	virtual ostream& print(ostream& out) const;
 	friend class Neuron_base; //because friend functions cause circularity
 	
 public:

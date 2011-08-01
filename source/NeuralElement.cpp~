@@ -22,6 +22,10 @@ NeuralElement::NeuralElement(const NeuralElement& cSource)
 		mcErrorState(cSource.mcErrorState)
 {}
 
+NeuralElement* NeuralElement::clone() {
+	return new NeuralElement(*this);
+}
+
 ostream& NeuralElement::print(ostream &out) const {
 	out << "Signal Operand is " << mpSignalOperand->getName() << endl;
 	out << "Weight = " << mdWeight << ", ";

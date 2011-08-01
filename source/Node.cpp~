@@ -1,5 +1,9 @@
 #include "Node.h"
 
+Node* Node::clone() {
+	return new Node(*this);
+}
+
 ostream& Node::print(ostream &out) const {
 	
 	out << "ID# " << mnID << endl;

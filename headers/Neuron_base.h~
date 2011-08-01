@@ -26,7 +26,7 @@ protected:
 	State& collectErrors();
 	void distributeOutput() const;
 	void distributeError() const;
-	virtual ostream& print(ostream &out) const; //not finished
+	virtual ostream& print(ostream &out) const;
 	
 public:
 	Neuron_base(const int nID,

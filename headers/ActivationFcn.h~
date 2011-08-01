@@ -16,25 +16,25 @@ protected:
 public:
 	string getName() const { return mstrName; }
 	virtual State& eval(const State& cSignal, State& cOutput) const = 0;
-	virtual State& evalDerivative(const State& cSignal, State& cOutput) const = 0;
+	virtual double evalDerivative(const double dSignal) const = 0;
 };
 
 class fLinear : public ActivationFcn {
 public:
 	State& eval(const State& cSignal, State& cOutput) const;
-	State& evalDerivative(const State& cSignal, State& cOutput) const;
+	double evalDerivative(const double dSignal) const;
 };
 
 class fRBF : public ActivationFcn {
 public:
 	State& eval(const State& cSignal, State& cOutput) const;
-	State& evalDerivative(const State& cSignal, State& cOutput) const;
+	double evalDerivative(const double dSignal) const;
 };
 
 class fTanh : public ActivationFcn {
 public:
 	State& eval(const State& cSignal, State& cOutput) const;
-	State& evalDerivative(const State& cSignal, State& cOutput) const;
+	double evalDerivative(const double dSignal) const;
 };
 
 #endif

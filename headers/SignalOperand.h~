@@ -2,6 +2,7 @@
 #define SignalOperand_h
 
 #include <string>
+#include <vector>
 #include "State.h"
 
 using namespace std;
