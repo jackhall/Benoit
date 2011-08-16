@@ -1,14 +1,23 @@
 #include "Connection_base.h"
-#include "Node.h"
+#include "Neuron_base.h"
 
-Connection_base::Connection_base(	Node* pSource,
-									Node* pTarget,
-							   		const SignalOperand* pSignalOperand,
-							   		const unsigned int nTimeSteps,
-							   		const double dWeight,
+Connection_base::Connection_base(	Neuron_base* pSource,
+									Neuron_base* pTarget,
 							   		const bool bTrainable)
-	: NeuralElement(pSignalOperand, false, nTimeSteps, dWeight, bTrainable),
-		mpSource(pSource), mpTarget(pTarget),
+	: mbTrainable(bTrainable),
+		mpSource(pSource), 
+		mpTarget(pTarget),
+		mbSignalFlag(false), mbErrorFlag(false) {
+	mpTarget->connectInput(this);
+	mpSource->connectOutput(this);
+}
+
+Connection_base::Connection_base(	const unsigned int nSource,
+									const unsigned int nTarget,
+							   		const bool bTrainable)
+	: mbTrainable(bTrainable),
+		mpSource(dynamic_cast<Neuron_base*>(Node::find(nSource))),
+		mpTarget(dynamic_cast<Neuron_base*>(Node::find(nTarget))),
 		mbSignalFlag(false), mbErrorFlag(false) {
 	mpTarget->connectInput(this);
 	mpSource->connectOutput(this);
@@ -20,18 +29,6 @@ Connection_base::~Connection_base() {
 }
 
 ostream& Connection_base::print(ostream& out) const {	
-	NeuralElement::print(out);
 	return out;
 }
 
-Connection_base& Connection_base::resetSignalFlag() {
-
-	mbSignalFlag = false;
-	return *this;
-}
-
-Connection_base& Connection_base::resetErrorFlag() {
-	
-	mbErrorFlag = false;
-	return *this;
-}

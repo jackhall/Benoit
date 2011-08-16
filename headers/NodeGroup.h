@@ -12,14 +12,15 @@ private:
 protected:
 	vector<Node*> mvNodes;
 	Node& addNode(Node* const pNew);
+	Node& addNode(const unsigned int nNew);
 	Node& removeNode(Node* const pOld);
+	Node& removeNode(const unsigned int nOld);
 	virtual ostream& print(ostream& out) const; //not finished
 	
 public:
-	NodeGroup() : Node(0,true), mvNodes() {}
-	NodeGroup(const unsigned int nID) : Node(nID,true), mvNodes() {}
-	NodeGroup(const unsigned int nID, const vector<Node*> vNodes)
-		: Node(nID,true), mvNodes(vNodes) {}
+	NodeGroup() : Node(true), mvNodes() {}
+	NodeGroup(const vector<Node*> vNodes)
+		: Node(true), mvNodes(vNodes) {}
 	virtual ~NodeGroup();
 	virtual Node& fire();
 	virtual Node& backPropagate();

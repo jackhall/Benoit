@@ -2,41 +2,36 @@
 #define Connection_base_h
 
 #include <iostream>
-#include "NeuralElement.h"
+#include "Benoit_base.h"
 class Node;
 class Neuron_base;
 
-class Connection_base : public NeuralElement {
+class Connection_base : public Benoit_base {
 private:
 	Connection_base();  //hidden default constructor
 	Connection_base& operator=(const Connection_base& cSource);
 	Connection_base(const Connection_base& cSource);
 
 protected:
-	Node* const mpSource;
-	Node* const mpTarget;
-	bool mbSignalFlag, mbErrorFlag;
+	Neuron_base* const mpSource;
+	Neuron_base* const mpTarget;
 	
 	virtual ostream& print(ostream& out) const; //not finished
-	friend class Neuron_base; //because friend functions cause circularity
+	//friend class Neuron_base; //because friend functions cause circularity
 	
 public:
-	Connection_base(Node* pSource,
-					Node* pTarget,
-			   		const SignalOperand* pSignalOperand,
-			   		const unsigned int nTimeSteps=1,
-			   		const double dWeight=1.0,
-			   		const bool bTrainable=true);
-	virtual ~Connection_base();
-	bool checkSignalFlag() const { return mbSignalFlag; }
-	bool checkErrorFlag() const { return mbErrorFlag; }
-	Connection_base& resetSignalFlag();
-	Connection_base& resetErrorFlag();
-	const State& getSignal() const { return mcSignalState; }
-	const State& getError() const { return mcErrorState; }
-	virtual Connection_base& transmitSignal(const State& dSignal) = 0;
-	virtual Connection_base& transmitError(const State& dError) = 0;
+	bool mbTrainable, mbSignalFlag, mbErrorFlag;
 	
+	inline Neuron_base* getSource() { return mpSource; }
+	inline Neuron_base* getTarget() { return mpTarget; }
+	Connection_base(Neuron_base* pSource,
+					Neuron_base* pTarget,
+			   		const bool bTrainable=true);
+	Connection_base(const unsigned int nSource,
+					const unsigned int nTarget,
+					const bool bTrainable=true);
+	virtual ~Connection_base();
 };
 
 #endif
+

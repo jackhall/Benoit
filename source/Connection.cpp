@@ -1,42 +1,55 @@
-#include "Connection.h"
+#ifndef Connection_cpp
+#define Connection_cpp
 
-Connection::Connection( int nID,
-			const SignalOperand* cpSignalOperand,
-			const bool bTimeDelay,
-			const double dWeight,
-			const bool bTrainable)
-	: NeuralElement(cpSignalOperand, false, dWeight, bTrainable),
-		mnID(nID), mbSignalFlag(false), mbErrorFlag(false), 
-		mbTimeDelay(bTimeDelay)
-{}
-
-Connection::~Connection() {
-
+template<typename T>
+Connection<T>::Connection(	Neuron<T>* pSource,
+							Neuron<T>* pTarget,
+			   				const char chOperator,
+			   				const unsigned int nTimeDelay,
+			   				const T tWeight,
+			   				const bool bTrainable) 
+	: Connection_base(pSource, pTarget, bTrainable), 
+		mtWeight(tWeight), mnTimeDelay(nTimeDelay) {
+	setOperator(chOperator);
 }
 
-ostream& Connection::printElement(ostream& out) const {
+template<typename T>
+Connection<T>::Connection(	const unsigned int nSource,
+							const unsigned int nTarget,
+			   				const char chOperator,
+			   				const unsigned int nTimeDelay,
+			   				const T tWeight,
+			   				const bool bTrainable) 
+	: Connection_base(nSource, nTarget, bTrainable), 
+		mtWeight(tWeight), mnTimeDelay(nTimeDelay) {
+	setOperator(chOperator);
+}
 
-	out << "ID# " << mnID;
-	
-	if(mbTimeDelay) {
-		out << ", Time-Delayed" << endl;
-	} else {
-		out << ", No Time Delay" << endl;
+template<typename T>
+void Connection<T>::setOperator(const char chOperator) {
+	switch(chOperator) {
+		case "+":
+			op = add;
+			opderiv = addD;
+			break;
+		case "*":
+			op = multiply;
+			opderiv = multiplyD;
+			break;
+		case "-":
+			op = subtract;
+			opderiv = subtractD;
+			break;
+		default:
+			throw "Invalid operator for Connection";
 	}
-	
-	out << NeuralElement::printElement(out);
+}
+
+template<typename T>
+ostream& Connection<T>::print(ostream& out) const { //not finished
 	
 	return out;
 }
 
-Connection& Connection::resetSignalFlag() {
+#endif
 
-	mbSignalFlag = false;
-	return *this;
-}
-
-Connection& Connection::resetErrorFlag() {
-	
-	mbErrorFlag = false;
-	return *this;
-}
