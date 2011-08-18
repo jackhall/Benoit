@@ -1,6 +1,5 @@
 #include "Benoit_base.h"
 
 ostream& operator<<(ostream &out, const Benoit_base& cBenoit_base) {
-	using namespace std;
-	return out;
+	return print(out); 		//defined in all child classes
 }
