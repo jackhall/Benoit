@@ -2,6 +2,7 @@
 #define Neuron_base_h
 
 /*
+	(c) Jack Hall 2011, licensed under GNU LGPL v3
 	Neuron_base is a single-Node interface class. It provides an interface for the 
 	fundamental independent element in a neural network: a Neuron. However, in the 
 	interest of keeping Benoit's interface and data structure separate from the 

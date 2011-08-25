@@ -2,6 +2,7 @@
 #define NodeGroup_h
 
 /*
+	(c) Jack Hall 2011, licensed under GNU LGPL v3
 	NodeGroup is the interface for organizing Nodes. This can serve either to hide implementation or 
 	to simply make handling neural structures more convenient. 
 */

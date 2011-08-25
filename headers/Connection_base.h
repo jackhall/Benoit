@@ -2,6 +2,7 @@
 #define Connection_base_h
 
 /*
+	(c) Jack Hall 2011, licensed under GNU LGPL v3
 	Connection_base is the interface class for all connection between Nodes. 
 	Since connections are causally dependent, all calculations are initiated from 
 	the Nodes they are connected to. The constructors and destructors of Connection_base

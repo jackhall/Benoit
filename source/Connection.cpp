@@ -1,6 +1,8 @@
 #ifndef Connection_cpp
 #define Connection_cpp
 
+//(c) Jack Hall 2011, licensed under GNU LGPL v3
+
 template<typename T>
 Connection<T>::Connection(	Neuron<T>* pSource,		//Neuron and Connection must share a template type
 							Neuron<T>* pTarget,

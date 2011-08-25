@@ -1,7 +1,7 @@
 #ifndef Benoit_base_h
 #define Benoit_base_h
-
 /*
+	(c) Jack Hall 2011, licensed under GNU LGPL v3
 	Benoit_base is a common parent for all classes in Benoit that represent a neural 
 	structure. In the future, this may aid debugging or an external interface. As it 
 	is, Benoit_base simply provides a consistent output interface. 

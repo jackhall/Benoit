@@ -2,6 +2,7 @@
 #define Connection_h
 
 /*
+	(c) Jack Hall 2011, licensed under GNU LGPL v3
 	Connection is the functional extension of the Connection_base interface, in that it can
 	store and process data. It is directly associated with Neuron rather than Neuron_base, because
 	Neuron_base, like Connection_base, has no ability to process or store information. Mutual trust

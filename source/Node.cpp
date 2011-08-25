@@ -1,3 +1,5 @@
+//(c) Jack Hall 2011, licensed under GNU LGPL v3
+
 #include "Node.h"
 
 unsigned int Node::snID_COUNT = 0; //initialize ID numbers

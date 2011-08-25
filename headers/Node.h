@@ -2,7 +2,7 @@
 #define Node_h
 
 /*
-	Benoit::Node 2011 - copyright Jack Hall
+	(c) Jack Hall 2011, licensed under GNU LGPL v3
 	A Node is the basic independent causal unit in a neural network. 
 	The concept is similar to a directed graph in mathematics. The execution 
 	of a Node does not depend on any single other part of the network 

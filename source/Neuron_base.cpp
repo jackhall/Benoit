@@ -1,3 +1,5 @@
+//(c) Jack Hall 2011, licensed under GNU LGPL v3
+
 #include "Neuron_base.h"
 
 Neuron_base::~Neuron_base() {

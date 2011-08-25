@@ -1,6 +1,8 @@
 #ifndef Neuron_cpp
 #define Neuron_cpp
 
+//(c) Jack Hall 2011, licensed under GNU LGPL v3
+
 template<typename T>
 State<T>& Neuron<T>::add(Connection_base* pConn) {
 	//cast pointers from interface types to implementation types. The constructors
@@ -229,7 +231,7 @@ Neuron<T>::Neuron(const Neuron<T>& cSource)
 		msOutput(cSource.msOutput.samples(),cSource.msOutput.steps()),
 		msBuffer(cSource.msBuffer.samples()), 
 		msError(cSource.msError.samples()) {
-	if(cSource.op==&(cSource.add)) {	//a switch statement doesn't work here because arguments must be const
+	if(cSource.op==&(cSource.add)) {	//a switch statement doesn't work here; arguments must be const
 		op = add;
 		opderiv = addD;
 	} else if(cSource.op==&(cSource.multiply)) {
@@ -240,7 +242,7 @@ Neuron<T>::Neuron(const Neuron<T>& cSource)
 		opderiv = subtractD;
 	} else throw "Invalid operator for Neuron";
 	
-	if(cSource.activationfcn==&(cSource.tanh)) { //a switch statement doesn't work here
+	if(cSource.activationfcn==&(cSource.tanh)) { //a switch statement doesn't work here either
 		activationfcn = tanh;
 		activationfcnderiv = tanhD;
 	} else if(cSource.activationfcn==&(cSource.linear)) {

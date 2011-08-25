@@ -1,5 +1,7 @@
 #include "NodeGroup.h"
 
+//(c) Jack Hall 2011, licensed under GNU LGPL v3
+
 NodeGroup::~NodeGroup() {
 	using namespace std;
 	vector<Node*>::iterator it = mvNodes.end();

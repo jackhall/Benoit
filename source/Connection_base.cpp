@@ -1,3 +1,5 @@
+//(c) Jack Hall 2011, licensed under GNU LGPL v3
+
 #include "Connection_base.h"
 #include "Neuron_base.h"	//defining this in the header would create circularity
 

@@ -2,6 +2,7 @@
 #define Neuron_h
 
 /*
+	(c) Jack Hall 2011, licensed under GNU LGPL v3
 	The Neuron class is the computational core of Benoit. It inherits its interface 
 	and network structure from Neuron_base. All signal and error data is stored in
 	Neurons, and Neurons perform or initiate all neural computation. This separation
@@ -91,7 +92,7 @@ public:
 	Neuron(	const char chActivationFcn,	//'l' for linear, 't' for tanh, and 'r' for radial basis function
 			const char chOperator="+",	//operator symbols are self-explanatory; division is not included
 			const unsigned int nSamples=1,		//size of batch
-			const unsigned int nTimeSteps=1,	//number of time steps through which error will be backpropagated
+			const unsigned int nTimeSteps=1,	//number of time steps to backpropagate through
 			const T tBias=0.0,
 			const bool bTrainable=true);
 	Neuron(const Neuron<T>& cSource);
