@@ -57,48 +57,23 @@ private:
 	Neuron& operator=(const Neuron& cSource);	//hidden assignment operator
 	
 	State<T> msSignal, msOutput, msError, msBuffer;		//signal and error data containers
-	
-	//possible forward operators for combining signals from input Connections
-	State<T>& add(Connection_base* pConn);		//computes for batches of samples, 
-	State<T>& multiply(Connection_base* pConn);	//one Connection at a time
-	State<T>& subtract(Connection_base* pConn);
-	
-	//possible backward operators
-	State<T>& addD(Neuron<T>* pSource, Connection<T>* pConn);		//computes for batches of samples,
-	State<T>& multiplyD(Neuron<T>* pSource, Connection<T>* pConn);	//one Connection at a time
-	State<T>& subtractD(Neuron<T>* pSource, Connection<T>* pConn);
-	
-	State<T>& (*op)(Connection_base*);					//forward operator function pointer
-	State<T>& (*opderiv)(Neuron<T>*, Connection<T>*);	//backward operator function pointer, actually 
-														//called by input Neurons
-	//possible neural activation functions
-	State<T>& tanh();
-	State<T>& linear();
-	State<T>& rbf();
-	
-	//activation function derivatives
-	State<T>& tanhD();
-	State<T>& linearD();
-	State<T>& rbfD();
-	
-	State<T>& (*activationfcn)();		//forward activation function pointer
-	State<T>& (*activationfcnderiv)();	//backward activation function pointer
 
 protected:
 	virtual ostream& print(ostream &out) const; //not finished
 	
 public:
 	T mtBias;
-	Neuron(	const char chActivationFcn,	//'l' for linear, 't' for tanh, and 'r' for radial basis function
-			const char chOperator="+",	//operator symbols are self-explanatory; division is not included
-			const unsigned int nSamples=1,		//size of batch
+	Neuron(	const unsigned int nSamples=1,		//size of batch
 			const unsigned int nTimeSteps=1,	//number of time steps to backpropagate through
 			const T tBias=0.0,
-			const bool bTrainable=true);
+			const bool bTrainable=true)
+		: Neuron_base(bTrainable), mtBias(tBias), 
+			msSignal(nSamples, nTimeSteps), msOutput(nSamples, nTimeSteps),
+			msError(nSamples), msBuffer(nSamples) {}
 	Neuron(const Neuron<T>& cSource);
 	virtual ~Neuron() {}
-	virtual Node& fire(); 			//virtual from Node
-	virtual Node& backPropagate(const unsigned int nStepsBack=0); //virtual from Node
+	virtual Node& fire() = 0; 			//virtual from Node
+	virtual Node& backPropagate(const unsigned int nStepsBack=0) = 0; //virtual from Node
 	Node& addInput( const Node* pNewIn,
 					const char chOperator="*",
 					const unsigned int nTimeDelay=0);	//virtual from Node, not defined in Neuron_base
@@ -107,7 +82,32 @@ public:
 					const unsigned int nTimeDelay=0);	//virtual from Node
 };
 
-#include "Neuron.cpp"
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+template<typename T>
+Node& Neuron<T>::addInput(	const Node* pNewIn,
+							const char chOperator,
+							const unsigned int nTimeDelay) {
+	if(pNewIn->mbGroup) pNewIn->addOutput(this, chOperator, nTimeDelay); //allow NodeGroup to create needed objects
+	else new Connection<T>(pNewIn, this, chOperator, nTimeDelay);	//create a single Connection (not Connection_base)
+	return *this;
+}
+
+template<typename T>
+Node& Neuron<T>::addOutput(	const Node* pNewOut,
+							const char chOperator,
+						  	const unsigned int nTimeDelay) {
+	if(pNewOut->mbGroup) pNewOut->addInput(this, chOperator, nTimeDelay); //allow NodeGroup to create needed objects
+	else new Connection<T>(this, pNewOut, chOperator, nTimeDelay);	//create a single Connection (not Connection_base)
+	return *this;
+}
+
+template<typename T>
+ostream& Neuron<T>::print(ostream &out) const {
+	//weight, call Neuron_base::print
+	//state data?
+	return out;
+}
 
 #endif
 

@@ -180,48 +180,13 @@ State<T>& Neuron<T>::rbfD() { //use argument to step back?
 }
 
 template<typename T> 
-Neuron<T>::Neuron(	const char chActivationFcn,
-					const char chOperator,
-					const unsigned int nSamples,
+Neuron<T>::Neuron(	const unsigned int nSamples,
 					const unsigned int nTimeSteps,
 					const T tBias,
 					const bool bTrainable) 
 	: Neuron_base(bTrainable), mtBias(tBias), 
 		msSignal(nSamples, nTimeSteps), msOutput(nSamples, nTimeSteps),
 		msError(nSamples), msBuffer(nSamples) {
-	switch(chOperator) {		//make sure operator is valid and the forward and backward functions match
-		case "+":
-			op = add;
-			opderiv = addD;
-			break;
-		case "*":
-			op = multiply;
-			opderiv = multiplyD;
-			break;
-		case "-":
-			op = subtract;
-			opderiv = subtractD;
-			break;
-		default:
-			throw "Invalid operator for Neuron";
-	}
-	
-	switch(chActivationFcn) {	//make sure activation function is valid and the forward/backward versions match
-		case "t":
-			activationfcn = tanh;
-			activationfcnderiv = tanhD;
-			break;
-		case "l":
-			activationfcn = linear;
-			activationfcnderiv = linearD;
-			break;
-		case "r":
-			activationfcn = rbf;
-			activationfcnderiv = rbfD;
-			break;
-		default:
-			throw "Invalid activation function for Neuron";
-	}	
 }
 
 template<typename T>
@@ -231,27 +196,6 @@ Neuron<T>::Neuron(const Neuron<T>& cSource)
 		msOutput(cSource.msOutput.samples(),cSource.msOutput.steps()),
 		msBuffer(cSource.msBuffer.samples()), 
 		msError(cSource.msError.samples()) {
-	if(cSource.op==&(cSource.add)) {	//a switch statement doesn't work here; arguments must be const
-		op = add;
-		opderiv = addD;
-	} else if(cSource.op==&(cSource.multiply)) {
-		op = multiply;
-		opderiv = multiplyD;
-	} else if(cSource.op==&(cSource.subtract)) {
-		op = subtract;
-		opderiv = subtractD;
-	} else throw "Invalid operator for Neuron";
-	
-	if(cSource.activationfcn==&(cSource.tanh)) { //a switch statement doesn't work here either
-		activationfcn = tanh;
-		activationfcnderiv = tanhD;
-	} else if(cSource.activationfcn==&(cSource.linear)) {
-		activationfcn = linear;
-		activationfcnderiv = linearD;
-	} else if(cSource.activationfcn==&(cSource.rbf)) {
-		activationfcn = rbf;
-		activationfcnderiv = rbfD;
-	} else throw "Invalid activation function for Neuron";
 }
 
 template<typename T>
