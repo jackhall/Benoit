@@ -21,13 +21,9 @@
 */
 
 #include <iostream>
-#include "Connection_base.h"
-#include "State.h"
 
-template<typename T> class Neuron;
-
-template<typename T=float>
-class Connection : public Connection_base {
+template<typename T, typename U>
+class Connection {
 /*
 	- Inherits from Connection_base, which provides an interface and network structure. 
 	- The default constructor, copy constructor, and assignment operator are all hidden.
@@ -47,44 +43,25 @@ class Connection : public Connection_base {
 */
 
 private:
-	unsigned int mnTimeDelay;
-
-	Connection(); 								//hidden default constructor
 	Connection(const Connection<T>& cSource);	//hidden copy constructor
 	Connection& operator=(const Connection<T>& cSource);	//hidden assignment operator
-	
-	//these operate on one sample at a time so that they can by called from the batch
-	//operators defined in Neuron
-	T add(typename State<T>::iterator iSignal) { return mtWeight+(*iSignal); }		//possible forward operators
-	T multiply(typename State<T>::iterator iSignal) { return mtWeight*(*iSignal); }
-	T subtract(typename State<T>::iterator iSignal) { return mtWeight-(*iSignal); }
-	
-	T addD(typename State<T>::iterator iError) { return *iError; }					//possible backward operators
-	T multiplyD(typename State<T>::iterator iError) { return (*iError)*mtWeight; }
-	T subtractD(typename State<T>::iterator iError) { return -(*iError); }
 
-protected:
-	virtual ostream& print(ostream& out) const;
-	
 public:
-	T mtWeight;
-	T (*op)(typename State<T>::iterator); 		//will be called from Neuron::fire
-	T (*opderiv)(typename State<T>::iterator); 	//will be called from Neuron::backPropagate
-
-	Connection( Neuron<T>* pSource,
-				Neuron<T>* pTarget,
-			   	const char chOperator='*',			//this allows encapsulation of the operators
-			   	const unsigned int nTimeDelay=1,	//and ensures that they match
+	//members (all public)
+	const bool mbTimeDelay;
+	bool mbTrainable;
+	T& mtWeight;
+	U* mpBuffer;
+	GraphNode* mpNode;
+	
+	//constructors, destructors
+	Connection();
+	Connection( GraphNode* pNode,
+				U* pBuffer,
+			   	const bool nTimeDelay=false,	//and ensures that they match
 			   	const T tWeight=0.0,
-			   	const bool bTrainable=true);
-	Connection( const unsigned int nSource,
-				const unsigned int nTarget,
-			   	const char chOperator='*',
-			   	const unsigned int nTimeDelay=1,
-			   	const T tWeight=0.0,
-			   	const bool bTrainable=true);
+			   	const bool bTrainable=true);\
 	virtual ~Connection() {}
-	void setOperator(const char chOperator);
 };
 
 #include "Connection.cpp"

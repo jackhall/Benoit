@@ -1,5 +1,5 @@
-#ifndef Node_h
-#define Node_h
+#ifndef GraphNode_h
+#define GraphNode_h
 
 /*
 	(c) Jack Hall 2011, licensed under GNU LGPL v3
@@ -13,12 +13,13 @@
 
 #include <iostream>
 #include <map>
+#include <list>
 #include "Benoit_base.h"
 
 using namespace std;
 
-template<typename T, typename U>
-class Node {
+template<typename T, typename U, typename V>
+class GraphNode {
 /*
 	- Each Node is identified by a unique unsigned int. These ints are associated with pointers
 		to each Node via a static STL map. A read-only access function thus allows a programmer to 
@@ -28,12 +29,17 @@ class Node {
 */
 
 private:
+	//connection lists
+	list<GraphNode*> mlInputConnections;
+	list<GraphNode*> mlOutputConnections;
+	
+	//static ID members
 	static unsigned int snID_COUNT;	
-	static map<unsigned int, Node*> smID_MAP; 	//one centralized copy avoids sychronization issues
-
+	static map<unsigned int, GraphNode*> smID_MAP; 	//one centralized copy avoids sychronization issues
 	static unsigned int getNewID() { return snID_COUNT++; }
-	Node& operator=(const Node& cSource);		//hidden assignment operator
-	Node(const Node& cSource); 					//hidden copy constructor
+	
+	GraphNode& operator=(const GraphNode& cSource);		//hidden assignment operator
+	GraphNode(const GraphNode& cSource); 					//hidden copy constructor
 
 protected:
 	virtual ostream& print(ostream &out) const; //not finished
@@ -41,26 +47,26 @@ protected:
 public: 
 	//Node ID and indexing
 	const unsigned int ID;
-	static inline Node* find(const unsigned int nAddress) //access a Node via its integer ID
+	static inline GraphNode* find(const unsigned int nAddress) //access a Node via its integer ID
 		{ return smID_MAP[nAddress]; }
 	
 	//constructor, destructor
-	Node();
-	virtual ~Node() {}
+	GraphNode();
+	virtual ~GraphNode() {}
 	
 	//connection management
-	Node& addInput(	const Node* pNewIn,
-					const bool bTimeDelay=false); 
-	Node& addInput(	const unsigned int nNewIn,		//delegates to previous
-					const bool bTimeDelay=false);
-	Node& addOutput(const Node* pNewOut,
-					const bool bTimeDelay=false); 
-	Node& addOutput(const unsigned int nNewOut,		//delegates to previous
-					const bool bTimeDelay=false);
-	Node& removeInput(Node* pOldIn);
-	Node& removeInput(const unsigned int nOldIn);	//delegates to previous
-	Node& removeOutput(Node* pOldOut);
-	Node& removeOutput(const unsigned int nOldOut);	//delegates to previous
+	GraphNode& addInput(const GraphNode* pNewIn,
+						const bool bTimeDelay=false); 
+	GraphNode& addInput(const unsigned int nNewIn,		//delegates to previous
+						const bool bTimeDelay=false);
+	GraphNode& addOutput(const GraphNode* pNewOut,
+						 const bool bTimeDelay=false); 
+	GraphNode& addOutput(const unsigned int nNewOut,		//delegates to previous
+						const bool bTimeDelay=false);
+	GraphNode& removeInput(GraphNode* pOldIn);
+	GraphNode& removeInput(const unsigned int nOldIn);	//delegates to previous
+	GraphNode& removeOutput(GraphNode* pOldOut);
+	GraphNode& removeOutput(const unsigned int nOldOut);	//delegates to previous
 	
 	//iterators
 	class input_iter {
@@ -83,6 +89,6 @@ public:
 	output_iter outputEnd();
 };
 
-#include "Node.cpp"
+#include "GraphNode.cpp"
 
 #endif
