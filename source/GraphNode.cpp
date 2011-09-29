@@ -44,9 +44,30 @@ GraphNode& GraphNode::removeOutput(const unsigned int nOldOut) {
 	return removeInput(pOldOut); //defined in child classes
 }
 
-//input iterator methods
+//iterator methods
 template<typename T, typename U, typename W>
-GraphNode<T,U,W>::input_iterator& GraphNode<T,U,W>::input_iterator::operator++() {
+GraphNode<T,U,W>::iterator& GraphNode<T,U,W>::iterator::operator=(const interator& iRhs) {
+	mpFirst = iRhs.mpFirst;
+	mpLast = iRhs.mpLast;
+	mpCurrent = iRhs.mpCurrent;
+	mbPastEnd = iRhs.mbPastEnd;
+	return this;
+}
+
+template<typename T, typename U, typename W>
+GraphNode<T,U,W>::iterator& GraphNode<T,U,W>::iterator::operator+=(const interator& iRhs) {
+	//finish later
+	return this;
+}
+
+template<typename T, typename U, typename W>
+GraphNode<T,U,W>::iterator& GraphNode<T,U,W>::iterator::operator-=(const interator& iRhs) {
+	//finish later
+	return this;
+}
+
+template<typename T, typename U, typename W>
+GraphNode<T,U,W>::iterator& GraphNode<T,U,W>::iterator::operator++() {
 	if(mpCurrent==mpLast) {
 		mpCurrent=NULL;
 		mbPastEnd = true;
@@ -57,7 +78,7 @@ GraphNode<T,U,W>::input_iterator& GraphNode<T,U,W>::input_iterator::operator++()
 }
 
 template<typename T, typename U, typename W>
-GraphNode<T,U,W>::input_iterator& GraphNode<T,U,W>::input_iterator::operator--() {
+GraphNode<T,U,W>::iterator& GraphNode<T,U,W>::iterator::operator--() {
 	if(mpCurrent==mpLast) {
 		mpCurrent=NULL;
 		mbPastEnd = true;
@@ -68,52 +89,15 @@ GraphNode<T,U,W>::input_iterator& GraphNode<T,U,W>::input_iterator::operator--()
 }
 
 template<typename T, typename U, typename W>
-GraphNode<T,U,W>::input_iterator GraphNode<T,U,W>::input_iterator::operator++(int) {
+GraphNode<T,U,W>::iterator GraphNode<T,U,W>::iterator::operator++(int) {
 	input_iterator iTemp(*this);
 	++(*this); 
 	return iTemp;
 }
 
 template<typename T, typename U, typename W>
-GraphNode<T,U,W>::input_iterator GraphNode<T,U,W>::input_iterator::operator--(int) {
+GraphNode<T,U,W>::iterator GraphNode<T,U,W>::iterator::operator--(int) {
 	input_iterator iTemp(*this);
-	--(*this); 
-	return iTemp;
-}
-
-//output iterator methods
-template<typename T, typename U, typename W>
-GraphNode<T,U,W>::output_iterator& GraphNode<T,U,W>::output_iterator::operator++() {
-	if(mpCurrent==mpLast) {
-		mpCurrent=NULL;
-		mbPastEnd = true;
-	} else if(mpCurrent!=NULL) { 
-		++mpCurrent;
-	} else if(!mbPastEnd) mpCurrent = mpFirst; 
-	return *this;
-}
-
-template<typename T, typename U, typename W>
-GraphNode<T,U,W>::output_iterator& GraphNode<T,U,W>::output_iterator::operator--() {
-	if(mpCurrent==mpLast) {
-		mpCurrent=NULL;
-		mbPastEnd = true;
-	} else if(mpCurrent!=NULL) { 
-		--mpCurrent;
-	} else if(mbPastEnd) mpCurrent = mpLast; 
-	return *this;
-}
-
-template<typename T, typename U, typename W>
-GraphNode<T,U,W>::output_iterator GraphNode<T,U,W>::output_iterator::operator++(int) {
-	output_iterator iTemp(*this);
-	++(*this); 
-	return iTemp;
-}
-
-template<typename T, typename U, typename W>
-GraphNode<T,U,W>::output_iterator GraphNode<T,U,W>::output_iterator::operator--(int) {
-	output_iterator iTemp(*this);
 	--(*this); 
 	return iTemp;
 }

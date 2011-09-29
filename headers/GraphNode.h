@@ -13,12 +13,12 @@
 
 #include <iostream>
 #include <map>
-#include <list>
+#include <vector>
 
 using namespace std;
 
 template<typename T, typename U, typename W>
-class GraphNode {
+class Node {
 /*
 	- Each Node is identified by a unique unsigned int. These ints are associated with pointers
 		to each Node via a static STL map. A read-only access function thus allows a programmer to 
@@ -29,8 +29,8 @@ class GraphNode {
 
 private:
 	//connection lists
-	list<GraphNode*> mlInputConnections;
-	list<GraphNode*> mlOutputConnections;
+	vector<GraphNode*> mvInputConnections;
+	vector<GraphNode*> mvOutputConnections;
 	
 	//static ID members
 	static unsigned int snID_COUNT;	
@@ -68,61 +68,51 @@ public:
 	GraphNode& removeOutput(const unsigned int nOldOut);	//delegates to previous
 	
 	//iterators
-	class input_iterator {
+	class iterator {
 	private:
-		GraphNode* mpFirst;
+		GraphNode* mpFirst; //only works if elements of GraphNode storage are serial
 		GraphNode* mpLast;
 		GraphNode* mpCurrent;
 		bool mbPastEnd;
 		
-	public:
-		input_iterator()
+	public
+		iterator()
 			: mpFirst(NULL), mpLast(NULL), mpCurrent(NULL), mbPastEnd(false) {}
-		input_iterator( const GraphNode* pFirst,
-						const GraphNode* pLast,
-						const GraphNode* pCurrent)
+		iterator( 	const GraphNode* pFirst,
+					const GraphNode* pLast,
+					const GraphNode* pCurrent)
 			: mpFirst(pFirst), mpLast(pLast), mpCurrent(pCurrent), mbPastEnd(false) {}
+		iterator(const iterator& iOld) 
+			: mpFirst(iOld.mpFirst), mpLast(iOld.mpLast), mpCurrent(iOld.mpCurrent),
+				mbPastEnd(iOld.mbPastEnd) {}
+		iterator&  operator=(const iterator& iRhs);
 		inline bool inBounds() { return mpCurrent!=NULL; }
 		inline bool outofBounds() { return mpCurrent==NULL; }
 		inline GraphNode& operator*() { 
 			if(mpCurrent==NULL) throw "Dereferenced input_iterator out of bounds";
 			else return *mpCurrent; }
-		inline input_iterator& operator++();
-		inline input_iterator& operator--();
-		inline input_iterator& operator++(int);
-		inline input_iterator& operator--(int);
+		input_iterator& operator++();
+		input_iterator& operator--();
+		input_iterator& operator++(int);
+		input_iterator& operator--(int);
 		bool operator==(const input_iterator& cTwo) 
 			{ return mpCurrent==cTwo.mpCurrent; }
 		bool operator!=(const input_iterator& cTwo) 
 			{ return mpCurrent!=cTwo.mpCurrent; }
+		//pointer arithmetic
+		//[] dereference
+		//comparison > < => =<
+		//compound assignment 
 	};
 	
-	class output_iterator {
+	class input_iterator : public iterator {
 	private:
-		GraphNode* mpFirst;
-		GraphNode* mpLast;
-		GraphNode* mpCurrent;
-		bool mbPastEnd;
 	public:
-		output_iterator()
-			: mpFirst(NULL), mpLast(NULL), mpCurrent(NULL), mbPastEnd(false) {}
-		output_iterator(const GraphNode* pFirst,
-						const GraphNode* pLast,
-						const GraphNode* pCurrent)
-			: mpFirst(pFirst), mpLast(pLast), mpCurrent(pCurrent), mbPastEnd(false) {}
-		inline bool inBounds() { return mpCurrent!=NULL; }
-		inline bool outofBounds() { return mpCurrent==NULL; }
-		inline GraphNode& operator*() { 
-			if(mpCurrent==NULL) throw "Dereferenced output_iterator out of bounds";
-			else return *mpCurrent; }
-		inline output_iterator& operator++();
-		inline output_iterator& operator--();
-		inline output_iterator& operator++(int);
-		inline output_iterator& operator--(int);
-		bool operator==(const output_iterator& cTwo) 
-			{ return mpCurrent==cTwo.mpCurrent; }
-		bool operator!=(const output_iterator& cTwo) 
-			{ return mpCurrent!=cTwo.mpCurrent; }
+	};
+	
+	class output_iterator : public iterator {
+	private:
+	public:
 	};
 	
 	input_iterator inputBegin();
