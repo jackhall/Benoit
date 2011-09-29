@@ -4,11 +4,13 @@
 
 unsigned int GraphNode::snID_COUNT = 0; //initialize ID numbers
 
+/*
 ostream& GraphNode::print(ostream &out) const {
 	//more here?
 	out << "ID# " << ID << endl;
 	return out;
 }
+*/
 
 GraphNode& GraphNode::addInput(const unsigned int nNewIn,
 					 			const char chOperator,
@@ -40,6 +42,80 @@ GraphNode& GraphNode::removeOutput(const unsigned int nOldOut) {
 	GraphNode* pOldOut = find(nOldOut);
 	//calls a Connection_base-derived destructor
 	return removeInput(pOldOut); //defined in child classes
+}
+
+//input iterator methods
+template<typename T, typename U, typename W>
+GraphNode<T,U,W>::input_iterator& GraphNode<T,U,W>::input_iterator::operator++() {
+	if(mpCurrent==mpLast) {
+		mpCurrent=NULL;
+		mbPastEnd = true;
+	} else if(mpCurrent!=NULL) { 
+		++mpCurrent;
+	} else if(!mbPastEnd) mpCurrent = mpFirst; 
+	return *this;
+}
+
+template<typename T, typename U, typename W>
+GraphNode<T,U,W>::input_iterator& GraphNode<T,U,W>::input_iterator::operator--() {
+	if(mpCurrent==mpLast) {
+		mpCurrent=NULL;
+		mbPastEnd = true;
+	} else if(mpCurrent!=NULL) { 
+		--mpCurrent;
+	} else if(mbPastEnd) mpCurrent = mpLast; 
+	return *this;
+}
+
+template<typename T, typename U, typename W>
+GraphNode<T,U,W>::input_iterator GraphNode<T,U,W>::input_iterator::operator++(int) {
+	input_iterator iTemp(*this);
+	++(*this); 
+	return iTemp;
+}
+
+template<typename T, typename U, typename W>
+GraphNode<T,U,W>::input_iterator GraphNode<T,U,W>::input_iterator::operator--(int) {
+	input_iterator iTemp(*this);
+	--(*this); 
+	return iTemp;
+}
+
+//output iterator methods
+template<typename T, typename U, typename W>
+GraphNode<T,U,W>::output_iterator& GraphNode<T,U,W>::output_iterator::operator++() {
+	if(mpCurrent==mpLast) {
+		mpCurrent=NULL;
+		mbPastEnd = true;
+	} else if(mpCurrent!=NULL) { 
+		++mpCurrent;
+	} else if(!mbPastEnd) mpCurrent = mpFirst; 
+	return *this;
+}
+
+template<typename T, typename U, typename W>
+GraphNode<T,U,W>::output_iterator& GraphNode<T,U,W>::output_iterator::operator--() {
+	if(mpCurrent==mpLast) {
+		mpCurrent=NULL;
+		mbPastEnd = true;
+	} else if(mpCurrent!=NULL) { 
+		--mpCurrent;
+	} else if(mbPastEnd) mpCurrent = mpLast; 
+	return *this;
+}
+
+template<typename T, typename U, typename W>
+GraphNode<T,U,W>::output_iterator GraphNode<T,U,W>::output_iterator::operator++(int) {
+	output_iterator iTemp(*this);
+	++(*this); 
+	return iTemp;
+}
+
+template<typename T, typename U, typename W>
+GraphNode<T,U,W>::output_iterator GraphNode<T,U,W>::output_iterator::operator--(int) {
+	output_iterator iTemp(*this);
+	--(*this); 
+	return iTemp;
 }
 
 #endif

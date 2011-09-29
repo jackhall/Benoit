@@ -17,7 +17,7 @@
 
 using namespace std;
 
-template<typename T, typename U, typename V>
+template<typename T, typename U, typename W>
 class GraphNode {
 /*
 	- Each Node is identified by a unique unsigned int. These ints are associated with pointers
@@ -68,24 +68,67 @@ public:
 	GraphNode& removeOutput(const unsigned int nOldOut);	//delegates to previous
 	
 	//iterators
-	class input_iter {
+	class input_iterator {
 	private:
-	
+		GraphNode* mpFirst;
+		GraphNode* mpLast;
+		GraphNode* mpCurrent;
+		bool mbPastEnd;
+		
 	public:
-	
+		input_iterator()
+			: mpFirst(NULL), mpLast(NULL), mpCurrent(NULL), mbPastEnd(false) {}
+		input_iterator( const GraphNode* pFirst,
+						const GraphNode* pLast,
+						const GraphNode* pCurrent)
+			: mpFirst(pFirst), mpLast(pLast), mpCurrent(pCurrent), mbPastEnd(false) {}
+		inline bool inBounds() { return mpCurrent!=NULL; }
+		inline bool outofBounds() { return mpCurrent==NULL; }
+		inline GraphNode& operator*() { 
+			if(mpCurrent==NULL) throw "Dereferenced input_iterator out of bounds";
+			else return *mpCurrent; }
+		inline input_iterator& operator++();
+		inline input_iterator& operator--();
+		inline input_iterator& operator++(int);
+		inline input_iterator& operator--(int);
+		bool operator==(const input_iterator& cTwo) 
+			{ return mpCurrent==cTwo.mpCurrent; }
+		bool operator!=(const input_iterator& cTwo) 
+			{ return mpCurrent!=cTwo.mpCurrent; }
 	};
 	
-	class output_iter {
+	class output_iterator {
 	private:
-	
+		GraphNode* mpFirst;
+		GraphNode* mpLast;
+		GraphNode* mpCurrent;
+		bool mbPastEnd;
 	public:
-	
+		output_iterator()
+			: mpFirst(NULL), mpLast(NULL), mpCurrent(NULL), mbPastEnd(false) {}
+		output_iterator(const GraphNode* pFirst,
+						const GraphNode* pLast,
+						const GraphNode* pCurrent)
+			: mpFirst(pFirst), mpLast(pLast), mpCurrent(pCurrent), mbPastEnd(false) {}
+		inline bool inBounds() { return mpCurrent!=NULL; }
+		inline bool outofBounds() { return mpCurrent==NULL; }
+		inline GraphNode& operator*() { 
+			if(mpCurrent==NULL) throw "Dereferenced output_iterator out of bounds";
+			else return *mpCurrent; }
+		inline output_iterator& operator++();
+		inline output_iterator& operator--();
+		inline output_iterator& operator++(int);
+		inline output_iterator& operator--(int);
+		bool operator==(const output_iterator& cTwo) 
+			{ return mpCurrent==cTwo.mpCurrent; }
+		bool operator!=(const output_iterator& cTwo) 
+			{ return mpCurrent!=cTwo.mpCurrent; }
 	};
 	
-	input_iter inputBegin();
-	input_iter inputEnd();
-	output_iter outputBegin();
-	output_iter outputEnd();
+	input_iterator inputBegin();
+	input_iterator inputEnd();
+	output_iterator outputBegin();
+	output_iterator outputEnd();
 };
 
 #include "GraphNode.cpp"
