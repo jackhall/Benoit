@@ -28,9 +28,9 @@ namespace Graph {
 	*/
 
 	private:
-		//connection lists
-		vector<Node*> mvInputConnections;
-		vector<Node*> mvOutputConnections;
+		//connection storage
+		vector<Connection> mvInputs;
+		vector<Connection> mvOutputs;
 	
 		//static ID members
 		static unsigned int snID_COUNT;	
@@ -39,6 +39,31 @@ namespace Graph {
 	
 		Node& operator=(const Node& cSource);		//hidden assignment operator
 		Node(const Node& cSource); 					//hidden copy constructor, maybe not hide this?
+		
+		//----------- connection class ------------
+		class Connection {
+		private:
+			Node* mpTarget;
+			unsigned int mnTarget;
+			U* mpSignalBuffer;
+			W* mpErrorBuffer;
+			T mtWeight;
+			unsigned int mnDelay;
+			
+		public:		
+			Connection()
+				: pTarget(NULL), pSignalBuffer(NULL), 
+					pErrorBuffer(NULL), tWeight(0.0), nDelay(0) {}
+			Connection( const Node* pTarget,
+						const nDelay=0,
+						const tWeight=0.0);
+			
+			void pushSignal(U uSignal);
+			U pullSignal();
+			void pushError(W wError);
+			W pullError();
+			//add streamlike functionality?
+		};
 
 	protected:
 		virtual ostream& print(ostream &out) const; //not finished
@@ -68,12 +93,11 @@ namespace Graph {
 		Node& removeOutput(const unsigned int nOldOut);	//delegates to previous
 	
 		//-------------iterators---------------
-		template<typename X> //is this too complicated?
 		class iterator {
 		private:
-			Node* mpFirst; //only works if elements of Graph::Node storage are serial
-			Node* mpLast;
-			Node* mpCurrent;
+			Connection* mpFirst; //only works if elements of Graph::Node storage are serial
+			Connection* mpLast;
+			Connection* mpCurrent;
 			bool mbPastEnd;
 		
 		public:
@@ -96,9 +120,12 @@ namespace Graph {
 			X& pull() const;
 			
 			//////// overloaded operators ///////////
-			inline Node& operator*() { 
+			inline Connection& operator*() { 
 				if(mpCurrent==NULL) throw "Dereferenced iterator out of bounds";
 				else return *mpCurrent; }
+			inline Connection* operator->() {
+				if(mpCurrent==NULL) throw "Dereferenced iterator out of bounds";
+				else return mpCurrent; }
 			iterator& operator++();
 			iterator& operator--();
 			iterator& operator++(int);
