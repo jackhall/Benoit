@@ -20,8 +20,6 @@
 
 #include <iostream>
 
-using namespace std;
-
 template<typename T=float>
 class State { 
 /*
@@ -112,7 +110,11 @@ public:
 		iterator operator--(int);
 		bool operator==(const iterator& cTwo) { return mpCurrent==cTwo.mpCurrent; }
 		bool operator!=(const iterator& cTwo) { return mpCurrent!=cTwo.mpCurrent; }
-	};
+		//pointer arithmetic
+		//[] dereference
+		//comparison > < => =<
+		//compound assignment 
+	}; //class iterator
 	
 	class const_iterator {
 	//see State<T>::iterator comments
@@ -144,8 +146,9 @@ public:
 		const_iterator operator--(int);
 		bool operator==(const const_iterator& cTwo) { return mpCurrent==cTwo.mpCurrent; }
 		bool operator!=(const const_iterator& cTwo) { return mpCurrent!=cTwo.mpCurrent; }
-	};
+	}; //class const_iterator
 	
+	//----------- constructors, destructor, plain assignment -----------
 	State();
 	State(	const unsigned int nSamples,
 			const unsigned int nSteps = 1);
@@ -153,6 +156,7 @@ public:
 	State& operator=(const State& cSource);
 	~State();
 	
+	//----------- overloaded operators ---------------
 	T& operator()(	const unsigned int nSample, 
 					const unsigned int nStepBack = 0);
 	const T& operator()(const unsigned int nSample, 
@@ -181,8 +185,12 @@ public:
 	template<typename U>
 	friend ostream& operator<<(ostream& out, const State<U>& cState);
 	
+	//---------- public methods -------------------
+	//////// iterator-related //////////
 	iterator begin(unsigned int nStepBack=0);
 	iterator end(unsigned int nStepBack=0);  //need const versions?
+	
+	//////// general management ////////
 	inline bool empty() { return size()==0; }
 	State& zero();
 	State& initializeStep(const T tBias); //also overload operator= to take type T?
@@ -194,7 +202,7 @@ public:
 					const unsigned int nSteps = 1);
 	inline unsigned int samples() const { return mnSamples; }
 	inline unsigned int steps() const { return mnSteps; }
-};
+}; //class State
 
 #include "State.cpp"
 
