@@ -17,7 +17,7 @@
 
 namespace Graph {
 
-	template<typename T, typename U, typename W>
+	template<typename T, typename S, typename E>
 	class Node {
 	/*
 		- Each Node is identified by a unique unsigned int. These ints are associated with pointers
@@ -45,8 +45,8 @@ namespace Graph {
 		private:
 			Node* mpTarget;
 			unsigned int mnTarget;
-			U* mpSignalBuffer;
-			W* mpErrorBuffer;
+			S* mpSignalBuffer;
+			E* mpErrorBuffer;
 			T mtWeight;
 			unsigned int mnDelay;
 			
@@ -56,17 +56,19 @@ namespace Graph {
 					pErrorBuffer(NULL), tWeight(0.0), nDelay(0) {}
 			Connection( const Node* pTarget,
 						const nDelay=0,
-						const tWeight=0.0);
+						const tWeight=0.0); //nd
+			~Connection(); //nd
 			
-			void pushSignal(U uSignal);
-			U pullSignal();
-			void pushError(W wError);
-			W pullError();
-			//add streamlike functionality?
+			void pushSignal(S sSignal); //nd
+			S pullSignal(); //nd
+			void pushError(E eError); //nd
+			E pullError(); //nd
+			
+			friend Connection& operator<<(Connection& out, S& sSignal); //nd
+			friend Connection& operator<<(Connection& out, E& eError); //nd
+			friend Connection& operator>>(Connection& in, S& sSignal); //nd
+			friend Connection& operator>>(Connection& in, E& eSignal); //nd
 		};
-
-	protected:
-		virtual ostream& print(ostream &out) const; //not finished
 
 	public: 
 		//Node ID and indexing
@@ -75,21 +77,21 @@ namespace Graph {
 			{ return smID_MAP[nAddress]; }
 	
 		//constructor, destructor
-		Node();
-		virtual ~Node() {}
+		Node(); //nd
+		~Node() {}
 	
 		//----------- connection management ---------------
 		Node& addInput( const Node* pNewIn,
-						const bool bTimeDelay=false); 
+						const bool bTimeDelay=false);  //nd
 		Node& addInput( const unsigned int nNewIn,		//delegates to previous
 						const bool bTimeDelay=false);
 		Node& addOutput(const Node* pNewOut,
-						const bool bTimeDelay=false); 
+						const bool bTimeDelay=false); //nd
 		Node& addOutput(const unsigned int nNewOut,		//delegates to previous
-						const bool bTimeDelay=false);
-		Node& removeInput(Node* pOldIn);
+						const bool bTimeDelay=false); 
+		Node& removeInput(Node* pOldIn); //nd
 		Node& removeInput(const unsigned int nOldIn);	//delegates to previous
-		Node& removeOutput(Node* pOldOut);
+		Node& removeOutput(Node* pOldOut); //nd
 		Node& removeOutput(const unsigned int nOldOut);	//delegates to previous
 	
 		//-------------iterators---------------
@@ -104,20 +106,23 @@ namespace Graph {
 			//////// constructors, assignment /////////
 			iterator()
 				: mpFirst(NULL), mpLast(NULL), mpCurrent(NULL), mbPastEnd(false) {}
-			iterator(const Node* pFirst,
-					 const Node* pLast,
-					 const Node* pCurrent)
+			iterator(const Connection* pFirst,
+					 const Connection* pLast,
+					 const Connection* pCurrent)
 				: mpFirst(pFirst), mpLast(pLast), mpCurrent(pCurrent), mbPastEnd(false) {}
 			iterator(const iterator& iOld) 
 				: mpFirst(iOld.mpFirst), mpLast(iOld.mpLast), mpCurrent(iOld.mpCurrent),
 					mbPastEnd(iOld.mbPastEnd) {}
-			iterator& operator=(const iterator& iRhs);
+			iterator& operator=(const iterator& iRhs);  //nd
 			
 			//////// miscellaneous methods
-			inline bool inBounds() { return mpCurrent!=NULL; }
-			inline bool outofBounds() { return mpCurrent==NULL; }
-			void push(const X& xData);
-			X& pull() const;
+			inline bool inBounds() { return mpCurrent!=NULL; } //nd
+			inline bool outofBounds() { return mpCurrent==NULL; } //nd
+			
+			void pushSignal(const S sSignal); //nd
+			S pullSignal(); //nd
+			void pushError(const E eError); //nd
+			E pullError(); //nd
 			
 			//////// overloaded operators ///////////
 			inline Connection& operator*() { 
@@ -134,28 +139,21 @@ namespace Graph {
 				{ return mpCurrent==cTwo.mpCurrent; }
 			bool operator!=(const iterator& cTwo) 
 				{ return mpCurrent!=cTwo.mpCurrent; }
+			friend iterator& operator<<(iterator& out, S& sSignal); //nd
+			friend iterator& operator<<(iterator& out, E& eError); //nd
+			friend iterator& operator>>(iterator& in, S& sSignal); //nd
+			friend iterator& operator>>(iterator& in, E& eSignal); //nd
 			//pointer arithmetic
 			//[] dereference
 			//comparison > < => =<
 			//compound assignment 
 		}; //class iterator
 	
-		class input_iterator : public iterator {
-		private:
-		public:
-			input_iterator& operator=(const input_iterator& iRhs);
-		}; //class input_iterator
-	
-		class output_iterator : public iterator {
-		private:
-		public:
-		}; //class output_iterator
-	
 		//--------- iterator-related methods ---------------
-		input_iterator inputBegin();
-		input_iterator inputEnd();
-		output_iterator outputBegin();
-		output_iterator outputEnd();
+		iterator inputBegin(); //nd
+		iterator inputEnd(); //nd
+		iterator outputBegin(); //nd
+		iterator outputEnd(); //nd
 	}; //class Node
 
 	#include "GraphNode.cpp"
