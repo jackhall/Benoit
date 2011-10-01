@@ -64,10 +64,10 @@ namespace Graph {
 			void pushError(E eError); //nd
 			E pullError(); //nd
 			
-			friend Connection& operator<<(Connection& out, S& sSignal); //nd
-			friend Connection& operator<<(Connection& out, E& eError); //nd
-			friend Connection& operator>>(Connection& in, S& sSignal); //nd
-			friend Connection& operator>>(Connection& in, E& eSignal); //nd
+			friend Connection& operator<<(Connection& out, S& sSignal); //delegates to pushSignal
+			friend Connection& operator<<(Connection& out, E& eError); //delegates to pushError
+			friend Connection& operator>>(Connection& in, S& sSignal); //delegates to pullSignal
+			friend Connection& operator>>(Connection& in, E& eError); //delegates to pullError
 		};
 
 	public: 
@@ -83,18 +83,18 @@ namespace Graph {
 		//----------- connection management ---------------
 		Node& addInput( const Node* pNewIn,
 						const bool bTimeDelay=false);  //nd
-		Node& addInput( const unsigned int nNewIn,		//delegates to previous
+		Node& addInput( const unsigned int nNewIn,		//delegates to addInput(const Node*...
 						const bool bTimeDelay=false);
 		Node& addOutput(const Node* pNewOut,
 						const bool bTimeDelay=false); //nd
-		Node& addOutput(const unsigned int nNewOut,		//delegates to previous
+		Node& addOutput(const unsigned int nNewOut,		//delegates to addOutput(const Node*...
 						const bool bTimeDelay=false); 
 		Node& removeInput(Node* pOldIn); //nd
-		Node& removeInput(const unsigned int nOldIn);	//delegates to previous
+		Node& removeInput(const unsigned int nOldIn);	//delegates to removeInput(const Node*...
 		Node& removeOutput(Node* pOldOut); //nd
-		Node& removeOutput(const unsigned int nOldOut);	//delegates to previous
+		Node& removeOutput(const unsigned int nOldOut);	//delegates to removeOutput(const Node*...
 	
-		//-------------iterators---------------
+		//-------------iterator---------------
 		class iterator {
 		private:
 			Connection* mpFirst; //only works if elements of Graph::Node storage are serial
@@ -113,40 +113,63 @@ namespace Graph {
 			iterator(const iterator& iOld) 
 				: mpFirst(iOld.mpFirst), mpLast(iOld.mpLast), mpCurrent(iOld.mpCurrent),
 					mbPastEnd(iOld.mbPastEnd) {}
-			iterator& operator=(const iterator& iRhs);  //nd
+			iterator& operator=(const iterator& iRhs); 
 			
 			//////// miscellaneous methods
-			inline bool inBounds() { return mpCurrent!=NULL; } //nd
-			inline bool outofBounds() { return mpCurrent==NULL; } //nd
+			inline bool inBounds() { return mpCurrent!=NULL; } 
+			inline bool outofBounds() { return mpCurrent==NULL; } 
 			
-			void pushSignal(const S sSignal); //nd
-			S pullSignal(); //nd
-			void pushError(const E eError); //nd
-			E pullError(); //nd
+			inline void pushSignal(const S sSignal) 
+				{ mpCurrent->pushSignal(sSignal); }
+			inline S pullSignal() const
+				{ return mpCurrent->pullSignal(); }
+			inline void pushError(const E eError);
+				{ mpCurrent->pushError(eError); }
+			inline E pullError() const
+				{ return mpCurrent->pullError(); }
 			
 			//////// overloaded operators ///////////
+			//pointer reference/dereference
 			inline Connection& operator*() { 
 				if(mpCurrent==NULL) throw "Dereferenced iterator out of bounds";
 				else return *mpCurrent; }
 			inline Connection* operator->() {
 				if(mpCurrent==NULL) throw "Dereferenced iterator out of bounds";
 				else return mpCurrent; }
+			Connection& operator[](const int nIndex) //delegates to operator+=
+				{ return *(*this += nIndex); }
+			
+			//comparisons
+			inline bool operator==(const iterator& cTwo) //similar to operator!=
+				{ return mpCurrent==cTwo.mpCurrent; }
+			inline bool operator!=(const iterator& cTwo) //similar to operator==
+				{ return mpCurrent!=cTwo.mpCurrent; } 
+			inline bool operator>(const iterator& iRhs)
+				{ return mpCurrent>iRhs.mpCurrent; }
+			inline bool operator<(const iterator& iRhs) 
+				{ return mpCurrent<iRhs.mpCurrent; }
+			inline bool operator>=(const iterator& iRhs) //delegates to operator<
+				{ return !(mpCurrent<iRhs.mpCurrent); }
+			inline bool operator<=(const iterator& iRhs) //delegates to operator>
+				{ return !(mpCurrent>iRhs.mpCurrent); }
+			
+			//I/O streaming
+			friend iterator& operator<<(iterator& out, S& sSignal); //delegates to Connection::pushSignal
+			friend iterator& operator<<(iterator& out, E& eError); //delegates to Connection::pushError
+			friend iterator& operator>>(iterator& in, S& sSignal); //delegates to Connection::pullSignal
+			friend iterator& operator>>(iterator& in, E& eSignal); //delegates to Connection::pullError
+			
+			//pointer arithmetic
 			iterator& operator++();
 			iterator& operator--();
-			iterator& operator++(int);
-			iterator& operator--(int);
-			bool operator==(const iterator& cTwo) 
-				{ return mpCurrent==cTwo.mpCurrent; }
-			bool operator!=(const iterator& cTwo) 
-				{ return mpCurrent!=cTwo.mpCurrent; }
-			friend iterator& operator<<(iterator& out, S& sSignal); //nd
-			friend iterator& operator<<(iterator& out, E& eError); //nd
-			friend iterator& operator>>(iterator& in, S& sSignal); //nd
-			friend iterator& operator>>(iterator& in, E& eSignal); //nd
-			//pointer arithmetic
-			//[] dereference
-			//comparison > < => =<
-			//compound assignment 
+			iterator operator++(int); //delegates to prefix version
+			iterator operator--(int); //delegates to prefix version
+			iterator& operator+=(const int nIndex);
+			iterator& operator-=(const int nIndex);
+			inline const iterator operator+(const int nIndex) //delegates to operator+=
+				{ iterator iNew(*this) += iRhs; }
+			inline const iterator operator-(const int nIndex) //delegates to operator-=
+				{ iterator iNew(*this) -= iRhs; }
 		}; //class iterator
 	
 		//--------- iterator-related methods ---------------

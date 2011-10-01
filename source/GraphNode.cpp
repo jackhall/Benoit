@@ -13,139 +13,223 @@ ostream& Graph::Node::print(ostream &out) const {
 */
 //=================== Node I/O management ==================
 ///////// adding inputs ////////
-template<typename T, typename U, typename W>
-Node<T,U,W>&  Node<T,U,W>::addInput(const unsigned int nNewIn,
+template<typename T, typename S, typename E>
+Node<T,S,E>&  Node<T,S,E>::addInput(const unsigned int nNewIn,
 					 				const char chOperator,
 					 				const unsigned int nTimeDelay) {
 	//look up Node ID
-	Node<T,U,W>* pNewIn = find(nNewIn);
+	Node<T,S,E>* pNewIn = find(nNewIn);
 	//call a Connection_base-derived constructor
 	return addInput(pNewIn, chOperator, nTimeDelay); //pointer version next
 }
 
-template<typename T, typename U, typename W>
-Node<T,U,W>&  Node<T,U,W>::addInput(const unsigned int nNewIn,
+template<typename T, typename S, typename E>
+Node<T,S,E>&  Node<T,S,E>::addInput(const unsigned int nNewIn,
 					 				const char chOperator,
 					 				const unsigned int nTimeDelay) {
 	//look up Node ID
-	Node<T,U,W>* pNewIn = find(nNewIn);
+	Node<T,S,E>* pNewIn = find(nNewIn);
 	//call a Connection_base-derived constructor
 	return addInput(pNewIn, chOperator, nTimeDelay); //pointer version next
 }
 
 ///////// adding outputs //////////
-template<typename T, typename U, typename W>
-Node<T,U,W>&  Node<T,U,W>::addOutput(const unsigned int nNewOut,
+template<typename T, typename S, typename E>
+Node<T,S,E>&  Node<T,S,E>::addOutput(const unsigned int nNewOut,
 									 const char chOperator,
 									 const unsigned int nTimeDelay) {
 	//look up Node ID
-	Node<T,U,W>* pNewOut = find(nNewOut);
+	Node<T,S,E>* pNewOut = find(nNewOut);
 	//call a Connection_base-derived constructor
 	return addOutput(pNewOut, chOperator, nTimeDelay); //pointer version next
 }
 
-template<typename T, typename U, typename W>
-Node<T,U,W>&  Node<T,U,W>::addOutput(const unsigned int nNewOut,
+template<typename T, typename S, typename E>
+Node<T,S,E>&  Node<T,S,E>::addOutput(const unsigned int nNewOut,
 									 const char chOperator,
 									 const unsigned int nTimeDelay) {
 	//look up Node ID
-	Node<T,U,W>* pNewOut = find(nNewOut);
+	Node<T,S,E>* pNewOut = find(nNewOut);
 	//call a Connection_base-derived constructor
 	return addOutput(pNewOut, chOperator, nTimeDelay); //pointer version next
 }
 
 ///////// removing inputs ////////////
-template<typename T, typename U, typename W>
-Node<T,U,W>&  Node<T,U,W>::removeInput(const unsigned int nOldIn) {
+template<typename T, typename S, typename E>
+Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
 	//look up Node ID
-	Node<T,U,W>* pOldIn = find(nOldIn);
+	Node<T,S,E>* pOldIn = find(nOldIn);
 	//calls a Connection_base-derived destructor
 	return removeInput(pOldIn);  //pointer version next
 }
 
-template<typename T, typename U, typename W>
-Node<T,U,W>&  Node<T,U,W>::removeInput(const unsigned int nOldIn) {
+template<typename T, typename S, typename E>
+Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
 	//look up Node ID
-	Node<T,U,W>* pOldIn = find(nOldIn);
+	Node<T,S,E>* pOldIn = find(nOldIn);
 	//calls a Connection_base-derived destructor
 	return removeInput(pOldIn);  //pointer version next
 }
 
 ///////// removing outputs ////////
-template<typename T, typename U, typename W>
-Node<T,U,W>&  Node<T,U,W>::removeOutput(const unsigned int nOldOut) {
+template<typename T, typename S, typename E>
+Node<T,S,E>&  Node<T,S,E>::removeOutput(const unsigned int nOldOut) {
 	//look up Node ID
-	Node<T,U,W>* pOldOut = find(nOldOut);
+	Node<T,S,E>* pOldOut = find(nOldOut);
 	//calls a Connection_base-derived destructor
 	return removeInput(pOldOut);  //pointer version next
 }
 
-template<typename T, typename U, typename W>
-Node<T,U,W>&  Node<T,U,W>::removeOutput(const unsigned int nOldOut) {
+template<typename T, typename S, typename E>
+Node<T,S,E>&  Node<T,S,E>::removeOutput(const unsigned int nOldOut) {
 	//look up Node ID
-	Node<T,U,W>* pOldOut = find(nOldOut);
+	Node<T,S,E>* pOldOut = find(nOldOut);
 	//calls a Connection_base-derived destructor
-	return removeInput(pOldOut);  //pointer version next
+	return removeInput( pOldOut);  //pointer version next
+}
+
+//=================== Connection methods ======================
+/////////constructors, destructor
+template<typename T, typename S, typename E>
+Node<T,S,E>::Connection( const Node* pTarget,
+						const nDelay,
+						const tWeight) {						
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::~Connection() {
+}
+
+/////////streaming operators /////////////
+template<typename T, typename S, typename E>
+Node<T,S,E>::Connection&  operator<<(Node<T,S,E>::Connection& out, S& sSignal) {
+	out.pushSignal(sSignal);
+	return *this;
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::Connection&  operator<<(Node<T,S,E>::Connection& out, E& eError) {
+	out.pushError(eError);
+	return *this;
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::Connection&  operator>>(Node<T,S,E>::Connection& in, S& sSignal) {
+	sSignal = in.pullSignal();
+	return *this;
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::Connection&  operator>>(Node<T,S,E>::Connection& in, E& eError) {
+	eError = in.pullError();
+	return *this;
 }
 
 //=================== iterator methods ========================
 /////////assignment /////////
-template<typename T, typename U, typename W>
-Node<T,U,W>::iterator& 	Node<T,U,W>::iterator::operator=(const interator& iRhs) {
-	mpFirst = iRhs.mpFirst;
-	mpLast = iRhs.mpLast;
-	mpCurrent = iRhs.mpCurrent;
-	mbPastEnd = iRhs.mbPastEnd;
-	return this;
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator& 	Node<T,S,E>::iterator::operator=(const interator& iRhs) {
+	if( this != &iRhs ) {
+		mpFirst = iRhs.mpFirst;
+		mpLast = iRhs.mpLast;
+		mpCurrent = iRhs.mpCurrent;
+		mbPastEnd = iRhs.mbPastEnd;
+	}
+	return *this;
 }
 
-template<typename T, typename U, typename W>
-Node<T,U,W>::iterator& Node<T,U,W>::iterator::operator+=(const interator& iRhs) {
-	//finish later
-	return this;
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator& Node<T,S,E>::iterator::operator+=(const int nIndex) { //similar to operator-=
+	Connection* pNew = mpCurrent+nIndex;
+	if( mpLast < pNew ) {
+		mpCurrent = NULL;
+		mbPastEnd = true;
+	} else if( mpFirst > pNew ) {
+		mpCurrent = NULL;
+		mbPastEnd = false;
+	} else {
+		mpCurrent = pNew;
+		mbPastEnd = false;
+	}
+	return *this;
 }
 
-template<typename T, typename U, typename W>
-Node<T,U,W>::iterator& Node<T,U,W>::iterator::operator-=(const interator& iRhs) {
-	//finish later
-	return this;
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator& Node<T,S,E>::iterator::operator-=(const int nIndex) { //similar to operator+=
+	Connection* pNew = mpCurrent-nIndex;
+	if( mpLast < pNew ) {
+		mpCurrent = NULL;
+		mbPastEnd = true;
+	} else if( mpFirst > pNew ) {
+		mpCurrent = NULL;
+		mbPastEnd = false;
+	} else {
+		mpCurrent = pNew;
+		mbPastEnd = false;
+	}
+	return *this;
 }
 
 ///////// increment, decrement ///////////
-template<typename T, typename U, typename W>
-Node<T,U,W>::iterator& Node<T,U,W>::iterator::operator++() {
-	if(mpCurrent==mpLast) {
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator& Node<T,S,E>::iterator::operator++() {
+	if( mpCurrent == mpLast ) {
 		mpCurrent=NULL;
 		mbPastEnd = true;
-	} else if(mpCurrent!=NULL) { 
+	} else if( mpCurrent != NULL ) { 
 		++mpCurrent;
-	} else if(!mbPastEnd) mpCurrent = mpFirst; 
+	} else if( !mbPastEnd ) mpCurrent = mpFirst; 
 	return *this;
 }
 
-template<typename T, typename U, typename W>
-Node<T,U,W>::iterator& Node<T,U,W>::iterator::operator--() {
-	if(mpCurrent==mpLast) {
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator& Node<T,S,E>::iterator::operator--() {
+	if( mpCurrent == mpLast ) {
 		mpCurrent=NULL;
 		mbPastEnd = true;
-	} else if(mpCurrent!=NULL) { 
+	} else if( mpCurrent != NULL ) { 
 		--mpCurrent;
-	} else if(mbPastEnd) mpCurrent = mpLast; 
+	} else if( mbPastEnd ) mpCurrent = mpLast; 
 	return *this;
 }
 
-template<typename T, typename U, typename W>
-Node<T,U,W>::iterator Node<T,U,W>::iterator::operator++(int) {
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator Node<T,S,E>::iterator::operator++(int) {
 	input_iterator iTemp(*this);
 	++(*this); 
 	return iTemp;
 }
 
-template<typename T, typename U, typename W>
-Node<T,U,W>::iterator Node<T,U,W>::iterator::operator--(int) {
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator Node<T,S,E>::iterator::operator--(int) {
 	input_iterator iTemp(*this);
 	--(*this); 
 	return iTemp;
+}
+
+////////// streaming /////////////
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator&  operator<<(Node<T,S,E>::iterator& out, S& sSignal) {
+	in.mpCurrent->pushSignal(sSignal);
+	return out;
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator&  operator<<(Node<T,S,E>::iterator& out, E& eError) {
+	in.mpCurrent->pushError(eError);
+	return out;
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator&  operator>>(Node<T,S,E>::iterator& in, S& sSignal) {
+	sSignal = in.mpCurrent->pullSignal();
+	return in;
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator&  operator>>(Node<T,S,E>::iterator& in, E& eSignal) {
+	eError = in.mpCurrent->pullError();
+	return in;
 }
 
 #endif
