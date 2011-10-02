@@ -41,11 +41,21 @@ namespace Graph {
 		class Connection {
 		private:
 			Node* mpTarget;
-			unsigned int mnTarget; //find in constructor
 			S* mpSignalBuffer;
+			S* mpCurrentSignal;
 			E* mpErrorBuffer;
+			E* mpCurrentError;
 			T mtWeight;
 			unsigned int mnDelay;
+			
+			Connection( const Node* pTarget,
+						const S* pSignalBuffer,
+						const E* pErrorBuffer,
+						const T tWeight,
+						unsigned int nDelay)
+				: mpTarget(pTarget), mpSignalBuffer(pSignalBuffer),
+					mpErrorBuffer(pErrorBuffer), mtWeight(tWeight),
+					mnDelay(nDelay) {}
 			
 		public:		
 			Connection()
@@ -180,7 +190,7 @@ namespace Graph {
 		iterator outputEnd(); //nd
 	}; //class Node
 
-	#include "GraphNode.cpp"
+	#include "Graph=Node.cpp"
 
 } //namespace Graph
 
