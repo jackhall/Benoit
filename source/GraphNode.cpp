@@ -12,49 +12,35 @@ ostream& Graph::Node::print(ostream &out) const {
 }
 */
 //=================== Node I/O management ==================
-///////// adding inputs ////////
+///////////// adding ////////////////
 template<typename T, typename S, typename E>
-Node<T,S,E>&  Node<T,S,E>::addInput(const unsigned int nNewIn,
-					 				const char chOperator,
+Node<T,S,E>&  Node<T,S,E>::addInput(const Node<T,S,E>* pNewIn,
 					 				const unsigned int nTimeDelay) {
-	//look up Node ID
-	Node<T,S,E>* pNewIn = find(nNewIn);
-	//call a Connection_base-derived constructor
-	return addInput(pNewIn, chOperator, nTimeDelay); //pointer version next
+	mvInputs.push_back( Node<T,S,E>::Connection(pNewIn, nTimeDelay) );
+	return *this;
 }
 
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::addInput(const unsigned int nNewIn,
-					 				const char chOperator,
 					 				const unsigned int nTimeDelay) {
-	//look up Node ID
 	Node<T,S,E>* pNewIn = find(nNewIn);
-	//call a Connection_base-derived constructor
-	return addInput(pNewIn, chOperator, nTimeDelay); //pointer version next
+	return addInput(pNewIn, nTimeDelay);
 }
 
-///////// adding outputs //////////
 template<typename T, typename S, typename E>
-Node<T,S,E>&  Node<T,S,E>::addOutput(const unsigned int nNewOut,
-									 const char chOperator,
+Node<T,S,E>&  Node<T,S,E>::addOutput(const Node<T,S,E>* pNewOut,
 									 const unsigned int nTimeDelay) {
-	//look up Node ID
-	Node<T,S,E>* pNewOut = find(nNewOut);
-	//call a Connection_base-derived constructor
-	return addOutput(pNewOut, chOperator, nTimeDelay); //pointer version next
+	mvOutputs.push_back( Node<T,S,E>::Connection(pNewIn,nTimeDelay) );
+	return *this;
 }
 
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::addOutput(const unsigned int nNewOut,
-									 const char chOperator,
 									 const unsigned int nTimeDelay) {
-	//look up Node ID
 	Node<T,S,E>* pNewOut = find(nNewOut);
-	//call a Connection_base-derived constructor
-	return addOutput(pNewOut, chOperator, nTimeDelay); //pointer version next
-}
+	return addOutput(pNewOut, nTimeDelay); 
 
-///////// removing inputs ////////////
+//////////////// removing //////////////////
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
 	//look up Node ID
@@ -71,7 +57,6 @@ Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
 	return removeInput(pOldIn);  //pointer version next
 }
 
-///////// removing outputs ////////
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::removeOutput(const unsigned int nOldOut) {
 	//look up Node ID

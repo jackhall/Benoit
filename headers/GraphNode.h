@@ -28,15 +28,12 @@ namespace Graph {
 	*/
 
 	private:
-		//connection storage
-		vector<Connection> mvInputs;
-		vector<Connection> mvOutputs;
-	
-		//static ID members
+		//static ID members (special handling for template classes?)
 		static unsigned int snID_COUNT;	
 		static map<unsigned int, Node*> smID_MAP; 	//one centralized copy avoids sychronization issues
 		static unsigned int getNewID() { return snID_COUNT++; }
 	
+		//hidden copy functionality
 		Node& operator=(const Node& cSource);		//hidden assignment operator
 		Node(const Node& cSource); 					//hidden copy constructor, maybe not hide this?
 		
@@ -44,7 +41,7 @@ namespace Graph {
 		class Connection {
 		private:
 			Node* mpTarget;
-			unsigned int mnTarget;
+			unsigned int mnTarget; //find in constructor
 			S* mpSignalBuffer;
 			E* mpErrorBuffer;
 			T mtWeight;
@@ -69,7 +66,11 @@ namespace Graph {
 			friend Connection& operator>>(Connection& in, S& sSignal); //delegates to pullSignal
 			friend Connection& operator>>(Connection& in, E& eError); //delegates to pullError
 		};
-
+		
+		//connection storage
+		vector<Connection> mvInputs;
+		vector<Connection> mvOutputs;
+		
 	public: 
 		//Node ID and indexing
 		const unsigned int ID;
@@ -78,17 +79,17 @@ namespace Graph {
 	
 		//constructor, destructor
 		Node(); //nd
-		~Node() {}
+		~Node(); //nd
 	
 		//----------- connection management ---------------
-		Node& addInput( const Node* pNewIn,
-						const bool bTimeDelay=false);  //nd
+		Node& addInput( const No* pNewIn,
+						const unsigned nTimeDelay=0); //not finished?
 		Node& addInput( const unsigned int nNewIn,		//delegates to addInput(const Node*...
-						const bool bTimeDelay=false);
+						const unsigned nTimeDelay=0);
 		Node& addOutput(const Node* pNewOut,
-						const bool bTimeDelay=false); //nd
+						const unsigned nTimeDelay=0); //not finished?
 		Node& addOutput(const unsigned int nNewOut,		//delegates to addOutput(const Node*...
-						const bool bTimeDelay=false); 
+						const unsigned nTimeDelay=0); 
 		Node& removeInput(Node* pOldIn); //nd
 		Node& removeInput(const unsigned int nOldIn);	//delegates to removeInput(const Node*...
 		Node& removeOutput(Node* pOldOut); //nd
