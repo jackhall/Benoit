@@ -73,43 +73,6 @@ Node<T,S,E>&  Node<T,S,E>::removeOutput(const unsigned int nOldOut) {
 	return removeInput( pOldOut);  //pointer version next
 }
 
-//=================== Connection methods ======================
-/////////constructors, destructor
-template<typename T, typename S, typename E>
-Node<T,S,E>::Connection( const Node* pTarget,
-						const nDelay,
-						const tWeight) {						
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>::~Connection() {
-}
-
-/////////streaming operators /////////////
-template<typename T, typename S, typename E>
-Node<T,S,E>::Connection&  operator<<(Node<T,S,E>::Connection& out, S& sSignal) {
-	out.pushSignal(sSignal);
-	return *this;
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>::Connection&  operator<<(Node<T,S,E>::Connection& out, E& eError) {
-	out.pushError(eError);
-	return *this;
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>::Connection&  operator>>(Node<T,S,E>::Connection& in, S& sSignal) {
-	sSignal = in.pullSignal();
-	return *this;
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>::Connection&  operator>>(Node<T,S,E>::Connection& in, E& eError) {
-	eError = in.pullError();
-	return *this;
-}
-
 //=================== iterator methods ========================
 /////////assignment /////////
 template<typename T, typename S, typename E>

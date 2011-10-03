@@ -25,6 +25,17 @@ namespace Graph {
 	public:
 		SharedBuffer(const unsigned int nSize);
 		~SharedBuffer();
+		
+		void step();
+		inline T pull() const 
+			{ this->step();
+			  return *mpCurrent; }
+		inline void push(T tData)
+			{ this->step();
+			  *mpCurrent = tData; }
+		
+		friend SharedBuffer& operator<<(SharedBuffer& out, T& tData); //delegates to push
+		friend SharedBuffer& operator>>(SharedBuffer& in, T& tData); //delegates to pull
 	}; //class Buffer
 
 	#include "Graph=SharedBuffer.cpp"

@@ -37,44 +37,13 @@ namespace Graph {
 		Node& operator=(const Node& cSource);		//hidden assignment operator
 		Node(const Node& cSource); 					//hidden copy constructor, maybe not hide this?
 		
-		//----------- connection class ------------
-		class Connection {
-		private:
-			Node* mpTarget;
-			S* mpSignalBuffer;
-			S* mpCurrentSignal;
-			E* mpErrorBuffer;
-			E* mpCurrentError;
-			T mtWeight;
-			unsigned int mnDelay;
-			
-			Connection( const Node* pTarget,
-						const S* pSignalBuffer,
-						const E* pErrorBuffer,
-						const T tWeight,
-						unsigned int nDelay)
-				: mpTarget(pTarget), mpSignalBuffer(pSignalBuffer),
-					mpErrorBuffer(pErrorBuffer), mtWeight(tWeight),
-					mnDelay(nDelay) {}
-			
-		public:		
-			Connection()
-				: pTarget(NULL), pSignalBuffer(NULL), 
-					pErrorBuffer(NULL), tWeight(0.0), nDelay(0) {}
-			Connection( const Node* pTarget,
-						const nDelay=0,
-						const tWeight=0.0); //nd
-			~Connection(); //nd
-			
-			void pushSignal(S sSignal); //nd
-			S pullSignal(); //nd
-			void pushError(E eError); //nd
-			E pullError(); //nd
-			
-			friend Connection& operator<<(Connection& out, S& sSignal); //delegates to pushSignal
-			friend Connection& operator<<(Connection& out, E& eError); //delegates to pushError
-			friend Connection& operator>>(Connection& in, S& sSignal); //delegates to pullSignal
-			friend Connection& operator>>(Connection& in, E& eError); //delegates to pullError
+		//connection struct
+		struct Connection {
+			Node* target;
+			SharedBuffer<S> signal;
+			SharedBuffer<E> error;
+			T weight;
+			unsigned int delay;
 		};
 		
 		//connection storage
