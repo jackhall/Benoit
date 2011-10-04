@@ -9,6 +9,25 @@ SharedBuffer<T>::SharedBuffer(const unsigned int nSize)
 }
 
 template<typename T>
+SharedBuffer<T>::SharedBuffer(const unsigned int nSize,
+					 		  const SharedBuffer* pOther)
+	: mnSize(nSize) {
+	mpData = new T[nSize];
+	mpCurrent = mpData;
+	if(pOther->mpData = NULL) {
+		pOther->mpData = mpData;
+		pOther->mpCurrent = mpCurrent;
+		pOther->nSize = nSize;
+		pOther->mpOther = this;
+	} else {
+		delete[] mpData;
+		mpData = NULL;
+		mpCurrent = NULL;
+		throw "SharedBuffer is already paired";
+	}
+}
+
+template<typename T>
 SharedBuffer<T>::SharedBuffer(	const SharedBuffer* pOther,
 			 					const T* pData,
 			 					const unsigned int nSize);
@@ -22,11 +41,19 @@ SharedBuffer<T>::~SharedBuffer() {
 	mpOther->mpCurrent = NULL;
 	delete[] mpData;
 }
+
 template<typename T>
-void SharedBuffer<T>::step() {
+void SharedBuffer<T>::stepForward() {
 	if(nSize==1) return;
-	else if(mpData+nSize==mpCurrent) mpCurrent = mpData;
+	else if(mpData+nSize-1==mpCurrent) mpCurrent = mpData;
 	else ++mpCurrent;
+}
+
+template<typename T>
+void SharedBuffer<T>::stepBack() {
+	if(nSize==1) return;
+	else if(mpData==mpCurrent) mpCurrent = mpData+nSize-1;
+	else --mpCurrent;
 }
 
 template<typename T>

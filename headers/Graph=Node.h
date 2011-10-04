@@ -61,7 +61,7 @@ namespace Graph {
 		~Node(); //nd
 	
 		//----------- connection management ---------------
-		Node& addInput( const No* pNewIn,
+		Node& addInput( const Node* pNewIn,
 						const unsigned nTimeDelay=0); //not finished?
 		Node& addInput( const unsigned int nNewIn,		//delegates to addInput(const Node*...
 						const unsigned nTimeDelay=0);

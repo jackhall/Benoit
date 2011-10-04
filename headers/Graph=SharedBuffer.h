@@ -22,11 +22,21 @@ namespace Graph {
 		SharedBuffer(const SharedBuffer& cSource);
 		SharedBuffer& operator=(const SharedBuffer& cRhs);
 		
+		void stepForward();
+		void stepBack();
+		
 	public:
 		SharedBuffer(const unsigned int nSize);
+		SharedBuffer(const unsigned int nSize,
+					 const SharedBuffer* pOther);
 		~SharedBuffer();
 		
-		void step();
+		SharedBuffer& operator++()
+			{ stepForward();
+			  return *this; }
+		SharedBuffer& operator--()
+			{ stepBack();
+			  return *this; }
 		inline T pull() const 
 			{ this->step();
 			  return *mpCurrent; }
