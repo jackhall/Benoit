@@ -14,9 +14,19 @@ ostream& Graph::Node::print(ostream &out) const {
 //=================== Node I/O management ==================
 ///////////// adding ////////////////
 template<typename T, typename S, typename E>
+Node<T,S,E>::Connection  Node<T,S,E>::newConnection(const Node* pNew, 
+													const unsigned int nDelay) {
+	Connection newConn;
+	newConn(
+}
+
+template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::addInput(const Node<T,S,E>* pNewIn,
 					 				const unsigned int nTimeDelay) {
-	mvInputs.push_back( Node<T,S,E>::Connection(pNewIn, nTimeDelay) );
+	Connection newConn;
+	newConn
+	mvInputs.push_back( Connection(pNewIn, nTimeDelay) );
+	pNewIn.mvOutputs.push_back( Connection(this, nTimeDelay) );
 	return *this;
 }
 
@@ -73,6 +83,34 @@ Node<T,S,E>&  Node<T,S,E>::removeOutput(const unsigned int nOldOut) {
 	return removeInput( pOldOut);  //pointer version next
 }
 
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator  Node<T,S,E>::inputBegin() {
+	Connection* begin = &mvInputs[0];
+	Connection* end = begin + mvInputs.size();
+	return iterator(begin, end, begin);
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator  Node<T,S,E>::inputEnd() {
+	Connection* begin = &mvInputs[0];
+	Connection* end = begin + mvInputs.size();
+	return ++iterator(begin, end, end-1);
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator  Node<T,S,E>::outputBegin() {
+	Connection* begin = &mvOutputs[0];
+	Connection* end = begin + mvOutputs.size();
+	return iterator(begin, end, begin);
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::iterator  Node<T,S,E>::outputEnd() {
+	Connection* begin = &mvOutputs[0];
+	Connection* end = begin + mvOutputs.size();
+	return ++iterator(begin, end, end-1);
+}
+		
 //=================== iterator methods ========================
 /////////assignment /////////
 template<typename T, typename S, typename E>

@@ -44,6 +44,12 @@ namespace Graph {
 			SharedBuffer<E> error;
 			T weight;
 			unsigned int delay;
+			
+			Connection()
+				: target(NULL), signal(), error(), weight(0.0), delay(0) {}
+			Connection( const Node* pTarget,
+						const unsigned int nDelay)
+				: target(pTarget), signal(nDelay)
 		};
 		
 		//connection storage
@@ -73,6 +79,8 @@ namespace Graph {
 		Node& removeInput(const unsigned int nOldIn);	//delegates to removeInput(const Node*...
 		Node& removeOutput(Node* pOldOut); //nd
 		Node& removeOutput(const unsigned int nOldOut);	//delegates to removeOutput(const Node*...
+		
+		Connection newConnection(const Node* pNew, const unsigned int nDelay); 
 	
 		//-------------iterator---------------
 		class iterator {
@@ -153,10 +161,10 @@ namespace Graph {
 		}; //class iterator
 	
 		//--------- iterator-related methods ---------------
-		iterator inputBegin(); //nd
-		iterator inputEnd(); //nd
-		iterator outputBegin(); //nd
-		iterator outputEnd(); //nd
+		iterator inputBegin(); 
+		iterator inputEnd(); 
+		iterator outputBegin(); 
+		iterator outputEnd(); 
 	}; //class Node
 
 	#include "Graph=Node.cpp"
