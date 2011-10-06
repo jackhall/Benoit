@@ -14,17 +14,17 @@ ostream& Graph::Node::print(ostream &out) const {
 //=================== Node I/O management ==================
 ///////////// adding ////////////////
 template<typename T, typename S, typename E>
-Node<T,S,E>::Connection  Node<T,S,E>::newConnection(const Node* pNew, 
+Node<T,S,E>::Connection  Node<T,S,E>::newConnection(const Node<T,S,E>* pNew, 
 													const unsigned int nDelay) {
-	Connection newConn;
-	newConn(
+
 }
 
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::addInput(const Node<T,S,E>* pNewIn,
 					 				const unsigned int nTimeDelay) {
-	Connection newConn;
-	newConn
+	using namespace std;
+	shared_ptr<S>
+	shared_ptr<E>
 	mvInputs.push_back( Connection(pNewIn, nTimeDelay) );
 	pNewIn.mvOutputs.push_back( Connection(this, nTimeDelay) );
 	return *this;

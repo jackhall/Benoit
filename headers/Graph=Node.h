@@ -26,7 +26,7 @@ namespace Graph {
 		- There are method interfaces for adding and removing connections by Node pointer or number. 
 			This is necessary because constructors and destructors must be called for the connections. 
 	*/
-
+	
 	private:
 		//static ID members (special handling for template classes?)
 		static unsigned int snID_COUNT;	
@@ -39,17 +39,12 @@ namespace Graph {
 		
 		//connection struct
 		struct Connection {
-			Node* target;
-			SharedBuffer<S> signal;
-			SharedBuffer<E> error;
+			using namespace std;
+			weak_ptr<Node> target;
+			shared_ptr<S> signal;
+			shared_ptr<E> error;
 			T weight;
 			unsigned int delay;
-			
-			Connection()
-				: target(NULL), signal(), error(), weight(0.0), delay(0) {}
-			Connection( const Node* pTarget,
-						const unsigned int nDelay)
-				: target(pTarget), signal(nDelay)
 		};
 		
 		//connection storage
