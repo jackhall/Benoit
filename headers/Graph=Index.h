@@ -8,7 +8,7 @@ namespace Graph {
 
 	template<typename T, typename S, typename E> 
 	class Index {
-		using namespace std;
+	using namespace std;
 	
 	private:
 		map< unsigned int, weak_ptr<Node<T,S,E>> > mmIDMap;
@@ -21,6 +21,7 @@ namespace Graph {
 		Index& create(const T tBias);
 		Index& erase(const unsigned int nNode);
 		Index& move(const unsigned int nNode);
+		Index& clean();
 			
 	}; //class Index
 	
