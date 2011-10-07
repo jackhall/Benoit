@@ -3,12 +3,7 @@
 
 /*
 	(c) Jack Hall 2011, licensed under GNU LGPL v3
-	A Node is the basic independent causal unit in a neural network. 
-	The concept is similar to a directed graph in mathematics. The execution 
-	of a Node does not depend on any single other part of the network 
-	(special cases aside), but on many. A Node can be a Neuron, a group of 
-	neurons independent of each other (Ganglion), or an entire network (NeuralNet). 
-	This allows for a recursive hierarchy of Nodes. 
+	
 */
 
 #include <iostream>
@@ -25,12 +20,13 @@ namespace Graph {
 		- Each Node is identified by a unique unsigned int. These ints are associated with pointers
 			to each Node via a static STL map. A read-only access function thus allows a programmer to 
 			address Nodes by number as well as by pointer (run-independence). 
-		- There are method interfaces for adding and removing connections by Node pointer or number. 
-			This is necessary because constructors and destructors must be called for the connections. 
 	*/
 	
 	private:
 		//logistics
+		static unsigned int smnIDCount;
+		inline static unsigned int getNewID()
+			{ return smnIDCount++; }
 		shared_ptr<Index<T,S,E>> mpIndex;
 		weak_ptr<Node> mpSelf;
 		T tBias;
@@ -47,12 +43,24 @@ namespace Graph {
 			shared_ptr<E> error;
 			T weight;
 			unsigned int delay;
+			unsigned int signalMarker;
+			unsigned int errorMarker;
+			
 			Connection( const weak_ptr<Node> pTarget, 
 						const shared_ptr<S> pSignal, 
 						const shared_ptr<E> pError,
 						const T tWeight,
 						const unsigned int nDelay)
-				: target(pTarget), signal(pSignal), error(pError), weight(tWeight), delay(nDelay) {}
+				: target(pTarget), signal(pSignal), error(pError), weight(tWeight), 
+					delay(nDelay), signalMarker(0), errorMarker(0) {}
+			
+			void push(S& sIn);
+			void push(E& eIn);
+			S pullSignal();
+			E pullError();
+			inline unsigned int& step(unsigned int& marker)
+				{ if(marker == delay-1) return marker = 0;
+				  else return ++marker; }
 		};
 		
 		//connection storage
@@ -105,11 +113,11 @@ namespace Graph {
 			inline bool outofBounds() { return mpCurrent==NULL; } 
 			
 			inline void pushSignal(const S sSignal) 
-				{ mpCurrent->pushSignal(sSignal); }
+				{ mpCurrent->push(sSignal); }
 			inline S pullSignal() const
 				{ return mpCurrent->pullSignal(); }
 			inline void pushError(const E eError);
-				{ mpCurrent->pushError(eError); }
+				{ mpCurrent->push(eError); }
 			inline E pullError() const
 				{ return mpCurrent->pullError(); }
 			
@@ -139,8 +147,8 @@ namespace Graph {
 				{ return !(mpCurrent>iRhs.mpCurrent); }
 			
 			//I/O streaming
-			friend iterator& operator<<(iterator& out, S& sSignal); //delegates to Connection::pushSignal
-			friend iterator& operator<<(iterator& out, E& eError); //delegates to Connection::pushError
+			friend iterator& operator<<(iterator& out, S& sSignal); //delegates to Connection::push(S&)
+			friend iterator& operator<<(iterator& out, E& eError); //delegates to Connection::push(E&)
 			friend iterator& operator>>(iterator& in, S& sSignal); //delegates to Connection::pullSignal
 			friend iterator& operator>>(iterator& in, E& eSignal); //delegates to Connection::pullError
 			

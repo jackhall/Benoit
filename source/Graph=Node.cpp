@@ -127,7 +127,36 @@ Node<T,S,E>::iterator  Node<T,S,E>::outputEnd() {
 	Connection* end = begin + mvOutputs.size();
 	return ++iterator(begin, end, end-1);
 }
-		
+
+//=================== Connection methods ======================
+template<typename T, typename S, typename E>
+void Node<T,S,E>::Connection::push(S& sIn) {
+	step(signalMarker);
+	signal[signalMarker] = sIn;
+	return;
+}
+
+template<typename T, typename S, typename E>
+void Node<T,S,E>::Connection::push(E& eIn) {
+	step(errorMarker);
+	error[errorMarker] = eIn;
+	return;
+}
+
+template<typename T, typename S, typename E>
+S Node<T,S,E>::Connection::pullSignal() {
+	unsigned int tempMarker = signalMarker;
+	step(signalMarker);
+	return signal[tempMarker];
+}
+
+template<typename T, typename S, typename E>
+E Node<T,S,E>::Connection::pullError() {
+	unsigned int tempMarker = errorMarker;
+	step(errorMarker);
+	return error[tempMarker];
+}
+
 //=================== iterator methods ========================
 /////////assignment /////////
 template<typename T, typename S, typename E>
@@ -213,13 +242,13 @@ Node<T,S,E>::iterator Node<T,S,E>::iterator::operator--(int) {
 ////////// streaming /////////////
 template<typename T, typename S, typename E>
 Node<T,S,E>::iterator&  operator<<(Node<T,S,E>::iterator& out, S& sSignal) {
-	in.mpCurrent->pushSignal(sSignal);
+	out.mpCurrent->push(sSignal);
 	return out;
 }
 
 template<typename T, typename S, typename E>
 Node<T,S,E>::iterator&  operator<<(Node<T,S,E>::iterator& out, E& eError) {
-	in.mpCurrent->pushError(eError);
+	out.mpCurrent->push(eError);
 	return out;
 }
 
