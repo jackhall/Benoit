@@ -14,6 +14,8 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <memory>
+#include "Graph=Index.h"
 
 namespace Graph {
 
@@ -28,11 +30,11 @@ namespace Graph {
 	*/
 	
 	private:
-		//static ID members (special handling for template classes?)
-		static unsigned int snID_COUNT;	
-		static map<unsigned int, Node*> smID_MAP; 	//one centralized copy avoids sychronization issues
-		static unsigned int getNewID() { return snID_COUNT++; }
-	
+		//logistics
+		shared_ptr<Index<T,S,E>> mpIndex;
+		weak_ptr<Node> mpSelf;
+		T tBias;
+		
 		//hidden copy functionality
 		Node& operator=(const Node& cSource);		//hidden assignment operator
 		Node(const Node& cSource); 					//hidden copy constructor, maybe not hide this?
@@ -45,6 +47,12 @@ namespace Graph {
 			shared_ptr<E> error;
 			T weight;
 			unsigned int delay;
+			Connection( const weak_ptr<Node> pTarget, 
+						const shared_ptr<S> pSignal, 
+						const shared_ptr<E> pError,
+						const T tWeight,
+						const unsigned int nDelay)
+				: target(pTarget), signal(pSignal), error(pError), weight(tWeight), delay(nDelay) {}
 		};
 		
 		//connection storage
@@ -54,26 +62,20 @@ namespace Graph {
 	public: 
 		//Node ID and indexing
 		const unsigned int ID;
-		static inline Node* find(const unsigned int nAddress) //access a Node via its integer ID
-			{ return smID_MAP[nAddress]; }
 	
 		//constructor, destructor
 		Node(); //nd
 		~Node(); //nd
 	
 		//----------- connection management ---------------
-		Node& addInput( const Node* pNewIn,
-						const unsigned nTimeDelay=0); //not finished?
-		Node& addInput( const unsigned int nNewIn,		//delegates to addInput(const Node*...
+		Node& addInput( const unsigned int nNewIn,
+						const unsigned T tWeight
 						const unsigned nTimeDelay=0);
-		Node& addOutput(const Node* pNewOut,
-						const unsigned nTimeDelay=0); //not finished?
-		Node& addOutput(const unsigned int nNewOut,		//delegates to addOutput(const Node*...
-						const unsigned nTimeDelay=0); 
-		Node& removeInput(Node* pOldIn); //nd
-		Node& removeInput(const unsigned int nOldIn);	//delegates to removeInput(const Node*...
-		Node& removeOutput(Node* pOldOut); //nd
-		Node& removeOutput(const unsigned int nOldOut);	//delegates to removeOutput(const Node*...
+		Node& addOutput(const unsigned int nNewOut,
+						const unsigned T tWeight
+						const unsigned nTimeDelay=0);
+		Node& removeInput(const unsigned int nOldIn);
+		Node& removeOutput(const unsigned int nOldOut);
 		
 		Connection newConnection(const Node* pNew, const unsigned int nDelay); 
 	

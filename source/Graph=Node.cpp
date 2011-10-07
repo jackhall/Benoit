@@ -2,8 +2,6 @@
 #define GraphNode_cpp
 //(c) Jack Hall 2011, licensed under GNU LGPL v3
 
-unsigned int Node::snID_COUNT = 0; //initialize ID numbers
-
 /*
 ostream& Graph::Node::print(ostream &out) const {
 	//more here?
@@ -11,78 +9,97 @@ ostream& Graph::Node::print(ostream &out) const {
 	return out;
 }
 */
+//=================== Node logistics ====================
+template<typename T, typename S, typename E>
+Node<T,S,E>::Node() {
+
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::~Node() {
+
+}
+
 //=================== Node I/O management ==================
 ///////////// adding ////////////////
 template<typename T, typename S, typename E>
-Node<T,S,E>::Connection  Node<T,S,E>::newConnection(const Node<T,S,E>* pNew, 
-													const unsigned int nDelay) {
-
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>&  Node<T,S,E>::addInput(const Node<T,S,E>* pNewIn,
+Node<T,S,E>&  Node<T,S,E>::addInput(const unsigned int nNewIn,
+									const T tWeight,
 					 				const unsigned int nTimeDelay) {
 	using namespace std;
-	shared_ptr<S>
-	shared_ptr<E>
-	mvInputs.push_back( Connection(pNewIn, nTimeDelay) );
-	pNewIn.mvOutputs.push_back( Connection(this, nTimeDelay) );
+	shared_ptr<Node> pTarget( mpIndex->find(nNewIn) );
+	shared_ptr<S> pSignal(new S[nTimeDelay+1]);
+	shared_ptr<E> pError(new E[nTimeDelay+1]);
+	mvInputs.push_back( Connection(pTarget,pSignal,pError,tWeight,nTimeDelay) );
+	
+	shared_ptr<Node> pSelf( mpIndex->find(ID) );
+	pTarget->mvOutputs.push_back( Connection(pSelf,pSignal,pError,tWeight,nTimeDelay) );
 	return *this;
 }
 
 template<typename T, typename S, typename E>
-Node<T,S,E>&  Node<T,S,E>::addInput(const unsigned int nNewIn,
-					 				const unsigned int nTimeDelay) {
-	Node<T,S,E>* pNewIn = find(nNewIn);
-	return addInput(pNewIn, nTimeDelay);
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>&  Node<T,S,E>::addOutput(const Node<T,S,E>* pNewOut,
-									 const unsigned int nTimeDelay) {
-	mvOutputs.push_back( Node<T,S,E>::Connection(pNewIn,nTimeDelay) );
+Node<T,S,E>&  Node<T,S,E>::addOutput(const unsigned int nNewIn,
+									 const T tWeight,
+					 				 const unsigned int nTimeDelay) {
+	using namespace std;
+	shared_ptr<Node> pTarget( mpIndex->find(nNewIn) );
+	shared_ptr<S> pSignal(new S[nTimeDelay+1]);
+	shared_ptr<E> pError(new E[nTimeDelay+1]);
+	mvOutputs.push_back( Connection(pTarget,pSignal,pError,tWeight,nTimeDelay) );
+	
+	shared_ptr<Node> pSelf( mpIndex->find(ID) );
+	pTarget->mvInputs.push_back( Connection(pSelf,pSignal,pError,tWeight,nTimeDelay) );
 	return *this;
 }
-
-template<typename T, typename S, typename E>
-Node<T,S,E>&  Node<T,S,E>::addOutput(const unsigned int nNewOut,
-									 const unsigned int nTimeDelay) {
-	Node<T,S,E>* pNewOut = find(nNewOut);
-	return addOutput(pNewOut, nTimeDelay); 
 
 //////////////// removing //////////////////
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
-	//look up Node ID
-	Node<T,S,E>* pOldIn = find(nOldIn);
-	//calls a Connection_base-derived destructor
-	return removeInput(pOldIn);  //pointer version next
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
-	//look up Node ID
-	Node<T,S,E>* pOldIn = find(nOldIn);
-	//calls a Connection_base-derived destructor
-	return removeInput(pOldIn);  //pointer version next
+	using namespace std;
+	shared_ptr<Node> pSelf( mpSelf );
+	shared_ptr<Node> pTarget( mpIndex->find(nOldIn) );
+	vector<Connection>::iterator it( pTarget->mvOutputs.begin() );
+	vector<Connection>::iterator ite( pTarget->mvOutputs.end() );
+	while(it != ite)
+		if(it->target.lock() == pSelf) {
+			pTarget-mvOutputs.erase(it);
+			break;
+		}
+	
+	it = mvInputs.begin();
+	ite = mvInputs.end();
+	while(it != ite)
+		if(it->target.lock() == pTarget) {
+			mvInputs.erase(it);
+			break;
+		}
+	return *this; 
 }
 
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::removeOutput(const unsigned int nOldOut) {
-	//look up Node ID
-	Node<T,S,E>* pOldOut = find(nOldOut);
-	//calls a Connection_base-derived destructor
-	return removeInput(pOldOut);  //pointer version next
+	using namespace std;
+	shared_ptr<Node> pSelf( mpSelf );
+	shared_ptr<Node> pTarget( mpIndex->find(nOldIn) );
+	vector<Connection>::iterator it( pTarget->mvInputs.begin() );
+	vector<Connection>::iterator ite( pTarget->mvInputs.end() );
+	while(it != ite)
+		if(it->target.lock() == pSelf) {
+			pTarget-mvInputs.erase(it);
+			break;
+		}
+	
+	it = mvOutputs.begin();
+	ite = mvOutputs.end();
+	while(it != ite)
+		if(it->target.lock() == pTarget) {
+			mvOutputs.erase(it);
+			break;
+		}
+	return *this; 
 }
 
-template<typename T, typename S, typename E>
-Node<T,S,E>&  Node<T,S,E>::removeOutput(const unsigned int nOldOut) {
-	//look up Node ID
-	Node<T,S,E>* pOldOut = find(nOldOut);
-	//calls a Connection_base-derived destructor
-	return removeInput( pOldOut);  //pointer version next
-}
-
+/////////////// get iterators /////////////////
 template<typename T, typename S, typename E>
 Node<T,S,E>::iterator  Node<T,S,E>::inputBegin() {
 	Connection* begin = &mvInputs[0];
