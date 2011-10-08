@@ -3,7 +3,7 @@
 
 template<typename T, typename S, typename E>
 Index<T,S,E>&  Index<T,S,E>::create(const T tBias) {
-
+	
 	return *this;
 }
 
