@@ -25,10 +25,10 @@ namespace Graph {
 	private:
 		//logistics
 		static unsigned int smnIDCount;
+		static map< unsigned int, weak_ptr<Node<T,S,E>> > smIDMAP;
 		inline static unsigned int getNewID()
 			{ return smnIDCount++; }
 		shared_ptr<Index<T,S,E>> mpIndex;
-		weak_ptr<Node> mpSelf;
 		T tBias;
 		
 		//hidden copy functionality
@@ -36,6 +36,7 @@ namespace Graph {
 		Node(const Node& cSource); 					//hidden copy constructor, maybe not hide this?
 		
 		//connection struct
+		//distinguish between I/O Connections?
 		struct Connection {
 			using namespace std;
 			weak_ptr<Node> target;
@@ -46,8 +47,8 @@ namespace Graph {
 			unsigned int signalMarker;
 			unsigned int errorMarker;
 			
-			Connection( const weak_ptr<Node> pTarget, 
-						const shared_ptr<S> pSignal, 
+			Connection( const weak_ptr<Node> pTarget,
+						const shared_ptr<S> pSignal,
 						const shared_ptr<E> pError,
 						const T tWeight,
 						const unsigned int nDelay)
@@ -70,10 +71,12 @@ namespace Graph {
 	public: 
 		//Node ID and indexing
 		const unsigned int ID;
+		inline static weak_ptr<Node<T,S,E>> find(const unsigned int nAddress)
+			{ return smIDMAP[nAddress]; }
 	
-		//constructor, destructor
-		Node(); //nd
-		~Node(); //nd
+		//constructors, destructor
+		Node(); //<-------------not finished
+		~Node(); //<-------------not finished
 	
 		//----------- connection management ---------------
 		Node& addInput( const unsigned int nNewIn,

@@ -20,7 +20,7 @@ namespace Graph {
 			{ return mmIDMap[nAddress]; }
 		Index& create(const T tBias);
 		Index& erase(const unsigned int nNode);
-		Index& move(const unsigned int nNode);
+		Index& claim(const unsigned int nNode);
 		Index& clean();
 			
 	}; //class Index

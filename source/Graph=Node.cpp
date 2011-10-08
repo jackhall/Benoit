@@ -56,7 +56,7 @@ Node<T,S,E>&  Node<T,S,E>::addOutput(const unsigned int nNewIn,
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
 	using namespace std;
-	shared_ptr<Node> pSelf( mpSelf );
+	shared_ptr<Node> pSelf( mpIndex->find(ID) );
 	shared_ptr<Node> pTarget( mpIndex->find(nOldIn) );
 	vector<Connection>::iterator it( pTarget->mvOutputs.begin() );
 	vector<Connection>::iterator ite( pTarget->mvOutputs.end() );
@@ -79,7 +79,7 @@ Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::removeOutput(const unsigned int nOldOut) {
 	using namespace std;
-	shared_ptr<Node> pSelf( mpSelf );
+	shared_ptr<Node> pSelf( mpIndex->find(ID) );
 	shared_ptr<Node> pTarget( mpIndex->find(nOldIn) );
 	vector<Connection>::iterator it( pTarget->mvInputs.begin() );
 	vector<Connection>::iterator ite( pTarget->mvInputs.end() );
@@ -132,6 +132,7 @@ Node<T,S,E>::iterator  Node<T,S,E>::outputEnd() {
 template<typename T, typename S, typename E>
 void Node<T,S,E>::Connection::push(S& sIn) {
 	step(signalMarker);
+	//check to make sure the space is empty?
 	signal[signalMarker] = sIn;
 	return;
 }
@@ -139,6 +140,7 @@ void Node<T,S,E>::Connection::push(S& sIn) {
 template<typename T, typename S, typename E>
 void Node<T,S,E>::Connection::push(E& eIn) {
 	step(errorMarker);
+	//check to make sure the space is empty?
 	error[errorMarker] = eIn;
 	return;
 }
@@ -147,6 +149,7 @@ template<typename T, typename S, typename E>
 S Node<T,S,E>::Connection::pullSignal() {
 	unsigned int tempMarker = signalMarker;
 	step(signalMarker);
+	//clear space?
 	return signal[tempMarker];
 }
 
@@ -154,6 +157,7 @@ template<typename T, typename S, typename E>
 E Node<T,S,E>::Connection::pullError() {
 	unsigned int tempMarker = errorMarker;
 	step(errorMarker);
+	//clear space?
 	return error[tempMarker];
 }
 
