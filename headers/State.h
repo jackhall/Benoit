@@ -17,11 +17,15 @@ public:
 		unsigned int mnCurrentSample, mnSamples;
 		
 	public:
+		//constructors, destructor
 		iterator()
 			: mpData(), mnCurrentSample(0), mnSamples(0) {}
 		iterator(shared_ptr<T> pData,
 				 const unsigned int nSamples)
 			: mpData(pData), mnCurrentSample(0), mnSamples(nSamples) {}
+		~iterator();
+		
+		//overloaded operators
 		inline T& operator*() { return mpData[mnCurrentSample]; }
 		inline T& operator[](const unsigned int nIndex) { return mpData[nIndex]; }
 		iterator& operator++();
@@ -32,7 +36,20 @@ public:
 		inline bool operator!=(const iterator& cOther) { return !(*this==cOther); }
 		//pointer arithmetic
 		//comparison > < =< =>
+		
+		//STL-style methods
+		T* get() const;
+		void reset();
+		void swap(iterator& iOther);
+		long use_count() const;
+		bool unique() const;
+		
 	}; //class iterator
+	
+	//------------- array deleter for shared_ptr
+	class array_deleter {
+	
+	}; //class array_deleter
 	
 	//------------- constructors, destructor, assignment------------
 	State();
@@ -54,9 +71,8 @@ public:
 	iterator begin(unsigned int nStepBack=0);
 	iterator end(unsigned int nStepBack=0);
 	
-	inline bool empty() { return size()==0; }
-	inline unsigned int size() const { return mnSteps*mnSamples; }
-	inline unsigned int capacity() const { return mnCapacity; }
+	inline bool empty() const { return mvData.empty(); }
+	inline unsigned int size() const { return samples()*steps(); }
 	State& resize(	const unsigned int nSamples,
 					const unsigned int nSteps = 1);
 	inline unsigned int samples() const { return mnSamples; }
