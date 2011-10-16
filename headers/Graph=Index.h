@@ -3,15 +3,19 @@
 
 #include <map>
 #include <memory>
+#include "Graph=Node.h"
 
 namespace Graph {
+
+	template<typename T, typename S, typename E> 
+	class Node;
 
 	template<typename T, typename S, typename E> 
 	class Index {
 	using namespace std;
 	
 	private:
-		map< unsigned int, weak_ptr<Node<T,S,E>> > mmIDMap;
+		map< unsigned int, shared_ptr<Node<T,S,E>> > mmIDMap;
 		
 	public:
 		Index() {}

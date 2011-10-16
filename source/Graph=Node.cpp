@@ -11,9 +11,12 @@ ostream& Graph::Node::print(ostream &out) const {
 */
 //=================== Node logistics ====================
 template<typename T, typename S, typename E>
-Node<T,S,E>::Node() {
+Node<T,S,E>::Node() 
+	: ID( getNewID() ) {}
 
-}
+template<typename T, typename S, typename E>
+Node<T,S,E>::Node(const T tBias) 
+	: ID( getNewID() ), mtBias(tBias) {}
 
 template<typename T, typename S, typename E>
 Node<T,S,E>::~Node() {
@@ -27,12 +30,12 @@ Node<T,S,E>&  Node<T,S,E>::addInput(const unsigned int nNewIn,
 									const T tWeight,
 					 				const unsigned int nTimeDelay) {
 	using namespace std;
-	shared_ptr<Node> pTarget( mpIndex->find(nNewIn) );
-	shared_ptr<S> pSignal(new S[nTimeDelay+1]);
-	shared_ptr<E> pError(new E[nTimeDelay+1]);
+	shared_ptr<Node> pTarget( find(nNewIn) );
+	shared_ptr<S> pSignal(new deque<S>);
+	shared_ptr<E> pError(new deque<E>);
 	mvInputs.push_back( Connection(pTarget,pSignal,pError,tWeight,nTimeDelay) );
 	
-	shared_ptr<Node> pSelf( mpIndex->find(ID) );
+	shared_ptr<Node> pSelf( find(ID) );
 	pTarget->mvOutputs.push_back( Connection(pSelf,pSignal,pError,tWeight,nTimeDelay) );
 	return *this;
 }
@@ -42,12 +45,12 @@ Node<T,S,E>&  Node<T,S,E>::addOutput(const unsigned int nNewIn,
 									 const T tWeight,
 					 				 const unsigned int nTimeDelay) {
 	using namespace std;
-	shared_ptr<Node> pTarget( mpIndex->find(nNewIn) );
-	shared_ptr<S> pSignal(new S[nTimeDelay+1]);
-	shared_ptr<E> pError(new E[nTimeDelay+1]);
+	shared_ptr<Node> pTarget( find(nNewIn) );
+	shared_ptr<S> pSignal(new deque<S>);
+	shared_ptr<E> pError(new deque<S>);
 	mvOutputs.push_back( Connection(pTarget,pSignal,pError,tWeight,nTimeDelay) );
 	
-	shared_ptr<Node> pSelf( mpIndex->find(ID) );
+	shared_ptr<Node> pSelf( find(ID) );
 	pTarget->mvInputs.push_back( Connection(pSelf,pSignal,pError,tWeight,nTimeDelay) );
 	return *this;
 }
@@ -56,8 +59,8 @@ Node<T,S,E>&  Node<T,S,E>::addOutput(const unsigned int nNewIn,
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
 	using namespace std;
-	shared_ptr<Node> pSelf( mpIndex->find(ID) );
-	shared_ptr<Node> pTarget( mpIndex->find(nOldIn) );
+	shared_ptr<Node> pSelf( find(ID) );
+	shared_ptr<Node> pTarget( find(nOldIn) );
 	vector<Connection>::iterator it( pTarget->mvOutputs.begin() );
 	vector<Connection>::iterator ite( pTarget->mvOutputs.end() );
 	while(it != ite)
@@ -79,8 +82,8 @@ Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::removeOutput(const unsigned int nOldOut) {
 	using namespace std;
-	shared_ptr<Node> pSelf( mpIndex->find(ID) );
-	shared_ptr<Node> pTarget( mpIndex->find(nOldIn) );
+	shared_ptr<Node> pSelf( find(ID) );
+	shared_ptr<Node> pTarget( find(nOldIn) );
 	vector<Connection>::iterator it( pTarget->mvInputs.begin() );
 	vector<Connection>::iterator ite( pTarget->mvInputs.end() );
 	while(it != ite)
@@ -128,107 +131,8 @@ Node<T,S,E>::iterator  Node<T,S,E>::outputEnd() {
 	return ++iterator(begin, end, end-1);
 }
 
-//=================== Connection methods ======================
-template<typename T, typename S, typename E>
-void Node<T,S,E>::Connection::push(S& sIn) {
-	step(signalMarker);
-	//check to make sure the space is empty?
-	signal[signalMarker] = sIn;
-	return;
-}
-
-template<typename T, typename S, typename E>
-void Node<T,S,E>::Connection::push(E& eIn) {
-	step(errorMarker);
-	//check to make sure the space is empty?
-	error[errorMarker] = eIn;
-	return;
-}
-
-template<typename T, typename S, typename E>
-S Node<T,S,E>::Connection::pullSignal() {
-	unsigned int tempMarker = signalMarker;
-	step(signalMarker);
-	//clear space?
-	return signal[tempMarker];
-}
-
-template<typename T, typename S, typename E>
-E Node<T,S,E>::Connection::pullError() {
-	unsigned int tempMarker = errorMarker;
-	step(errorMarker);
-	//clear space?
-	return error[tempMarker];
-}
-
 //=================== iterator methods ========================
-/////////assignment /////////
-template<typename T, typename S, typename E>
-Node<T,S,E>::iterator& 	Node<T,S,E>::iterator::operator=(const interator& iRhs) {
-	if( this != &iRhs ) {
-		mpFirst = iRhs.mpFirst;
-		mpLast = iRhs.mpLast;
-		mpCurrent = iRhs.mpCurrent;
-		mbPastEnd = iRhs.mbPastEnd;
-	}
-	return *this;
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>::iterator& Node<T,S,E>::iterator::operator+=(const int nIndex) { //similar to operator-=
-	Connection* pNew = mpCurrent+nIndex;
-	if( mpLast < pNew ) {
-		mpCurrent = NULL;
-		mbPastEnd = true;
-	} else if( mpFirst > pNew ) {
-		mpCurrent = NULL;
-		mbPastEnd = false;
-	} else {
-		mpCurrent = pNew;
-		mbPastEnd = false;
-	}
-	return *this;
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>::iterator& Node<T,S,E>::iterator::operator-=(const int nIndex) { //similar to operator+=
-	Connection* pNew = mpCurrent-nIndex;
-	if( mpLast < pNew ) {
-		mpCurrent = NULL;
-		mbPastEnd = true;
-	} else if( mpFirst > pNew ) {
-		mpCurrent = NULL;
-		mbPastEnd = false;
-	} else {
-		mpCurrent = pNew;
-		mbPastEnd = false;
-	}
-	return *this;
-}
-
 ///////// increment, decrement ///////////
-template<typename T, typename S, typename E>
-Node<T,S,E>::iterator& Node<T,S,E>::iterator::operator++() {
-	if( mpCurrent == mpLast ) {
-		mpCurrent=NULL;
-		mbPastEnd = true;
-	} else if( mpCurrent != NULL ) { 
-		++mpCurrent;
-	} else if( !mbPastEnd ) mpCurrent = mpFirst; 
-	return *this;
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>::iterator& Node<T,S,E>::iterator::operator--() {
-	if( mpCurrent == mpLast ) {
-		mpCurrent=NULL;
-		mbPastEnd = true;
-	} else if( mpCurrent != NULL ) { 
-		--mpCurrent;
-	} else if( mbPastEnd ) mpCurrent = mpLast; 
-	return *this;
-}
-
 template<typename T, typename S, typename E>
 Node<T,S,E>::iterator Node<T,S,E>::iterator::operator++(int) {
 	input_iterator iTemp(*this);
@@ -245,26 +149,26 @@ Node<T,S,E>::iterator Node<T,S,E>::iterator::operator--(int) {
 
 ////////// streaming /////////////
 template<typename T, typename S, typename E>
-Node<T,S,E>::iterator&  operator<<(Node<T,S,E>::iterator& out, S& sSignal) {
+Node<T,S,E>::output_iterator&  operator<<(Node<T,S,E>::output_iterator& out, S& sSignal) {
 	out.mpCurrent->push(sSignal);
 	return out;
 }
 
 template<typename T, typename S, typename E>
-Node<T,S,E>::iterator&  operator<<(Node<T,S,E>::iterator& out, E& eError) {
+Node<T,S,E>::output_iterator&  operator>>(Node<T,S,E>::output_iterator& in, E& eSignal) {
+	in.mpCurrent->pull(eError);
+	return in;
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::input_iterator&  operator<<(Node<T,S,E>::input_iterator& out, E& eError) {
 	out.mpCurrent->push(eError);
 	return out;
 }
 
 template<typename T, typename S, typename E>
-Node<T,S,E>::iterator&  operator>>(Node<T,S,E>::iterator& in, S& sSignal) {
-	sSignal = in.mpCurrent->pullSignal();
-	return in;
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>::iterator&  operator>>(Node<T,S,E>::iterator& in, E& eSignal) {
-	eError = in.mpCurrent->pullError();
+Node<T,S,E>::input_iterator&  operator>>(Node<T,S,E>::input_iterator& in, S& sSignal) {
+	in.mpCurrent->pull(sSignal);
 	return in;
 }
 

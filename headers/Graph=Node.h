@@ -3,33 +3,32 @@
 
 /*
 	(c) Jack Hall 2011, licensed under GNU LGPL v3
-	
 */
 
 #include <iostream>
 #include <map>
 #include <vector>
 #include <memory>
-#include "Graph=Index.h"
 
 namespace Graph {
-
+	
+	template<typename T, typename S, typename E>
+	class Index;
+	
 	template<typename T, typename S, typename E>
 	class Node {
-	/*
-		- Each Node is identified by a unique unsigned int. These ints are associated with pointers
-			to each Node via a static STL map. A read-only access function thus allows a programmer to 
-			address Nodes by number as well as by pointer (run-independence). 
-	*/
 	
 	private:
 		//logistics
-		static unsigned int smnIDCount;
-		static map< unsigned int, weak_ptr<Node<T,S,E>> > smIDMAP;
+		static unsigned int smnIDCOUNT;
 		inline static unsigned int getNewID()
 			{ return smnIDCount++; }
-		shared_ptr<Index<T,S,E>> mpIndex;
-		T tBias;
+		weak_ptr<Index<T,S,E>> mpIndex;
+		T mtBias;
+		inline weak_ptr<Node> find(const unsigned int nAddress) const {
+			if(mpIndex) return mpIndex->find(nAddress);
+			else return sINDEX->find(nAddress);
+		}
 		
 		//hidden copy functionality
 		Node& operator=(const Node& cSource);		//hidden assignment operator
@@ -39,40 +38,81 @@ namespace Graph {
 		//distinguish between I/O Connections?
 		struct Connection {
 			using namespace std;
-			weak_ptr<Node> target;
-			shared_ptr<S> signal;
-			shared_ptr<E> error;
-			T weight;
-			unsigned int delay;
-			unsigned int signalMarker;
-			unsigned int errorMarker;
-			
+		private:
+			Connection();
+		protected:
 			Connection( const weak_ptr<Node> pTarget,
-						const shared_ptr<S> pSignal,
-						const shared_ptr<E> pError,
+						const shared_ptr< deque<S> > pSignal,
+						const shared_ptr< deque<E> > pError,
 						const T tWeight,
 						const unsigned int nDelay)
-				: target(pTarget), signal(pSignal), error(pError), weight(tWeight), 
-					delay(nDelay), signalMarker(0), errorMarker(0) {}
+				: target(pTarget), signal(pSignal), error(pError), weight(tWeight), delay(nDelay) {}
+		public:
+			weak_ptr<Node> target;
+			shared_ptr< deque<S> > signal;
+			shared_ptr< deque<E> > error;
+			T weight;
+			unsigned int delay;
+		
+			//input connection access
+			inline bool signalReady() { return signal->size() == delay+1; }
+			inline void push(E& eIn) { 
+				if( error->size() > delay ) throw "Error already full";
+				error->push_back(eIn); }
+			inline void pull(S& sOut) {
+				if( signal->size() <= delay ) throw "Signal not ready";
+				sOut = signal->front();
+				signal->pop_front(); }
 			
-			void push(S& sIn);
-			void push(E& eIn);
-			S pullSignal();
-			E pullError();
-			inline unsigned int& step(unsigned int& marker)
-				{ if(marker == delay-1) return marker = 0;
-				  else return ++marker; }
-		};
+			//output connection access
+			inline bool errorReady() { return error->size() == delay+1; }
+			inline void push(S& sIn) { 
+				if( signal->size() > delay ) throw "Signal already full";
+				signal->push_back(sIn); }
+			inline void pull(E& eOut) {
+				if( error->size() <= delay ) throw "Error not ready";
+				eOut = error->front();
+				error->pop_front(); }
+		}; //struct Connection
+		
+		class Input_Connection : public Connection {
+			using namespace std;
+		private:
+			inline bool errorReady();
+			inline void push(S& sIn);
+			inline void pull(E& eOut);
+		public:
+			Input_Connection(const weak_ptr<Node> pTarget,
+							 const shared_ptr< deque<S> > pSignal,
+							 const shared_ptr< deque<E> > pError,
+							 const T tWeight,
+							 const unsigned int nDelay)
+				: Connection(pTarget, pSignal, pError, tWeight, nDelay) {}
+		}; //class Input_Connection
+		
+		class Output_Connection : public Connection {
+			using namespace std;
+		private:
+			inline bool signalReady();
+			inline void push(E& eIn);
+			inline void pull(S& sOut);
+		public:
+			Output_Connection(const weak_ptr<Node> pTarget,
+							  const shared_ptr< deque<S> > pSignal,
+							  const shared_ptr< deque<E> > pError,
+							  const T tWeight,
+							  const unsigned int nDelay)
+				: Connection(pTarget, pSignal, pError, tWeight, nDelay) {}
+		}; //class Output_Connection
 		
 		//connection storage
-		vector<Connection> mvInputs;
-		vector<Connection> mvOutputs;
+		vector<Input_Connection> mvInputs;
+		vector<Output_Connection> mvOutputs;
 		
 	public: 
 		//Node ID and indexing
+		static Index sINDEX;
 		const unsigned int ID;
-		inline static weak_ptr<Node<T,S,E>> find(const unsigned int nAddress)
-			{ return smIDMAP[nAddress]; }
 	
 		//constructors, destructor
 		Node(); //<-------------not finished
@@ -87,51 +127,34 @@ namespace Graph {
 						const unsigned nTimeDelay=0);
 		Node& removeInput(const unsigned int nOldIn);
 		Node& removeOutput(const unsigned int nOldOut);
-		
-		Connection newConnection(const Node* pNew, const unsigned int nDelay); 
 	
 		//-------------iterator---------------
 		class iterator {
 		private:
-			Connection* mpFirst; //only works if elements of Graph::Node storage are serial
-			Connection* mpLast;
 			Connection* mpCurrent;
-			bool mbPastEnd;
 		
 		public:
 			//////// constructors, assignment /////////
 			iterator()
-				: mpFirst(NULL), mpLast(NULL), mpCurrent(NULL), mbPastEnd(false) {}
-			iterator(const Connection* pFirst,
-					 const Connection* pLast,
-					 const Connection* pCurrent)
-				: mpFirst(pFirst), mpLast(pLast), mpCurrent(pCurrent), mbPastEnd(false) {}
+				: mpCurrent(NULL) {}
+			iterator(const Connection* pCurrent)
+				: mpCurrent(pCurrent) {}
 			iterator(const iterator& iOld) 
-				: mpFirst(iOld.mpFirst), mpLast(iOld.mpLast), mpCurrent(iOld.mpCurrent),
-					mbPastEnd(iOld.mbPastEnd) {}
-			iterator& operator=(const iterator& iRhs); 
-			
-			//////// miscellaneous methods
-			inline bool inBounds() { return mpCurrent!=NULL; } 
-			inline bool outofBounds() { return mpCurrent==NULL; } 
-			
-			inline void pushSignal(const S sSignal) 
-				{ mpCurrent->push(sSignal); }
-			inline S pullSignal() const
-				{ return mpCurrent->pullSignal(); }
-			inline void pushError(const E eError);
-				{ mpCurrent->push(eError); }
-			inline E pullError() const
-				{ return mpCurrent->pullError(); }
+				: mpCurrent(iOld.mpCurrent) {}
+			inline iterator& operator=(const iterator& iRhs) {
+				if( this != &iRhs ) mpCurrent = iRhs.mpCurrent;
+				return *this; }
 			
 			//////// overloaded operators ///////////
 			//pointer reference/dereference
 			inline Connection& operator*() { 
-				if(mpCurrent==NULL) throw "Dereferenced iterator out of bounds";
-				else return *mpCurrent; }
+				//if(mpCurrent==NULL) throw "Dereferenced null iterator";
+				//else 
+					return *mpCurrent; }
 			inline Connection* operator->() {
-				if(mpCurrent==NULL) throw "Dereferenced iterator out of bounds";
-				else return mpCurrent; }
+				//if(mpCurrent==NULL) throw "Dereferenced null iterator";
+				//else 
+					return mpCurrent; }
 			Connection& operator[](const int nIndex) //delegates to operator+=
 				{ return *(*this += nIndex); }
 			
@@ -149,30 +172,38 @@ namespace Graph {
 			inline bool operator<=(const iterator& iRhs) //delegates to operator>
 				{ return !(mpCurrent>iRhs.mpCurrent); }
 			
-			//I/O streaming
-			friend iterator& operator<<(iterator& out, S& sSignal); //delegates to Connection::push(S&)
-			friend iterator& operator<<(iterator& out, E& eError); //delegates to Connection::push(E&)
-			friend iterator& operator>>(iterator& in, S& sSignal); //delegates to Connection::pullSignal
-			friend iterator& operator>>(iterator& in, E& eSignal); //delegates to Connection::pullError
-			
 			//pointer arithmetic
-			iterator& operator++();
-			iterator& operator--();
+			inline iterator& operator++() { ++mpCurrent; }
+			inline iterator& operator--() { --mpCurrent; }
 			iterator operator++(int); //delegates to prefix version
 			iterator operator--(int); //delegates to prefix version
-			iterator& operator+=(const int nIndex);
-			iterator& operator-=(const int nIndex);
+			inline iterator& operator+=(const int nIndex) { 
+				mpCurrent += nIndex; 
+				return *this; }
+			inline iterator& operator-=(const int nIndex) {
+				mpCurrent -= nIndex;
+				return *this; }
 			inline const iterator operator+(const int nIndex) //delegates to operator+=
 				{ iterator iNew(*this) += iRhs; }
 			inline const iterator operator-(const int nIndex) //delegates to operator-=
 				{ iterator iNew(*this) -= iRhs; }
 		}; //class iterator
+		
+		struct input_iterator : public iterator {
+			friend input_iterator& operator>>(input_iterator& out, S& sSignal); //delegates to Connection::pull(S&)
+			friend input_iterator& operator<<(input_iterator& in, E& eError); //delegates to Connection::push(E&)
+		}; //class input_iterator
+		
+		struct output_iterator : public iterator {
+			friend output_iterator& operator<<(output_iterator& out, S& sSignal); //delegates to Connection::push(S&)
+			friend output_iterator& operator>>(output_iterator& in, E& eError); //delegates to Connection::pull(E&)
+		}; //class output_iterator
 	
 		//--------- iterator-related methods ---------------
-		iterator inputBegin(); 
-		iterator inputEnd(); 
-		iterator outputBegin(); 
-		iterator outputEnd(); 
+		input_iterator input_begin(); 
+		input_iterator input_end(); 
+		output_iterator output_begin(); 
+		output_iterator output_end(); 
 	}; //class Node
 
 	#include "Graph=Node.cpp"
