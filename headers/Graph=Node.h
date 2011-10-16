@@ -1,3 +1,8 @@
+#ifndef GraphIndex_h
+//Node header needs to see members of Index
+#include "Graph=Index.h"
+
+#else
 #ifndef GraphNode_h
 #define GraphNode_h
 
@@ -13,9 +18,6 @@
 namespace Graph {
 	
 	template<typename T, typename S, typename E>
-	class Index;
-	
-	template<typename T, typename S, typename E>
 	class Node {
 	
 	private:
@@ -23,8 +25,8 @@ namespace Graph {
 		static unsigned int smnIDCOUNT;
 		inline static unsigned int getNewID()
 			{ return smnIDCount++; }
-		weak_ptr<Index<T,S,E>> mpIndex;
-		T mtBias;
+		weak_ptr<Index<T,S,E>> mpIndex; //FIELD
+		T mtBias; //FIELD
 		inline weak_ptr<Node> find(const unsigned int nAddress) const {
 			if(mpIndex) return mpIndex->find(nAddress);
 			else return sINDEX->find(nAddress);
@@ -34,8 +36,7 @@ namespace Graph {
 		Node& operator=(const Node& cSource);		//hidden assignment operator
 		Node(const Node& cSource); 					//hidden copy constructor, maybe not hide this?
 		
-		//connection struct
-		//distinguish between I/O Connections?
+		//================= connection base struct ================
 		struct Connection {
 			using namespace std;
 		private:
@@ -75,6 +76,7 @@ namespace Graph {
 				error->pop_front(); }
 		}; //struct Connection
 		
+		//================ Input_Connection =================
 		class Input_Connection : public Connection {
 			using namespace std;
 		private:
@@ -90,6 +92,7 @@ namespace Graph {
 				: Connection(pTarget, pSignal, pError, tWeight, nDelay) {}
 		}; //class Input_Connection
 		
+		//================= Output_Connection ==================
 		class Output_Connection : public Connection {
 			using namespace std;
 		private:
@@ -105,20 +108,24 @@ namespace Graph {
 				: Connection(pTarget, pSignal, pError, tWeight, nDelay) {}
 		}; //class Output_Connection
 		
-		//connection storage
-		vector<Input_Connection> mvInputs;
-		vector<Output_Connection> mvOutputs;
-		
+		//================ connection storage =====================
+		vector<Input_Connection> mvInputs; //FIELD
+		vector<Output_Connection> mvOutputs; //FIELD
+	
+	/////////////////////////////////////////////////////////////////////////
 	public: 
 		//Node ID and indexing
 		static Index sINDEX;
-		const unsigned int ID;
+		const unsigned int ID; //FIELD
 	
 		//constructors, destructor
-		Node(); //<-------------not finished
+		Node(); //<-------------not finished, hide this?
+		Node(const T tBias); //<-------------not finished
+		Node(const T tBias, const weak_ptr< Index<T,S,E> > pIndex); //<-------------not finished
 		~Node(); //<-------------not finished
+		void disconnect(); //<-------------not finished
 	
-		//----------- connection management ---------------
+		//=============== connection management =====================
 		Node& addInput( const unsigned int nNewIn,
 						const unsigned T tWeight
 						const unsigned nTimeDelay=0);
@@ -127,35 +134,32 @@ namespace Graph {
 						const unsigned nTimeDelay=0);
 		Node& removeInput(const unsigned int nOldIn);
 		Node& removeOutput(const unsigned int nOldOut);
-	
-		//-------------iterator---------------
-		class iterator {
-		private:
-			Connection* mpCurrent;
 		
-		public:
-			//////// constructors, assignment /////////
+		//================ iterator base (template) ====================
+		template<typename C>
+		class iterator {
+		protected:
+			C* mpCurrent;
+			
+			//////// constructors /////////
 			iterator()
 				: mpCurrent(NULL) {}
-			iterator(const Connection* pCurrent)
+			iterator(const C* pCurrent)
 				: mpCurrent(pCurrent) {}
 			iterator(const iterator& iOld) 
 				: mpCurrent(iOld.mpCurrent) {}
-			inline iterator& operator=(const iterator& iRhs) {
-				if( this != &iRhs ) mpCurrent = iRhs.mpCurrent;
-				return *this; }
-			
-			//////// overloaded operators ///////////
-			//pointer reference/dereference
-			inline Connection& operator*() { 
+				
+		public:
+			//indirection				
+			inline C& operator*() { 
 				//if(mpCurrent==NULL) throw "Dereferenced null iterator";
 				//else 
 					return *mpCurrent; }
-			inline Connection* operator->() {
+			inline C* operator->() {
 				//if(mpCurrent==NULL) throw "Dereferenced null iterator";
 				//else 
 					return mpCurrent; }
-			Connection& operator[](const int nIndex) //delegates to operator+=
+			C& operator[](const int nIndex) //delegates to operator+=
 				{ return *(*this += nIndex); }
 			
 			//comparisons
@@ -172,42 +176,89 @@ namespace Graph {
 			inline bool operator<=(const iterator& iRhs) //delegates to operator>
 				{ return !(mpCurrent>iRhs.mpCurrent); }
 			
-			//pointer arithmetic
-			inline iterator& operator++() { ++mpCurrent; }
-			inline iterator& operator--() { --mpCurrent; }
-			iterator operator++(int); //delegates to prefix version
-			iterator operator--(int); //delegates to prefix version
-			inline iterator& operator+=(const int nIndex) { 
-				mpCurrent += nIndex; 
-				return *this; }
-			inline iterator& operator-=(const int nIndex) {
-				mpCurrent -= nIndex;
-				return *this; }
-			inline const iterator operator+(const int nIndex) //delegates to operator+=
-				{ iterator iNew(*this) += iRhs; }
-			inline const iterator operator-(const int nIndex) //delegates to operator-=
-				{ iterator iNew(*this) -= iRhs; }
 		}; //class iterator
 		
-		struct input_iterator : public iterator {
+		//=================== input_iterator ============================
+		struct input_iterator : iterator<Input_Connection> {	
+			//constructors
+			input_iterator()
+				: iterator<Input_Connection>() {}
+			input_iterator(const Input_Connection* pCurrent)
+				: iterator<Input_Connection<(pCurrent) {}
+			input_iterator(const input_iterator& iOld)
+				: iterator<Input_Connection>(iOld) {}
+			inline input_iterator& operator=(const input_iterator& iRhs) {
+				if( this != &iRhs ) mpCurrent = iRhs.mpCurrent;
+				return *this; } 
+			
+			//pointer arithmetic
+			inline input_iterator& operator++() { ++mpCurrent; }
+			inline input_iterator& operator--() { --mpCurrent; }
+			input_iterator operator++(int); //delegates to prefix version
+			input_iterator operator--(int); //delegates to prefix version
+			inline input_iterator& operator+=(const int nIndex) { 
+				mpCurrent += nIndex; 
+				return *this; }
+			inline input_iterator& operator-=(const int nIndex) {
+				mpCurrent -= nIndex;
+				return *this; }
+			inline const input_iterator operator+(const int nIndex) //delegates to operator+=
+				{ input_iterator iNew(*this) += iRhs; }
+			inline const input_iterator operator-(const int nIndex) //delegates to operator-=
+				{ input_iterator iNew(*this) -= iRhs; }
+				
+			//streaming operators
 			friend input_iterator& operator>>(input_iterator& out, S& sSignal); //delegates to Connection::pull(S&)
 			friend input_iterator& operator<<(input_iterator& in, E& eError); //delegates to Connection::push(E&)
+			
 		}; //class input_iterator
 		
-		struct output_iterator : public iterator {
+		//================== output_iterator =======================
+		struct output_iterator : public iterator<Output_Connection> {
+			//constructors
+			output_iterator()
+				: iterator<Output_Connection>() {}
+			output_iterator(const Output_Connection* pCurrent)
+				: iterator<Output_Connection<(pCurrent) {}
+			output_iterator(const output_iterator& iOld)
+				: iterator<Output_Connection>(iOld) {}
+			inline output_iterator& operator=(const output_iterator& iRhs) {
+				if( this != &iRhs ) mpCurrent = iRhs.mpCurrent;
+				return *this; } 
+			
+			//pointer arithmetic
+			inline output_iterator& operator++() { ++mpCurrent; }
+			inline output_iterator& operator--() { --mpCurrent; }
+			output_iterator operator++(int); //delegates to prefix version
+			output_iterator operator--(int); //delegates to prefix version
+			inline output_iterator& operator+=(const int nIndex) { 
+				mpCurrent += nIndex; 
+				return *this; }
+			inline output_iterator& operator-=(const int nIndex) {
+				mpCurrent -= nIndex;
+				return *this; }
+			inline const output_iterator operator+(const int nIndex) //delegates to operator+=
+				{ output_iterator iNew(*this) += iRhs; }
+			inline const output_iterator operator-(const int nIndex) //delegates to operator-=
+				{ output_iterator iNew(*this) -= iRhs; }
+				
+			//streaming operators
 			friend output_iterator& operator<<(output_iterator& out, S& sSignal); //delegates to Connection::push(S&)
 			friend output_iterator& operator>>(output_iterator& in, E& eError); //delegates to Connection::pull(E&)
+			
 		}; //class output_iterator
 	
-		//--------- iterator-related methods ---------------
-		input_iterator input_begin(); 
-		input_iterator input_end(); 
-		output_iterator output_begin(); 
-		output_iterator output_end(); 
+		//================ iterator generation ======================
+		inline input_iterator input_begin() { return input_iterator( &mvInputs.front() ); }
+		inline input_iterator input_end() { return input_iterator( &mvInputs.back()+1 ); }
+		inline output_iterator output_begin() { return output_iterator( &mvOutputs.front() ); }
+		inline output_iterator output_end() { return output_iterator( &mvOutputs.back()+1 ); }
+		
 	}; //class Node
 
 	#include "Graph=Node.cpp"
 
 } //namespace Graph
 
-#endif
+#endif //ifndef GraphNode_h
+#endif //ifndef GraphIndex_h

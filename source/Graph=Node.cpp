@@ -9,7 +9,7 @@ ostream& Graph::Node::print(ostream &out) const {
 	return out;
 }
 */
-//=================== Node logistics ====================
+//=================== Node logistics ==================== NOT FINISHED!!!!!!!!
 template<typename T, typename S, typename E>
 Node<T,S,E>::Node() 
 	: ID( getNewID() ) {}
@@ -20,23 +20,31 @@ Node<T,S,E>::Node(const T tBias)
 
 template<typename T, typename S, typename E>
 Node<T,S,E>::~Node() {
-
+	//make sure all shared_ptrs are destroyed
+	//check inputs, outputs, and index
 }
 
-//=================== Node I/O management ==================
+template<typename T, typename S, typename E>
+void Node<T,S,E>::disconnect() {
+	//destroy all Connections
+}
+
+//=================== Connection management ==================
 ///////////// adding ////////////////
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::addInput(const unsigned int nNewIn,
 									const T tWeight,
 					 				const unsigned int nTimeDelay) {
 	using namespace std;
-	shared_ptr<Node> pTarget( find(nNewIn) );
+	shared_ptr<Node<T,S,E>> pTarget( find(nNewIn) );
+	if(!pTarget) throw "Node not found in current Index";
+	
 	shared_ptr<S> pSignal(new deque<S>);
 	shared_ptr<E> pError(new deque<E>);
-	mvInputs.push_back( Connection(pTarget,pSignal,pError,tWeight,nTimeDelay) );
+	mvInputs.push_back( Output_Connection(pTarget,pSignal,pError,tWeight,nTimeDelay) );
 	
-	shared_ptr<Node> pSelf( find(ID) );
-	pTarget->mvOutputs.push_back( Connection(pSelf,pSignal,pError,tWeight,nTimeDelay) );
+	shared_ptr<Node<T,S,E>> pSelf( find(ID) );
+	pTarget->mvOutputs.push_back( Input_Connection(pSelf,pSignal,pError,tWeight,nTimeDelay) );
 	return *this;
 }
 
@@ -45,13 +53,15 @@ Node<T,S,E>&  Node<T,S,E>::addOutput(const unsigned int nNewIn,
 									 const T tWeight,
 					 				 const unsigned int nTimeDelay) {
 	using namespace std;
-	shared_ptr<Node> pTarget( find(nNewIn) );
+	shared_ptr<Node<T,S,E>> pTarget( find(nNewIn) );
+	if(!pTarget) throw "Node not found in current Index";
+	
 	shared_ptr<S> pSignal(new deque<S>);
 	shared_ptr<E> pError(new deque<S>);
-	mvOutputs.push_back( Connection(pTarget,pSignal,pError,tWeight,nTimeDelay) );
+	mvOutputs.push_back( Input_Connection(pTarget,pSignal,pError,tWeight,nTimeDelay) );
 	
-	shared_ptr<Node> pSelf( find(ID) );
-	pTarget->mvInputs.push_back( Connection(pSelf,pSignal,pError,tWeight,nTimeDelay) );
+	shared_ptr<Node<T,S,E>> pSelf( find(ID) );
+	pTarget->mvInputs.push_back( Output_Connection(pSelf,pSignal,pError,tWeight,nTimeDelay) );
 	return *this;
 }
 
@@ -59,18 +69,20 @@ Node<T,S,E>&  Node<T,S,E>::addOutput(const unsigned int nNewIn,
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
 	using namespace std;
-	shared_ptr<Node> pSelf( find(ID) );
-	shared_ptr<Node> pTarget( find(nOldIn) );
-	vector<Connection>::iterator it( pTarget->mvOutputs.begin() );
-	vector<Connection>::iterator ite( pTarget->mvOutputs.end() );
+	shared_ptr<Node<T,S,E>> pSelf( find(ID) );
+	shared_ptr<Node<T,S,E>> pTarget( find(nOldIn) ); 
+	if(!pTarget) return *this;
+	
+	Node<T,S,E>::output_iterator it( pTarget->mvOutputs.begin() );
+	Node<T,S,E>::output_iterator ite( pTarget->mvOutputs.end() );
 	while(it != ite)
 		if(it->target.lock() == pSelf) {
 			pTarget-mvOutputs.erase(it);
 			break;
 		}
 	
-	it = mvInputs.begin();
-	ite = mvInputs.end();
+	Node<T,S,E>::input_iterator it = mvInputs.begin();
+	Node<T,S,E>::input_iterator ite = mvInputs.end();
 	while(it != ite)
 		if(it->target.lock() == pTarget) {
 			mvInputs.erase(it);
@@ -82,18 +94,20 @@ Node<T,S,E>&  Node<T,S,E>::removeInput(const unsigned int nOldIn) {
 template<typename T, typename S, typename E>
 Node<T,S,E>&  Node<T,S,E>::removeOutput(const unsigned int nOldOut) {
 	using namespace std;
-	shared_ptr<Node> pSelf( find(ID) );
-	shared_ptr<Node> pTarget( find(nOldIn) );
-	vector<Connection>::iterator it( pTarget->mvInputs.begin() );
-	vector<Connection>::iterator ite( pTarget->mvInputs.end() );
+	shared_ptr<Node<T,S,E>> pSelf( find(ID) );
+	shared_ptr<Node<T,S,E>> pTarget( find(nOldIn) );
+	if(!pTarget) return *this;
+	
+	Node<T,S,E>::input_iterator it( pTarget->mvInputs.begin() );
+	Node<T,S,E>::input_iterator ite( pTarget->mvInputs.end() );
 	while(it != ite)
 		if(it->target.lock() == pSelf) {
 			pTarget-mvInputs.erase(it);
 			break;
 		}
 	
-	it = mvOutputs.begin();
-	ite = mvOutputs.end();
+	Node<T,S,E>::output_iterator it = mvOutputs.begin();
+	Node<T,S,E>::output_iterator ite = mvOutputs.end();
 	while(it != ite)
 		if(it->target.lock() == pTarget) {
 			mvOutputs.erase(it);
@@ -102,47 +116,34 @@ Node<T,S,E>&  Node<T,S,E>::removeOutput(const unsigned int nOldOut) {
 	return *this; 
 }
 
-/////////////// get iterators /////////////////
-template<typename T, typename S, typename E>
-Node<T,S,E>::iterator  Node<T,S,E>::inputBegin() {
-	Connection* begin = &mvInputs[0];
-	Connection* end = begin + mvInputs.size();
-	return iterator(begin, end, begin);
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>::iterator  Node<T,S,E>::inputEnd() {
-	Connection* begin = &mvInputs[0];
-	Connection* end = begin + mvInputs.size();
-	return ++iterator(begin, end, end-1);
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>::iterator  Node<T,S,E>::outputBegin() {
-	Connection* begin = &mvOutputs[0];
-	Connection* end = begin + mvOutputs.size();
-	return iterator(begin, end, begin);
-}
-
-template<typename T, typename S, typename E>
-Node<T,S,E>::iterator  Node<T,S,E>::outputEnd() {
-	Connection* begin = &mvOutputs[0];
-	Connection* end = begin + mvOutputs.size();
-	return ++iterator(begin, end, end-1);
-}
-
 //=================== iterator methods ========================
 ///////// increment, decrement ///////////
+//input_iterator version
 template<typename T, typename S, typename E>
-Node<T,S,E>::iterator Node<T,S,E>::iterator::operator++(int) {
+Node<T,S,E>::input_iterator Node<T,S,E>::input_iterator::operator++(int) {
 	input_iterator iTemp(*this);
 	++(*this); 
 	return iTemp;
 }
 
 template<typename T, typename S, typename E>
-Node<T,S,E>::iterator Node<T,S,E>::iterator::operator--(int) {
+Node<T,S,E>::input_iterator Node<T,S,E>::input_iterator::operator--(int) {
 	input_iterator iTemp(*this);
+	--(*this); 
+	return iTemp;
+}
+
+//output_iterator version
+template<typename T, typename S, typename E>
+Node<T,S,E>::output_iterator Node<T,S,E>::output_iterator::operator++(int) {
+	output_iterator iTemp(*this);
+	++(*this); 
+	return iTemp;
+}
+
+template<typename T, typename S, typename E>
+Node<T,S,E>::output_iterator Node<T,S,E>::output_iterator::operator--(int) {
+	output_iterator iTemp(*this);
 	--(*this); 
 	return iTemp;
 }

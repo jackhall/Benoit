@@ -3,7 +3,6 @@
 
 #include <map>
 #include <memory>
-#include "Graph=Node.h"
 
 namespace Graph {
 
@@ -20,7 +19,7 @@ namespace Graph {
 	public:
 		Index() {}
 		~Index() {}
-		inline weak_ptr<Node> find(const unsigned int nAddress) //access a Node via its integer ID
+		inline weak_ptr<Node<T,S,E>> find(const unsigned int nAddress) //access a Node via its integer ID
 			{ return mmIDMap[nAddress]; }
 		Index& create(const T tBias);
 		Index& erase(const unsigned int nNode);
@@ -29,8 +28,13 @@ namespace Graph {
 			
 	}; //class Index
 	
-	#include "Graph=Index.cpp"	
-	
 } //namespace Graph
+
+//source file needs to see Node constructors
+#include "Graph=Node.h"
+
+namespace Graph {
+	#include "Graph=Index.cpp"
+}
 
 #endif
