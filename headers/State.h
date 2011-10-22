@@ -48,7 +48,7 @@ public:
 	
 	//------------- array deleter for shared_ptr
 	class array_deleter {
-	
+		
 	}; //class array_deleter
 	
 	//------------- constructors, destructor, assignment------------
