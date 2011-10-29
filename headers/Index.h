@@ -14,13 +14,12 @@ namespace Benoit {
 	using namespace std;
 	
 	private:
-		map< unsigned int, shared_ptr<Node<T,S,E>> > mmIDMap;
+		map< unsigned int, Node<T,S,E>* > mmIDMap;
 		
 	public:
 		Index()=default;
 		~Index()=default;
-		weak_ptr<Node<T,S,E>> find(const unsigned int nAddress) //access a Node via its integer ID
-			{ return mmIDMap.find(nAddress); }
+		Node<T,S,E>* find(const unsigned int nAddress) //access a Node via its integer ID
 		inline bool contains(const unsigned int nAddress)
 			{ return mmIDMap.find(nAddress) != mmIDMap.end(); }
 		unsigned int insert(const T tBias);
@@ -34,10 +33,10 @@ namespace Benoit {
 } //namespace Graph
 
 //source file needs to see Node constructors
-#include "Graph=Node.h"
+#include "Node.h"
 
 namespace Benoit {
-	#include "Graph=Index.cpp"
+	#include "Index.cpp"
 }
 
 #endif

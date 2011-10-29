@@ -1,6 +1,6 @@
 #ifndef BenoitIndex_h
 //Node header needs to see members of Index
-#include "Graph=Index.h"
+#include "Index.h"
 
 #else
 #ifndef BenoitNode_h
@@ -31,15 +31,13 @@ namespace Graph {
 			if(mpIndex) return mpIndex->find(nAddress);
 			else return sINDEX->find(nAddress);
 		}
-		void disconnectInput(shared_ptr<Node> pTarget);
-		void disconnectOutput(shared_ptr<Node> pTarget);
+		void disconnectInput(const unsigned int nTarget);
+		void disconnectOutput(const unsigned int nTarget);
 		~Node(); 
 		friend void Index<T,S,E>::erase;
 		
 		//hidden constructors (called by Index methods)
 		Node(); //undefined, not used by Index so far
-		Node(const T tBias, const Index<T,S,E>* pIndex);
-		Node(const Node& cSource); //undefined, not used by Index so far
 		Node& operator=(const Node& cSource); //undefined, not used by Index so far
 		
 		//================= connection base struct ================
@@ -48,14 +46,14 @@ namespace Graph {
 		private:
 			Connection();
 		protected:
-			Connection( const weak_ptr<Node> pTarget,
+			Connection( const unsigned int nTarget,
 						const shared_ptr< deque<S> > pSignal,
 						const shared_ptr< deque<E> > pError,
 						const T tWeight,
 						const unsigned int nDelay)
-				: target(pTarget), signal(pSignal), error(pError), weight(tWeight), delay(nDelay) {}
+				: target(nTarget), signal(pSignal), error(pError), weight(tWeight), delay(nDelay) {}
 		public:
-			weak_ptr<Node> target;
+			unsigned int target;
 			shared_ptr< deque<S> > signal;
 			shared_ptr< deque<E> > error;
 			T weight;
@@ -90,12 +88,12 @@ namespace Graph {
 			inline void push(S& sIn);
 			inline void pull(E& eOut);
 		public:
-			Input_Connection(const weak_ptr<Node> pTarget,
+			Input_Connection(const unsigned int nTarget,
 							 const shared_ptr< deque<S> > pSignal,
 							 const shared_ptr< deque<E> > pError,
 							 const T tWeight,
 							 const unsigned int nDelay)
-				: Connection(pTarget, pSignal, pError, tWeight, nDelay) {}
+				: Connection(nTarget, pSignal, pError, tWeight, nDelay) {}
 		}; //class Input_Connection
 		
 		//================= Output_Connection ==================
@@ -106,12 +104,12 @@ namespace Graph {
 			inline void push(E& eIn);
 			inline void pull(S& sOut);
 		public:
-			Output_Connection(const weak_ptr<Node> pTarget,
+			Output_Connection(const unsigned int nTarget,
 							  const shared_ptr< deque<S> > pSignal,
 							  const shared_ptr< deque<E> > pError,
 							  const T tWeight,
 							  const unsigned int nDelay)
-				: Connection(pTarget, pSignal, pError, tWeight, nDelay) {}
+				: Connection(nTarget, pSignal, pError, tWeight, nDelay) {}
 		}; //class Output_Connection
 		
 		//================ connection storage =====================
@@ -124,6 +122,11 @@ namespace Graph {
 		static Index sINDEX;
 		const unsigned int ID; //FIELD
 		void disconnectAll(); 
+		
+		//constructors, destructor
+		Node(const T tBias, const Index<T,S,E>* pIndex);
+		Node(const Node& cSource);
+		~Node();
 	
 		//=============== connection management =====================
 		Node& addInput( const unsigned int nNewIn,
@@ -256,7 +259,7 @@ namespace Graph {
 		
 	}; //class Node
 
-	#include "Graph=Node.cpp"
+	#include "Node.cpp"
 
 } //namespace Graph
 
