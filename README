@@ -1,3 +1,15 @@
-Benoit is an extremely flexible framework and representation for neural networks. It is licensed under the LGPL v3, copyright John Wendell Hall 7/23/2011. Current release date: 8/18/2011. I'll decide on a permanent version number scheme as soon as I deem Benoit to be in a useable form. 
+Benoit is an extremely flexible framework and representation for distributed networks and graphs. I plan to use it as a basis for a multithreaded neural networks library. 
 
-Benoit comes in two parts: (1) a network structure and interface in the form of a set of virtual base classes, and (2) an implementation of neural network computations built on top of it. As of this release, Part 1 is very nearly done. Part 2 is definitely better than halfway done, but not as close as part one. All the classes I've written are now documented, though I may add more detail later. 
+Benoit is licensed under the GPL v3, copyright John Wendell Hall 7/23/2011. Current release date: 11/13/2011. Version numbers are three-field like so: 
+core-x.y.z
+x will only change with major overhauls. It will remain 0 until Benoit is useable.
+y will change when functionality is modified. 
+z will change with bug fixes and other minor alterations. 
+
+Benoit is made up of three templated classes: Node, Link, and Index. 
+
+Node instances are the verticies of the graph. They are intended to network across threads; Benoit is thread-safe. Include it as a member of any class you want to be able to communicate across a network. A given class may contain any number of Nodes for connecting to different networks. Data to be sent is pushed into the Node, and data to be received is pulled out. Nodes may be publicly constructed and deleted. Safe destruction is ensured by signalling the Index to clean up after it.
+
+Link instances are invisible to the user, and implement thread-safe message passing between Nodes. Links may be manipulated indirectly through one of the Nodes it links or through the Index managing those Nodes. Links are two-way, and may pass different kinds of messages each way. 
+
+Index instances manage a subset of Nodes and the Links between them. Nodes may not link between Indicies. An Index is required to work with any Nodes. If you don't create an Index, the Nodes you create will be managed by a static Index for the Node class. Nodes may be swapped between Indicies, but all Links involving that Node will be deleted. 
