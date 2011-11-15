@@ -15,9 +15,9 @@
 #include <vector>
 #include <memory>
 
-namespace Graph {
+namespace Benoit {
 	
-	template<typename T, typename S, typename E>
+	template<typename T, typename W, typename S, typename E> 
 	class Node {
 	
 	private:
@@ -25,167 +25,87 @@ namespace Graph {
 		static unsigned int smnIDCOUNT;
 		inline static unsigned int getNewID()
 			{ return smnIDCount++; }
-		Index<T,S,E>* mpIndex; //FIELD
-		T mtBias; //FIELD
-		inline weak_ptr<Node> find(const unsigned int nAddress) const {
-			if(mpIndex) return mpIndex->find(nAddress);
-			else return sINDEX->find(nAddress);
-		}
-		void disconnectInput(const unsigned int nTarget);
-		void disconnectOutput(const unsigned int nTarget);
+		Index<T,W,S,E>* mpIndex; //FIELD
+		friend Index<T,W,S,E>; //manager class needs full rights
+		T bias; //FIELD
+		
+		//void disconnect_input(const unsigned int nTarget);
+		//void disconnect_output(const unsigned int nTarget);
+		
+		//only Index can destruct a Node
 		~Node(); 
-		friend void Index<T,S,E>::erase;
 		
 		//hidden constructors (called by Index methods)
 		Node(); //undefined, not used by Index so far
 		Node& operator=(const Node& cSource); //undefined, not used by Index so far
 		
-		//================= connection base struct ================
-		struct Connection {
-			using namespace std;
-		private:
-			Connection();
-		protected:
-			Connection( const unsigned int nTarget,
-						const shared_ptr< deque<S> > pSignal,
-						const shared_ptr< deque<E> > pError,
-						const T tWeight,
-						const unsigned int nDelay)
-				: target(nTarget), signal(pSignal), error(pError), weight(tWeight), delay(nDelay) {}
-		public:
-			unsigned int target;
-			shared_ptr< deque<S> > signal;
-			shared_ptr< deque<E> > error;
-			T weight;
-			unsigned int delay;
-		
-			//input connection access
-			inline bool signalReady() { return signal->size() == delay+1; }
-			inline void push(E& eIn) { 
-				if( error->size() > delay ) throw "Error already full";
-				error->push_back(eIn); }
-			inline void pull(S& sOut) {
-				if( signal->size() <= delay ) throw "Signal not ready";
-				sOut = signal->front();
-				signal->pop_front(); }
-			
-			//output connection access
-			inline bool errorReady() { return error->size() == delay+1; }
-			inline void push(S& sIn) { 
-				if( signal->size() > delay ) throw "Signal already full";
-				signal->push_back(sIn); }
-			inline void pull(E& eOut) {
-				if( error->size() <= delay ) throw "Error not ready";
-				eOut = error->front();
-				error->pop_front(); }
-		}; //struct Connection
-		
-		//================ Input_Connection =================
-		struct Input_Connection : public Connection {
-			using namespace std;
-		private:
-			inline bool errorReady();
-			inline void push(S& sIn);
-			inline void pull(E& eOut);
-		public:
-			Input_Connection(const unsigned int nTarget,
-							 const shared_ptr< deque<S> > pSignal,
-							 const shared_ptr< deque<E> > pError,
-							 const T tWeight,
-							 const unsigned int nDelay)
-				: Connection(nTarget, pSignal, pError, tWeight, nDelay) {}
-		}; //class Input_Connection
-		
-		//================= Output_Connection ==================
-		struct Output_Connection : public Connection {
-			using namespace std;
-		private:
-			inline bool signalReady();
-			inline void push(E& eIn);
-			inline void pull(S& sOut);
-		public:
-			Output_Connection(const unsigned int nTarget,
-							  const shared_ptr< deque<S> > pSignal,
-							  const shared_ptr< deque<E> > pError,
-							  const T tWeight,
-							  const unsigned int nDelay)
-				: Connection(nTarget, pSignal, pError, tWeight, nDelay) {}
-		}; //class Output_Connection
-		
 		//================ connection storage =====================
-		vector<Input_Connection> mvInputs; //FIELD
-		vector<Output_Connection> mvOutputs; //FIELD
+		map< unsigned int, Link<T,W,S,E> > inputs; //FIELD
+		vector< Link<T,W,S,E>* > outputs; //FIELD
 	
 	/////////////////////////////////////////////////////////////////////////
 	public: 
 		//Node ID and indexing
-		static Index sINDEX;
+		static Index INDEX;
 		const unsigned int ID; //FIELD
-		void disconnectAll(); 
+		//void disconnectAll(); 
 		
-		//constructors, destructor
+		//exposed constructors
+		Node(const Node& cSource); //should preserve uniqueness
 		Node(const T tBias, const Index<T,S,E>* pIndex);
-		Node(const Node& cSource);
-		~Node();
 	
-		//=============== connection management =====================
+		//=============== link management =====================
 		Node& addInput( const unsigned int nNewIn,
-						const unsigned T tWeight
-						const unsigned int nTimeDelay=0);
+				const unsigned W wWeight);
 		Node& addOutput(const unsigned int nNewOut,
-						const unsigned T tWeight
-						const unsigned int nTimeDelay=0);
+				const unsigned W wWeight);
 		Node& removeInput(const unsigned int nOldIn);
 		Node& removeOutput(const unsigned int nOldOut);
 		
-		//================ iterator base (template) ====================
-		template<typename C>
+		//================ iterator base ====================
 		class iterator {
 		protected:
-			C* mpCurrent;
+			typedef <Link<T,W,S,E>* ptr;
+			typedef map< unsigned int, Link<T,W,S,E> >::iterator iter;
+			
+			ptr; //FIELD
+			iter element; //FIELD
 			
 			//////// constructors /////////
 			iterator()
-				: mpCurrent(NULL) {}
-			iterator(const C* pCurrent)
-				: mpCurrent(pCurrent) {}
+				: current(NULL) {} //correct?
+			iterator(iter iCurrent)
+				: current(iCurrent) {}
 			iterator(const iterator& iOld) 
-				: mpCurrent(iOld.mpCurrent) {}
+				: current(iOld.current) {}
 				
 		public:
 			//indirection				
-			inline C& operator*() { 
-				//if(mpCurrent==NULL) throw "Dereferenced null iterator";
-				//else 
-					return *mpCurrent; }
-			inline C* operator->() {
-				//if(mpCurrent==NULL) throw "Dereferenced null iterator";
-				//else 
-					return mpCurrent; }
-			C& operator[](const int nIndex) //delegates to operator+=
-				{ return *(*this += nIndex); }
+			Link<T,W,S,E>& operator*() const { return *ptr; }
+			Link<T,W,S,E>* operator->() const { return ptr.operator->(); }
+			
+			//increment, decrement
+			iterator& operator++();
+			iterator& operator--();
+			iterator operator++(int);
+			iterator operator--(int);
 			
 			//comparisons
-			inline bool operator==(const iterator& cTwo) //similar to operator!=
+			bool operator==(const iterator& cTwo) //similar to operator!=
 				{ return mpCurrent==cTwo.mpCurrent; }
-			inline bool operator!=(const iterator& cTwo) //similar to operator==
+			bool operator!=(const iterator& cTwo) //similar to operator==
 				{ return mpCurrent!=cTwo.mpCurrent; } 
-			inline bool operator>(const iterator& iRhs)
-				{ return mpCurrent>iRhs.mpCurrent; }
-			inline bool operator<(const iterator& iRhs) 
-				{ return mpCurrent<iRhs.mpCurrent; }
-			inline bool operator>=(const iterator& iRhs) //delegates to operator<
-				{ return !(mpCurrent<iRhs.mpCurrent); }
-			inline bool operator<=(const iterator& iRhs) //delegates to operator>
-				{ return !(mpCurrent>iRhs.mpCurrent); }
 			
 		}; //class iterator
 		
 		//=================== input_iterator ============================
-		struct input_iterator : iterator<Input_Connection> {	
+		struct input_iterator : iterator {	
+			typedef map< unsigned int, Link<T,W,S,E> >::iterator iter;
+			
+			
 			//constructors
-			input_iterator()
-				: iterator<Input_Connection>() {}
+			input_iterator() 
+				: iterator() {}
 			input_iterator(const Input_Connection* pCurrent)
 				: iterator<Input_Connection<(pCurrent) {}
 			input_iterator(const input_iterator& iOld)
@@ -217,7 +137,8 @@ namespace Graph {
 		}; //class input_iterator
 		
 		//================== output_iterator =======================
-		struct output_iterator : public iterator<Output_Connection> {
+		struct output_iterator : public iterator {
+			typedef vector< Link<T,W,S,E>* >::iterator iter;
 			//constructors
 			output_iterator()
 				: iterator<Output_Connection>() {}

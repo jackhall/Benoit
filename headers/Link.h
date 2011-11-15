@@ -6,7 +6,8 @@
 
 namespace Benoit {
 	
-	template<typename T, typename W, typename S, typename E> class Link {
+	template<typename T, typename W, typename S, typename E> 
+	class Link {
 	
 	using namespace std;
 	private:

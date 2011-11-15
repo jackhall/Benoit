@@ -6,15 +6,15 @@
 
 namespace Benoit {
 
-	template<typename T, typename S, typename E> 
+	template<typename T, typename W, typename S, typename E> 
 	class Node;
 
-	template<typename T, typename S, typename E> 
+	template<typename T, typename W, typename S, typename E> 
 	class Index {
 	using namespace std;
 	
 	private:
-		map< unsigned int, Node<T,S,E>* > mmIDMap;
+		map< unsigned int, Node<T,W,S,E>* > mmIDMap;
 		
 	public:
 		Index()=default;
