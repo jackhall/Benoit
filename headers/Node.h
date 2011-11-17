@@ -1,6 +1,6 @@
 #ifndef BenoitIndex_h
 //Node header needs to see members of Index
-#include "Index.h"
+#include "Link.h"
 
 #else
 #ifndef BenoitNode_h
@@ -26,7 +26,7 @@ namespace Benoit {
 		inline static unsigned int getNewID()
 			{ return smnIDCount++; }
 		Index<T,W,S,E>* mpIndex; //FIELD
-		friend Index<T,W,S,E>; //manager class needs full rights
+		friend Index<T,W,S,E>; //manager class needs full rights?
 		T bias; //FIELD
 		
 		//void destroy_input(const unsigned int nTarget);
@@ -57,75 +57,38 @@ namespace Benoit {
 				const unsigned W wWeight);
 		Node& remove_input(const unsigned int nOldIn);
 		
-		//================ iterator base ====================
-		class iterator {
-		protected:
-			typedef <Link<W,S,E>* ptr;
-			typedef map< unsigned int, Link<W,S,E> >::iterator iter;
-			
-			ptr; //FIELD
-			iter element; //FIELD
-			
-			//////// constructors /////////
-			iterator()
-				: current(NULL) {} //correct?
-			iterator(iter iCurrent)
-				: current(iCurrent) {}
-			iterator(const iterator& iOld) 
-				: current(iOld.current) {}
-				
-		public:
-			//indirection				
-			Link<T,W,S,E>& operator*() const { return *ptr; }
-			Link<T,W,S,E>* operator->() const { return ptr.operator->(); }
-			
-			//increment, decrement
-			iterator& operator++();
-			iterator& operator--();
-			
-			//comparisons
-			bool operator==(const iterator& cTwo) //similar to operator!=
-				{ return mpCurrent==cTwo.mpCurrent; }
-			bool operator!=(const iterator& cTwo) //similar to operator==
-				{ return mpCurrent!=cTwo.mpCurrent; } 
-			
-		}; //class iterator
-		
 		//=================== input_iterator ============================
-		struct input_iterator : iterator {	
-			typedef map< unsigned int, Link<W,S,E> >::iterator iter;
+		class input_iterator {	
+		private:
+			friend Node;
+			map< unsigned int, Link<W,S,E> >::iterator current;
 			
+			input_iterator( map< unsigned int, Link<W,S,E> >::iterator iLink );
+			
+		public:
 			//constructors
-			input_iterator() 
-				: iterator() {}
-			input_iterator(const Input_Connection* pCurrent)
-				: iterator<Input_Connection<(pCurrent) {}
-			input_iterator(const input_iterator& iOld)
-				: iterator<Input_Connection>(iOld) {}
+			input_iterator() {}
+			input_iterator(const input_iterator& iOld) {}
 			inline input_iterator& operator=(const input_iterator& iRhs) {
-				if( this != &iRhs ) mpCurrent = iRhs.mpCurrent;
+				if( this != &iRhs ) current = iRhs.current;
 				return *this; } 
+			
+			Link<W,S,E>& operator*() const { return current->second; }
+			Link<W,S,E>* operator->() const { return current.operator->(); }
 			
 			//pointer arithmetic
 			inline input_iterator& operator++() { ++mpCurrent; }
 			inline input_iterator& operator--() { --mpCurrent; }
-			input_iterator operator++(int); //delegates to prefix version
-			input_iterator operator--(int); //delegates to prefix version
-			inline input_iterator& operator+=(const int nIndex) { 
-				mpCurrent += nIndex; 
-				return *this; }
-			inline input_iterator& operator-=(const int nIndex) {
-				mpCurrent -= nIndex;
-				return *this; }
-			inline const input_iterator operator+(const int nIndex) //delegates to operator+=
-				{ input_iterator iNew(*this) += iRhs; }
-			inline const input_iterator operator-(const int nIndex) //delegates to operator-=
-				{ input_iterator iNew(*this) -= iRhs; }
 				
 			//streaming operators
 			friend input_iterator& operator>>(input_iterator& out, S& sSignal);
 			friend input_iterator& operator<<(input_iterator& in, E& eError); 
 			
+			//comparisons
+			bool operator==(const input_iterator& cTwo) //similar to operator!=
+				{ return mpCurrent==cTwo.mpCurrent; }
+			bool operator!=(const input_iterator& cTwo) //similar to operator==
+				{ return mpCurrent!=cTwo.mpCurrent; } 
 		}; //class input_iterator
 		
 		//================== output_iterator =======================
@@ -141,6 +104,9 @@ namespace Benoit {
 			inline output_iterator& operator=(const output_iterator& iRhs) {
 				if( this != &iRhs ) mpCurrent = iRhs.mpCurrent;
 				return *this; } 
+			
+			Link<W,S,E>& operator*() const { return *ptr; }
+			Link<W,S,E>* operator->() const { return ptr.operator->(); }
 			
 			//pointer arithmetic
 			inline output_iterator& operator++() { ++mpCurrent; }
@@ -162,6 +128,11 @@ namespace Benoit {
 			friend output_iterator& operator<<(output_iterator& out, S& sSignal); 
 			friend output_iterator& operator>>(output_iterator& in, E& eError); 
 			
+			//comparisons
+			bool operator==(const output_iterator& cTwo) //similar to operator!=
+				{ return mpCurrent==cTwo.mpCurrent; }
+			bool operator!=(const output_iterator& cTwo) //similar to operator==
+				{ return mpCurrent!=cTwo.mpCurrent; } 
 		}; //class output_iterator
 	
 		//================ iterator generation ======================

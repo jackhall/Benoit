@@ -3,6 +3,7 @@
 
 #include <map>
 #include <memory>
+#include "Node.h"
 
 namespace Benoit {
 
@@ -19,7 +20,7 @@ namespace Benoit {
 	public:
 		Index()=default;
 		~Index()=default;
-		Node<T,S,E>* find(const unsigned int nAddress) //access a Node via its integer ID
+		Node<T,W,S,E>* find(const unsigned int nAddress) //access a Node via its integer ID
 		inline bool contains(const unsigned int nAddress)
 			{ return mmIDMap.find(nAddress) != mmIDMap.end(); }
 		unsigned int insert(const T tBias);
