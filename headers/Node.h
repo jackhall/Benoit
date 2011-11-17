@@ -20,19 +20,19 @@ namespace Benoit {
 	template<typename T, typename W, typename S, typename E> 
 	class Node {
 	
+	using namespace std;
 	private:
 		//logistics
 		static unsigned int smnIDCOUNT;
-		inline static unsigned int getNewID()
-			{ return smnIDCount++; }
-		Index<T,W,S,E>* mpIndex; //FIELD
-		friend Index<T,W,S,E>; //manager class needs full rights?
+		inline static unsigned int getNewID() { return smnIDCount++; }
+		mutex m;
 		T bias; //FIELD
+		Index<T,W,S,E>* mpIndex; //FIELD
+		friend Index<T,W,S,E>; //manager class rights for move, take and swap
 		
-		//void destroy_input(const unsigned int nTarget);
 		void remove_output(const unsigned int nTarget);
-		Node& add_output(const unsigned int nNewOut,
-					const unsigned W wWeight);
+		void add_output(const unsigned int nNewOut,
+				const unsigned W wWeight);
 		
 		//================ connection storage =====================
 		map< unsigned int, Link<W,S,E> > inputs; //FIELD
@@ -46,100 +46,93 @@ namespace Benoit {
 		//void disconnectAll(); 
 		
 		//============= constructors, destructor ===============
-		Node(); //undefined, not used by Index so far
+		Node();
 		Node(const Node& cSource); //should preserve uniqueness
-		Node(const T tBias, const Index<T,S,E>* pIndex);
-		Node& operator=(const Node& cSource); //undefined
+		Node(const T tBias, const Index<T,S,E>* pIndex=&INDEX);
+		Node& operator=(const Node& cSource); //should preserve uniqueness
 		~Node(); 
 	
 		//=============== link management =====================
-		Node& add_input( const unsigned int nNewIn,
+		Node& add_input(const unsigned int nNewIn,
 				const unsigned W wWeight);
 		Node& remove_input(const unsigned int nOldIn);
+		
+		//================= node management ==================
+		void set_bias(const T newBias);
+		T get_bias() const;
 		
 		//=================== input_iterator ============================
 		class input_iterator {	
 		private:
-			friend Node;
 			map< unsigned int, Link<W,S,E> >::iterator current;
+			bool locked;
 			
+			friend Node;
 			input_iterator( map< unsigned int, Link<W,S,E> >::iterator iLink );
 			
 		public:
 			//constructors
 			input_iterator() {}
 			input_iterator(const input_iterator& iOld) {}
-			inline input_iterator& operator=(const input_iterator& iRhs) {
-				if( this != &iRhs ) current = iRhs.current;
-				return *this; } 
+			input_iterator& operator=(const input_iterator& iRhs);
 			
-			Link<W,S,E>& operator*() const { return current->second; }
-			Link<W,S,E>* operator->() const { return current.operator->(); }
+			Link<W,S,E>& operator*() const;
+			Link<W,S,E>* operator->() const;
 			
 			//pointer arithmetic
-			inline input_iterator& operator++() { ++mpCurrent; }
-			inline input_iterator& operator--() { --mpCurrent; }
+			input_iterator& operator++();
+			input_iterator& operator--();
 				
 			//streaming operators
 			friend input_iterator& operator>>(input_iterator& out, S& sSignal);
 			friend input_iterator& operator<<(input_iterator& in, E& eError); 
 			
 			//comparisons
-			bool operator==(const input_iterator& cTwo) //similar to operator!=
-				{ return mpCurrent==cTwo.mpCurrent; }
-			bool operator!=(const input_iterator& cTwo) //similar to operator==
-				{ return mpCurrent!=cTwo.mpCurrent; } 
+			bool operator==(const input_iterator& rhs)
+				{ return current==rhs.current; }
+			bool operator!=(const input_iterator& rhs)
+				{ return current!=rhs.current; } 
 		}; //class input_iterator
 		
 		//================== output_iterator =======================
-		struct output_iterator : public iterator {
-			typedef vector< Link<T,W,S,E>* >::iterator iter;
+		class output_iterator {
+		private:
+			vector< Link<T,W,S,E>* >::iterator current;
+			bool locked;
+			
+			friend Node;
+			output_iterator( vector< Link<W,S,E>* >::iterator iLink );
+			
+		public:
 			//constructors
 			output_iterator()
 				: iterator<Output_Connection>() {}
-			output_iterator(const Output_Connection* pCurrent)
-				: iterator<Output_Connection<(pCurrent) {}
-			output_iterator(const output_iterator& iOld)
-				: iterator<Output_Connection>(iOld) {}
-			inline output_iterator& operator=(const output_iterator& iRhs) {
-				if( this != &iRhs ) mpCurrent = iRhs.mpCurrent;
-				return *this; } 
+			output_iterator(const output_iterator& iRhs);
+			output_iterator& operator=(const output_iterator& iRhs);
 			
-			Link<W,S,E>& operator*() const { return *ptr; }
-			Link<W,S,E>* operator->() const { return ptr.operator->(); }
+			Link<W,S,E>& operator*() const;
+			Link<W,S,E>* operator->() const;
 			
 			//pointer arithmetic
-			inline output_iterator& operator++() { ++mpCurrent; }
-			inline output_iterator& operator--() { --mpCurrent; }
-			output_iterator operator++(int); //delegates to prefix version
-			output_iterator operator--(int); //delegates to prefix version
-			inline output_iterator& operator+=(const int nIndex) { 
-				mpCurrent += nIndex; 
-				return *this; }
-			inline output_iterator& operator-=(const int nIndex) {
-				mpCurrent -= nIndex;
-				return *this; }
-			inline const output_iterator operator+(const int nIndex) //delegates to operator+=
-				{ output_iterator iNew(*this) += iRhs; }
-			inline const output_iterator operator-(const int nIndex) //delegates to operator-=
-				{ output_iterator iNew(*this) -= iRhs; }
+			output_iterator& operator++();
+			output_iterator& operator--();
 				
 			//streaming operators
 			friend output_iterator& operator<<(output_iterator& out, S& sSignal); 
 			friend output_iterator& operator>>(output_iterator& in, E& eError); 
 			
 			//comparisons
-			bool operator==(const output_iterator& cTwo) //similar to operator!=
-				{ return mpCurrent==cTwo.mpCurrent; }
-			bool operator!=(const output_iterator& cTwo) //similar to operator==
-				{ return mpCurrent!=cTwo.mpCurrent; } 
+			bool operator==(const output_iterator& rhs)
+				{ return current==rhs.current; }
+			bool operator!=(const output_iterator& cTwo)
+				{ return current!=rhs.current; } 
 		}; //class output_iterator
 	
 		//================ iterator generation ======================
-		inline input_iterator input_begin() { return input_iterator( &mvInputs.front() ); }
-		inline input_iterator input_end() { return input_iterator( &mvInputs.back()+1 ); }
-		inline output_iterator output_begin() { return output_iterator( &mvOutputs.front() ); }
-		inline output_iterator output_end() { return output_iterator( &mvOutputs.back()+1 ); }
+		inline input_iterator  input_begin() 	{ return input_iterator( inputs.begin() ); }
+		inline input_iterator  input_end() 	{ return input_iterator( inputs.end() ); }
+		inline output_iterator output_begin() 	{ return output_iterator( outputs.begin() ); }
+		inline output_iterator output_end() 	{ return output_iterator( outputs.end() ); }
 		
 	}; //class Node
 

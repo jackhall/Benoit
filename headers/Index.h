@@ -8,26 +8,22 @@
 namespace Benoit {
 
 	template<typename T, typename W, typename S, typename E> 
-	class Node;
-
-	template<typename T, typename W, typename S, typename E> 
 	class Index {
 	using namespace std;
 	
 	private:
-		map< unsigned int, Node<T,W,S,E>* > mmIDMap;
+		map< unsigned int, Node<T,W,S,E>* > IDMap;
 		
 	public:
 		Index()=default;
 		~Index()=default;
-		Node<T,W,S,E>* find(const unsigned int nAddress) //access a Node via its integer ID
-		inline bool contains(const unsigned int nAddress)
-			{ return mmIDMap.find(nAddress) != mmIDMap.end(); }
-		unsigned int insert(const T tBias);
-		void move(Index& cDestination, const unsigned int nNode);
-		inline void erase(const unsigned int nNode) { mmIDMap.erase(nNode); } //check ref_count
-		inline void swap(Index& cOther) { mmIDMap.swap(cOther.mmIDMap); }
-		inline void clear() { mmIDMap.clear(); } //check ref_counts
+		Node<T,W,S,E>* find(const unsigned int address) const;
+		bool contains(const unsigned int address) const;
+		void move(Index& destination, const unsigned int address);
+		void take(Index& origin, const unsigned int address);
+		void erase(const unsigned int address);
+		void swap(Index& other);
+		void clear();
 			
 	}; //class Index
 	
