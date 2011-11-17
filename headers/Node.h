@@ -29,44 +29,39 @@ namespace Benoit {
 		friend Index<T,W,S,E>; //manager class needs full rights
 		T bias; //FIELD
 		
-		//void disconnect_input(const unsigned int nTarget);
-		//void disconnect_output(const unsigned int nTarget);
-		
-		//only Index can destruct a Node
-		~Node(); 
-		
-		//hidden constructors (called by Index methods)
-		Node(); //undefined, not used by Index so far
-		Node& operator=(const Node& cSource); //undefined, not used by Index so far
+		//void destroy_input(const unsigned int nTarget);
+		void remove_output(const unsigned int nTarget);
+		Node& add_output(const unsigned int nNewOut,
+					const unsigned W wWeight);
 		
 		//================ connection storage =====================
-		map< unsigned int, Link<T,W,S,E> > inputs; //FIELD
-		vector< Link<T,W,S,E>* > outputs; //FIELD
+		map< unsigned int, Link<W,S,E> > inputs; //FIELD
+		vector< Link<W,S,E>* > outputs; //FIELD
 	
 	/////////////////////////////////////////////////////////////////////////
 	public: 
 		//Node ID and indexing
-		static Index INDEX;
+		static Index<T,W,S,E> INDEX;
 		const unsigned int ID; //FIELD
 		//void disconnectAll(); 
 		
-		//exposed constructors
+		//============= constructors, destructor ===============
+		Node(); //undefined, not used by Index so far
 		Node(const Node& cSource); //should preserve uniqueness
 		Node(const T tBias, const Index<T,S,E>* pIndex);
+		Node& operator=(const Node& cSource); //undefined
+		~Node(); 
 	
 		//=============== link management =====================
-		Node& addInput( const unsigned int nNewIn,
+		Node& add_input( const unsigned int nNewIn,
 				const unsigned W wWeight);
-		Node& addOutput(const unsigned int nNewOut,
-				const unsigned W wWeight);
-		Node& removeInput(const unsigned int nOldIn);
-		Node& removeOutput(const unsigned int nOldOut);
+		Node& remove_input(const unsigned int nOldIn);
 		
 		//================ iterator base ====================
 		class iterator {
 		protected:
-			typedef <Link<T,W,S,E>* ptr;
-			typedef map< unsigned int, Link<T,W,S,E> >::iterator iter;
+			typedef <Link<W,S,E>* ptr;
+			typedef map< unsigned int, Link<W,S,E> >::iterator iter;
 			
 			ptr; //FIELD
 			iter element; //FIELD
@@ -87,8 +82,6 @@ namespace Benoit {
 			//increment, decrement
 			iterator& operator++();
 			iterator& operator--();
-			iterator operator++(int);
-			iterator operator--(int);
 			
 			//comparisons
 			bool operator==(const iterator& cTwo) //similar to operator!=
@@ -100,8 +93,7 @@ namespace Benoit {
 		
 		//=================== input_iterator ============================
 		struct input_iterator : iterator {	
-			typedef map< unsigned int, Link<T,W,S,E> >::iterator iter;
-			
+			typedef map< unsigned int, Link<W,S,E> >::iterator iter;
 			
 			//constructors
 			input_iterator() 
@@ -131,8 +123,8 @@ namespace Benoit {
 				{ input_iterator iNew(*this) -= iRhs; }
 				
 			//streaming operators
-			friend input_iterator& operator>>(input_iterator& out, S& sSignal); //delegates to Connection::pull(S&)
-			friend input_iterator& operator<<(input_iterator& in, E& eError); //delegates to Connection::push(E&)
+			friend input_iterator& operator>>(input_iterator& out, S& sSignal);
+			friend input_iterator& operator<<(input_iterator& in, E& eError); 
 			
 		}; //class input_iterator
 		
@@ -167,8 +159,8 @@ namespace Benoit {
 				{ output_iterator iNew(*this) -= iRhs; }
 				
 			//streaming operators
-			friend output_iterator& operator<<(output_iterator& out, S& sSignal); //delegates to Connection::push(S&)
-			friend output_iterator& operator>>(output_iterator& in, E& eError); //delegates to Connection::pull(E&)
+			friend output_iterator& operator<<(output_iterator& out, S& sSignal); 
+			friend output_iterator& operator>>(output_iterator& in, E& eError); 
 			
 		}; //class output_iterator
 	

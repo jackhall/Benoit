@@ -6,7 +6,7 @@
 
 namespace Benoit {
 	
-	template<typename T, typename W, typename S, typename E> 
+	template<typename W, typename S, typename E> 
 	class Link {
 	
 	using namespace std;
@@ -16,7 +16,6 @@ namespace Benoit {
 		W weight; 
 		deque<S> forward; 
 		deque<E> backward; 
-		Index<T,W,S,E>* index; 
 		unsigned int origin, target;
 		
 	public:
