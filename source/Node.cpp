@@ -16,63 +16,48 @@ namespace ben {
 
 	template<typename T, typename W, typename S, typename E>
 	Node<T,W,S,E>::~Node() {
-		disconnectAll();
-	
+		clear();
 	}
 
 	//=================== Connection management ==================
 	//---------------- adding ---------------------
 	template<typename T, typename W, typename S, typename E>
-	Node<T,W,S,E>&  Node<T,W,S,E>::add_input(const unsigned int nNewIn,
-						 const T tWeight) {
-		using namespace std;
-		if(!mpIndex.contains(nNewIn)) throw "Node not found in current Index";
-	
+	void Node<T,W,S,E>::add_input(	const unsigned int nNewIn,
+					const T tWeight) {
 		
-		inputs.insert( pair<unsigned int, Link<W,S,E>>(nNewIn, );
-	
-		mpIndex.find(nNewIn)->mvOutputs.push_back( Input_Connection(ID,pSignal,pError,tWeight,nTimeDelay) );
-		return *this;
 	}
 
 	template<typename T, typename W, typename S, typename E>
-	Node<T,W,S,E>&  Node<T,W,S,E>::add_output(const unsigned int nNewOut,
-						  const T tWeight) {
-		using namespace std;
-		if(!mpIndex.contains(nNewIn)) throw "Node not found in current Index";
-	
-		shared_ptr<S> pSignal(new deque<S>);
-		shared_ptr<E> pError(new deque<S>);
-		mvOutputs.push_back( Input_Connection(nNewOut,pSignal,pError,tWeight,nTimeDelay) );
-	
-		mpIndex.find(nNewOut)->mvInputs.push_back( Output_Connection(ID,pSignal,pError,tWeight,nTimeDelay) );
-		return *this;
+	void Node<T,W,S,E>::add_output(	const unsigned int nNewOut,
+					const T tWeight) {
+		
 	}
 
 	//------------------ removing -----------------------
-	//have both private and public versions of remove_input?
 	template<typename T, typename W, typename S, typename E>
-	Node<T,W,S,E>&  Node<T,W,S,E>::remove_input(const unsigned int nOldIn) {
-		using namespace std;
-		shared_ptr<Node<T,W,S,E>> pSelf( find(ID) );
-		shared_ptr<Node<T,W,S,E>> pTarget( find(nOldIn) ); 
+	void Node<T,W,S,E>::private_remove_input(const unsigned int nOrigin) {
+		auto it = inputs.find(nTarget);
+		inputs.erase(it);
+	}
 	
-		if(!mpIndex.contains(nOldIn)) return *this;
-		mpIndex.find(nOldIn)->disconnectOutput(ID);
-		disconnectInput(nOldIn);
-		return *this; 
+	template<typename T, typename W, typename S, typename E>
+	void Node<T,W,S,E>::remove_input(const unsigned int nOrigin) {
+		auto it = inputs.find(nTarget);
+		pIndex->find(nOldIn)->remove_output(ID);
+		inputs.erase(it);
 	}
 
 	template<typename T, typename W, typename S, typename E>
-	Node<T,W,S,E>&  Node<T,W,S,E>::remove_output(const unsigned int nOldOut) {
-		using namespace std;
-		shared_ptr<Node<T,W,S,E>> pSelf( find(ID) );
-		shared_ptr<Node<T,W,S,E>> pTarget( find(nOldIn) );
-	
-		if(!mpIndex.contains(nOldOut)) return *this;
-		mpIndex.find(nOldOut)->disconnectInput(pSelf);
-		disconnectOutput(nOldOut);
-		return *this; 
+	void Node<T,W,S,E>::remove_output(const unsigned int nTarget) {
+		auto it = outputs.begin();
+		auto ite = outputs.end();
+		while(it != ite) {
+			if( (*it)->target == nTarget ) {
+				outputs.erase(it);
+				break;
+			}
+			++it;
+		}
 	}
 
 	template<typename T, typename W, typename S, typename E>
@@ -81,15 +66,17 @@ namespace ben {
 		auto ito = outputs.begin();
 		auto itoe = outputs.end();
 		while(ito != itoe) {
-			find( (*it)->get_target() )->remove_input(ID);
+			find( (*it)->get_target() )->private_remove_input(ID);
+			++ito;
 		}
-		outputs.clear(); //may not be necessary if remove_input deletes pointers
+		outputs.clear();
 		
 		//remove all inputs from other nodes (where they are outputs)
 		auto iti = inputs.begin();
 		auto itie = inputs.end();
 		while(iti != itie) {
 			find( it->second.get_origin() )->remove_output(ID);
+			++iti;
 		}
 		inputs.clear();
 	}
@@ -116,7 +103,6 @@ namespace ben {
 		return bias;
 	}
 		
-	
 	//=================== iterator methods ========================
 	//--------------- constructors, destructor ------------
 	//input_iterator version

@@ -16,15 +16,16 @@ namespace ben {
 	using namespace std;
 	private:
 		//logistics
-		static unsigned int smnIDCOUNT;
-		inline static unsigned int getNewID() { return smnIDCount++; }
+		static unsigned int IDCOUNT;
+		inline static unsigned int getNewID() { return IDCount++; }
 		mutex m;
 		T bias; //FIELD
 		Index<T,W,S,E>* pIndex; //FIELD
 		friend Index<T,W,S,E>; //manager class rights for move, take and swap
 		
+		void private_remove_input(const unsigned int nOrigin); //doesn't remove pointers
 		void remove_output(const unsigned int nTarget);
-		void add_output(const unsigned int nNewOut,
+		void add_output(const unsigned int nTarget,
 				const unsigned W wWeight);
 		
 		//================ connection storage =====================
@@ -38,19 +39,19 @@ namespace ben {
 		const unsigned int ID; //FIELD
 		
 		//============= constructors, destructor ===============
-		Node();
+		Node() = default;
 		Node(const Node& cSource); //should preserve uniqueness
 		Node(const T tBias, const Index<T,S,E>* pIndex=&INDEX);
 		Node& operator=(const Node& cSource); //should preserve uniqueness
 		~Node(); 
 	
 		//=============== link management =====================
-		Node& add_input(const unsigned int nNewIn,
+		void add_input(const unsigned int nOrigin,
 				const unsigned W wWeight);
-		Node& remove_input(const unsigned int nOldIn);
+		void remove_input(const unsigned int nOrigin);
 		void clear();
-		bool contains_input(const unsigned int in) const;
-		bool contains_output(const unsigned int out) const;
+		bool contains_input(const unsigned int nOrigin) const;
+		bool contains_output(const unsigned int nTarget) const;
 		
 		//================= node management ==================
 		void set_bias(const T newBias);
@@ -133,6 +134,7 @@ namespace ben {
 		
 	}; //class Node
 
+	unsigned int Node::IDCOUNT = 0; //initialize static member
 } //namespace ben
 
 #endif //ifndef GraphNode_h
