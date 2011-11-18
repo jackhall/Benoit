@@ -1,20 +1,14 @@
 #ifndef BenoitLink_cpp
 #define BenoitLink_cpp
+//(c) Jack Hall 2011, licensed under GNU GPL v3
 
-namespace Benoit {
+namespace ben {
 	//=================== CTOR, DTOR ==========================
 	template<typename W, typename S, typename E>
-	Link<W,S,E>::Link() 
-		: index(NULL), origin(0), target(0), weight(0.0) {
-	}
-	
-	template<typename W, typename S, typename E>
-	Link<W,S,E>::Link(const Index<T,W,S,E>* pIndex,
-		   const unsigned int nOrigin, 
-		   const unsigned int nTarget, 
-		   const W wWeight)
-		: index(pIndex), origin(nOrigin), target(nTarget), weight(wWeight) {
-	}
+	Link<W,S,E>::Link(const unsigned int nOrigin, 
+		   	  const unsigned int nTarget, 
+		   	  const W wWeight)
+		: origin(nOrigin), target(nTarget), weight(wWeight) {}
 	
 	template<typename W, typename S, typename E>
 	Link<W,S,E>::Link(const Link&& rhs) 
@@ -22,12 +16,6 @@ namespace Benoit {
 		  forward(rhs.forward), backward(rhs.forward) {
 		//move semantics for mutex?
 		//replace old pointer in Index and at Nodes
-	}
-	
-	template<typename W, typename S, typename E>
-	Link<W,S,E>::~Link() {
-		//only called when Index deletes the last shared_ptr
-		//cleanup at Nodes is handled through Index
 	}
 	
 	//=================== METHODS ===========================
@@ -53,6 +41,6 @@ namespace Benoit {
 		return temp;
 	}
 	
-} //namespace Benoit
+} //namespace ben
 
 #endif

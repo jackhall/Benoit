@@ -1,10 +1,11 @@
 #ifndef BenoitLink_h
 #define BenoitLink_h
+//(c) Jack Hall 2011, licensed under GNU GPL v3
 
 #include <deque>
 #include <mutex>
 
-namespace Benoit {
+namespace ben {
 	
 	template<typename W, typename S, typename E> 
 	class Link {
@@ -20,12 +21,12 @@ namespace Benoit {
 		
 	public:
 		//============ CTOR, DTOR =============
-		Link();
+		Link() = default;
 		Link(const unsigned int nOrigin, 
 		     const unsigned int nTarget, 
 		     const W Weight);
 		Link(const Link&& rhs); //will need move semantics for mutex and index
-		~Link();
+		~Link() = default;
 		
 		//============ METHODS ================
 		Link& operator=(const Link&& rhs); //will need move semantics for mutex and index
@@ -35,6 +36,9 @@ namespace Benoit {
 		S pull_fore();
 		E pull_back();
 		
+		unsigned int get_origin() const { return origin; }
+		unsigned int get_target() const { return target; }
+		
 		void set_weight(const W newWeight) { weight = newWeight; }
 		W get_weight() const 		   { return weight; }
 		
@@ -43,8 +47,6 @@ namespace Benoit {
 		void unlock() 	{ mlock.unlock(); }
 		
 	}; //class Link
-} //namespace Benoit
-
-#include "Link.cpp"
+} //namespace ben
 
 #endif

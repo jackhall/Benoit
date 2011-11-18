@@ -1,11 +1,12 @@
 #ifndef BenoitIndex_h
 #define BenoitIndex_h
+//(c) Jack Hall 2011, licensed under GNU GPL v3
 
 #include <map>
-#include <memory>
-#include "Node.h"
 
-namespace Benoit {
+namespace ben {
+
+	template<typename T, typename W, typename S, typename E> class Node;
 
 	template<typename T, typename W, typename S, typename E> 
 	class Index {
@@ -27,13 +28,6 @@ namespace Benoit {
 			
 	}; //class Index
 	
-} //namespace Graph
-
-//source file needs to see Node constructors
-#include "Node.h"
-
-namespace Benoit {
-	#include "Index.cpp"
-}
+} //namespace ben
 
 #endif

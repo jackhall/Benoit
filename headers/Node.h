@@ -1,21 +1,14 @@
-#ifndef BenoitIndex_h
-//Node header needs to see members of Index
-#include "Link.h"
-
-#else
 #ifndef BenoitNode_h
 #define BenoitNode_h
-
-/*
-	(c) Jack Hall 2011, licensed under GNU LGPL v3
-*/
+//(c) Jack Hall 2011, licensed under GNU GPL v3
 
 #include <iostream>
 #include <map>
 #include <vector>
 #include <memory>
+#include <mutex>
 
-namespace Benoit {
+namespace ben {
 	
 	template<typename T, typename W, typename S, typename E> 
 	class Node {
@@ -27,7 +20,7 @@ namespace Benoit {
 		inline static unsigned int getNewID() { return smnIDCount++; }
 		mutex m;
 		T bias; //FIELD
-		Index<T,W,S,E>* mpIndex; //FIELD
+		Index<T,W,S,E>* pIndex; //FIELD
 		friend Index<T,W,S,E>; //manager class rights for move, take and swap
 		
 		void remove_output(const unsigned int nTarget);
@@ -43,7 +36,6 @@ namespace Benoit {
 		//Node ID and indexing
 		static Index<T,W,S,E> INDEX;
 		const unsigned int ID; //FIELD
-		//void disconnectAll(); 
 		
 		//============= constructors, destructor ===============
 		Node();
@@ -56,6 +48,9 @@ namespace Benoit {
 		Node& add_input(const unsigned int nNewIn,
 				const unsigned W wWeight);
 		Node& remove_input(const unsigned int nOldIn);
+		void clear();
+		bool contains_input(const unsigned int in) const;
+		bool contains_output(const unsigned int out) const;
 		
 		//================= node management ==================
 		void set_bias(const T newBias);
@@ -76,6 +71,7 @@ namespace Benoit {
 			input_iterator(const input_iterator& iOld) {}
 			input_iterator& operator=(const input_iterator& iRhs);
 			
+			//indirection
 			Link<W,S,E>& operator*() const;
 			Link<W,S,E>* operator->() const;
 			
@@ -110,6 +106,7 @@ namespace Benoit {
 			output_iterator(const output_iterator& iRhs);
 			output_iterator& operator=(const output_iterator& iRhs);
 			
+			//indirection
 			Link<W,S,E>& operator*() const;
 			Link<W,S,E>* operator->() const;
 			
@@ -122,23 +119,21 @@ namespace Benoit {
 			friend output_iterator& operator>>(output_iterator& in, E& eError); 
 			
 			//comparisons
-			bool operator==(const output_iterator& rhs)
+			bool operator==(const output_iterator& rhs) 
 				{ return current==rhs.current; }
 			bool operator!=(const output_iterator& cTwo)
 				{ return current!=rhs.current; } 
 		}; //class output_iterator
 	
 		//================ iterator generation ======================
-		inline input_iterator  input_begin() 	{ return input_iterator( inputs.begin() ); }
-		inline input_iterator  input_end() 	{ return input_iterator( inputs.end() ); }
-		inline output_iterator output_begin() 	{ return output_iterator( outputs.begin() ); }
-		inline output_iterator output_end() 	{ return output_iterator( outputs.end() ); }
+		input_iterator  input_begin()  { return input_iterator( inputs.begin() ); }
+		input_iterator  input_end()    { return input_iterator( inputs.end() ); }
+		output_iterator output_begin() { return output_iterator( outputs.begin() ); }
+		output_iterator output_end()   { return output_iterator( outputs.end() ); }
 		
 	}; //class Node
 
-	#include "Node.cpp"
-
-} //namespace Graph
+} //namespace ben
 
 #endif //ifndef GraphNode_h
 #endif //ifndef GraphIndex_h
