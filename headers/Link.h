@@ -13,34 +13,33 @@ namespace ben {
 	using namespace std;
 	private:
 		//============ FIELDS =============
-		mutex mlock; //it is Node's responsibility to lock and unlock the link
+		mutex mlock; //locked by Node::iterators
 		W weight; 
-		deque<S> forward; 
-		deque<E> backward; 
-		unsigned int origin, target;
+		S forward[2]; 
+		E backward[2]; 
+		unsigned char foreMark, backMark;
 		
 	public:
+		const unsigned int origin, target;
+		
 		//============ CTOR, DTOR =============
-		Link() = default;
+		Link() = delete;
 		Link(const unsigned int nOrigin, 
 		     const unsigned int nTarget, 
-		     const W Weight);
-		Link(const Link&& rhs); //will need move semantics for mutex and index
+		     const W& wWeight);
+		Link(const Link& rhs); //need move semantics for mutex?
 		~Link() = default;
 		
 		//============ METHODS ================
-		Link& operator=(const Link&& rhs); //will need move semantics for mutex and index
+		Link& operator=(const Link& rhs) = delete; //can't overwrite origin & target
 		
-		void push_fore(const S data) { forward.push_back(S); }
-		void push_back(const E data) { backward.push_back(E); }
+		void push_fore(const S& data);
+		void push_back(const E& data);
 		S pull_fore();
 		E pull_back();
 		
-		unsigned int get_origin() const { return origin; }
-		unsigned int get_target() const { return target; }
-		
-		void set_weight(const W newWeight) { weight = newWeight; }
-		W get_weight() const 		   { return weight; }
+		void set_weight(const W& newWeight) { weight = newWeight; }
+		W get_weight() const { return weight; }
 		
 		void lock() 	{ mlock.lock(); }
 		bool try_lock() { return mlock.try_lock(); }
