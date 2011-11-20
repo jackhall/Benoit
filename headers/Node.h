@@ -20,9 +20,10 @@ namespace ben {
 		inline static unsigned int getNewID() { return IDCount++; }
 		mutex m;
 		Index<W,S,E>* pIndex; //FIELD
-		friend Index<W,S,E>; //manager class rights for move, take and swap
+		update_index(const Index<W,S,E>* pIndex);
+		friend Index<W,S,E>; //manager class rights for move and swap
 		
-		void private_remove_input(const unsigned int nOrigin);
+		void update_output(const Link<W,S,E>* oldLink, const Link<W,S,E>* newLink);
 		void remove_output(const Link<W,S,E>* pLink);
 		void add_output(const Link<W,S,E>* pLink);
 		
@@ -38,7 +39,7 @@ namespace ben {
 		
 		//============= constructors, destructor ===============
 		Node() = delete;
-		Node(const Node& cSource); //should preserve uniqueness
+		Node(const Node& rhs); //should preserve uniqueness
 		Node(const Index<W,S,E>* pIndex=&INDEX);
 		Node& operator=(const Node& cSource); //should preserve uniqueness
 		~Node(); 
@@ -67,8 +68,8 @@ namespace ben {
 			~input_iterator();
 			
 			//indirection
-			Link<W,S,E>& operator*() const;
-			Link<W,S,E>* operator->() const;
+			Link<W,S,E>& operator*() const { return *current; }
+			Link<W,S,E>* operator->() const { return &*current; }
 			
 			//pointer arithmetic
 			input_iterator& operator++();
@@ -101,8 +102,8 @@ namespace ben {
 			~output_iterator();
 			
 			//indirection
-			Link<W,S,E>& operator*() const;
-			Link<W,S,E>* operator->() const;
+			Link<W,S,E>& operator*() const { return **current; }
+			Link<W,S,E>* operator->() const { return *current; }
 			
 			//pointer arithmetic
 			output_iterator& operator++();

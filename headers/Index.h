@@ -13,20 +13,24 @@ namespace ben {
 	using namespace std;
 	
 	private:
+		mutex readLock, writeLock;
 		map< unsigned int, Node<W,S,E>* > IDMap;
 		
 	public:
 		Index()=default;
-		~Index()=default;
+		~Index();
 		Index(const Index& rhs) = delete;
+		operator=(const Index& rhs) = delete;
 		Node<W,S,E>* find(const unsigned int address) const;
 		bool contains(const unsigned int address) const;
 		
-		void add(
+		//void add(const Node<W,S,E>* pNode); //only called by Node constructor?
 		void remove(const unsigned int address);
+		bool update(const Node<W,S,E>* pNode);
 		
-		void move(Index& destination, const unsigned int address);
+		bool move_node(Index& destination, const unsigned int address);
 		void swap(Index& other);
+		void merge_into(Index& other);
 		void clear();
 			
 	}; //class Index

@@ -11,10 +11,10 @@ namespace ben {
 	}
 
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::Node(const Node& cRhs)
-		: ID(cRhs.ID), mtBias(cRhs.mtBias), mpIndex(cRhs.mpIndex) {
-		//transfer all connections, updating info at other nodes
-		
+	Node<W,S,E>::Node(const Node& rhs)
+		: ID(rhs.ID), pIndex(rhs.pIndex) {
+		inputs = std::move(rhs.inputs);
+		pIndex->update(ID,this);
 	}
 
 	template<typename W, typename S, typename E>
@@ -24,13 +24,25 @@ namespace ben {
 	}
 
 	//=================== Connection management ==================
+	template<typename W, typename S, typename E>
+	void Node<W,S,E>::update_output(const Link<W,S,E>* oldLink, const Link<W,S,E>* newLink) {
+		auto it = outputs.begin();
+		auto ite = outputs.end();
+		while(it != ite) {
+			if( *it == oldLink ) {
+				*it = newLink;
+				break;
+			}
+			++it;
+		}
+	}
+	
 	//---------------- adding ---------------------
 	template<typename W, typename S, typename E>
 	void Node<W,S,E>::add_input(	const unsigned int origin,
 					const W weight) {
 		
-		auto pr = inputs.insert( std::make_pair(target, Link(target, ID, weight)) );
-		pIndex->find(origin)->add_output( &(pr.first->second) )
+		inputs.push_back( Link(pIndex, target, ID, weight) );
 	}
 
 	template<typename W, typename S, typename E>
@@ -40,16 +52,16 @@ namespace ben {
 
 	//------------------ removing -----------------------
 	template<typename W, typename S, typename E>
-	void Node<W,S,E>::private_remove_input(const unsigned int origin) {
-		auto it = inputs.find(origin);
-		inputs.erase(it);
-	}
-	
-	template<typename W, typename S, typename E>
 	void Node<W,S,E>::remove_input(const unsigned int origin) {
-		auto it = inputs.find(origin);
-		pIndex->find(origin)->remove_output( &(it->second) );
-		inputs.erase(it);
+		auto it = inputs.begin();
+		auto ite = inputs.end();
+		while(it != ite) {
+			if(it->origin == origin) {
+				inputs.erase(it);
+				break;
+			}
+			++it;
+		}
 	}
 
 	template<typename W, typename S, typename E>
@@ -68,52 +80,46 @@ namespace ben {
 	template<typename W, typename S, typename E>
 	void Node<W,S,E>::clear() {
 		//delete all outputs from other nodes (where they are inputs)
-		auto ito = outputs.begin();
-		auto itoe = outputs.end();
-		while(ito != itoe) {
-			pIndex->find( (*ito)->get_target() )->private_remove_input(ID);
-			++ito;
+		auto it = outputs.begin();
+		auto ite = outputs.end();
+		while(it != ite) {
+			pIndex->find( (*it)->get_target() )->remove_input(ID);
+			++it;
 		}
-		outputs.clear();
 		
 		//remove all inputs from other nodes (where they are outputs)
-		auto iti = inputs.begin();
-		auto itie = inputs.end();
-		while(iti != itie) {
-			pIndex->find( iti->second.get_origin() )->remove_output(ID);
-			++iti;
-		}
 		inputs.clear();
 	}
 	
 	//----------------- boolean tests -------------------
 	template<typename W, typename S, typename E>
 	bool Node<W,S,E>::contains_input(const unsigned int in) const {
-		return input.count(in) == 1;
+		auto it = inputs.begin();
+		auto ite = inputs.end();
+		while(it != ite) {
+			if(it->origin == in) return true;
+			++it;
+		}
+		return false;
 	}
 	
 	template<typename W, typename S, typename E>
 	bool Node<W,S,E>::contains_output(const unsigned int out) const {
-		return pIndex->find(out)->contains_input(ID);
-	}
-	
-	//================= node management ==================
-	template<typename W, typename S, typename E>
-	void Node<W,S,E>::set_bias(const T newBias) {
-		bias = newBias;
-	}
-	
-	template<typename W, typename S, typename E>
-	T Node<W,S,E>::get_bias() const {
-		return bias;
+		auto it = outputs.begin();
+		auto ite = outputs.end();
+		while(it != ite) {
+			if( (*it)->origin == out ) return true;
+			++it;
+		}
+		return false;
 	}
 		
 	//=================== iterator methods ========================
 	//--------------- constructors, destructor ------------
 	//input_iterator version
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::input_iterator::input_iterator( map< unsigned int, Link<W,S,E> >::iterator iLink ) 
-		: currrent(iLink) {
+	Node<W,S,E>::input_iterator::input_iterator( list< Link<W,S,E> >::iterator iLink ) 
+		: current(iLink) {
 	}
 	
 	template<typename W, typename S, typename E>
@@ -134,7 +140,7 @@ namespace ben {
 	//output_iterator version
 	template<typename W, typename S, typename E>
 	Node<W,S,E>::output_iterator::output_iterator( vector< Link<W,S,E>* >::iterator iLink ) 
-		: current(iLink) {	
+		: current(iLink) {
 	}
 	
 	template<typename W, typename S, typename E>
@@ -150,29 +156,6 @@ namespace ben {
 	template<typename W, typename S, typename E>
 	Node<W,S,E>::output_iterator::~output_iterator() {
 		//unlock if necessary
-	}
-	
-	//--------------- indirection ----------------
-	//input_iterator version
-	template<typename W, typename S, typename E>
-	Link<W,S,E>&  Node<W,S,E>::input_iterator::operator*() const {
-		return current->second;
-	}
-	
-	template<typename W, typename S, typename E>
-	Link<W,S,E>*  Node<W,S,E>::input_iterator::operator->() const {
-		return &(current->second);
-	}
-	
-	//output_iterator version
-	template<typename W, typename S, typename E>
-	Link<W,S,E>&  Node<W,S,E>::output_iterator::operator*() const {
-		return *current;
-	}
-	
-	template<typename W, typename S, typename E>
-	Link<W,S,E>*  Node<W,S,E>::output_iterator::operator->() const {
-		return current.operator->();
 	}
 	
 	//---------------- increment, decrement ---------------
@@ -207,14 +190,14 @@ namespace ben {
 	template<typename W, typename S, typename E>
 	Node<W,S,E>::input_iterator&  operator<<(Node<W,S,E>::input_iterator& out, 
 						   E& eError) {
-		out.current->second->push_back(eError);
+		out.current->push_back(eError);
 		return out;
 	}
 
 	template<typename W, typename S, typename E>
 	Node<W,S,E>::input_iterator&  operator>>(Node<W,S,E>::input_iterator& in, 
 						   S& sSignal) {
-		sSignal = in.current->second->pull_fore();
+		sSignal = in.current->pull_fore();
 		return in;
 	}
 	
@@ -222,14 +205,14 @@ namespace ben {
 	template<typename W, typename S, typename E>
 	Node<W,S,E>::output_iterator&  operator<<(Node<W,S,E>::output_iterator& out, 
 						    S& sSignal) {
-		out.current->second->push_fore(sSignal);
+		(*out.current)->push_fore(sSignal);
 		return out;
 	}
 
 	template<typename W, typename S, typename E>
 	Node<W,S,E>::output_iterator&  operator>>(Node<W,S,E>::output_iterator& in, 
 						    E& eError) {
-		eError = in.current->second->pull_back();
+		eError = (*in.current)->pull_back();
 		return in;
 	}
 	

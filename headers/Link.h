@@ -17,18 +17,20 @@ namespace ben {
 		W weight; 
 		S forward[2]; 
 		E backward[2]; 
-		unsigned char foreMark, backMark;
+		bool mark[4]; //change to bitwise array later [read write read write]
+		Index<W,S,E>* index;
 		
 	public:
 		const unsigned int origin, target;
 		
 		//============ CTOR, DTOR =============
 		Link() = delete;
-		Link(const unsigned int nOrigin, 
+		Link(const Index<W,S,E>* pIndex,
+		     const unsigned int nOrigin, 
 		     const unsigned int nTarget, 
 		     const W& wWeight);
 		Link(const Link& rhs); //need move semantics for mutex?
-		~Link() = default;
+		~Link();
 		
 		//============ METHODS ================
 		Link& operator=(const Link& rhs) = delete; //can't overwrite origin & target
