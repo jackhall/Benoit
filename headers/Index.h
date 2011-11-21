@@ -3,6 +3,8 @@
 //(c) Jack Hall 2011, licensed under GNU GPL v3
 
 #include <map>
+#include <iostream>
+#include <mutex>
 
 namespace ben {
 
@@ -10,17 +12,16 @@ namespace ben {
 
 	template<typename W, typename S, typename E> 
 	class Index {
-	using namespace std;
 	
 	private:
-		mutex readLock, writeLock;
-		map< unsigned int, Node<W,S,E>* > IDMap;
+		std::mutex readLock, writeLock;
+		std::map< unsigned int, Node<W,S,E>* > IDMap;
 		
 	public:
 		Index()=default;
 		~Index();
 		Index(const Index& rhs) = delete;
-		operator=(const Index& rhs) = delete;
+		Index& operator=(const Index& rhs) = delete;
 		Node<W,S,E>* find(const unsigned int address) const;
 		bool contains(const unsigned int address) const;
 		

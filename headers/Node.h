@@ -13,23 +13,22 @@ namespace ben {
 	template<typename W, typename S, typename E> 
 	class Node {
 	
-	using namespace std;
 	private:
 		//logistics
 		static unsigned int IDCOUNT;
 		inline static unsigned int getNewID() { return IDCount++; }
-		mutex m;
+		std::mutex m;
 		Index<W,S,E>* pIndex; //FIELD
-		update_index(const Index<W,S,E>* pIndex);
-		friend Index<W,S,E>; //manager class rights for move and swap
+		void update_index(const Index<W,S,E>* pIndex);
+		friend class Index<W,S,E>; //manager class rights for move and swap
 		
 		void update_output(const Link<W,S,E>* oldLink, const Link<W,S,E>* newLink);
 		void remove_output(const Link<W,S,E>* pLink);
 		void add_output(const Link<W,S,E>* pLink);
 		
 		//================ connection storage =====================
-		list< Link<W,S,E> > inputs; //FIELD
-		vector< Link<W,S,E>* > outputs; //FIELD
+		std::list< Link<W,S,E> > inputs; //FIELD
+		std::vector< Link<W,S,E>* > outputs; //FIELD
 	
 	/////////////////////////////////////////////////////////////////////////
 	public: 
@@ -46,7 +45,7 @@ namespace ben {
 	
 		//=============== link management =====================
 		void add_input(	const unsigned int nOrigin,
-				const unsigned W& wWeight);
+				const W& wWeight);
 		void remove_input(const unsigned int nOrigin);
 		void clear();
 		bool contains_input(const unsigned int nOrigin) const;
@@ -55,10 +54,10 @@ namespace ben {
 		//=================== input_iterator ============================
 		class input_iterator {	
 		private:
-			list< Link<W,S,E> >::iterator current;
+			typename std::list< Link<W,S,E> >::iterator current;
 			
-			friend Node;
-			input_iterator( list< Link<W,S,E> >::iterator iLink );
+			friend class Node;
+			input_iterator( std::list<Link<W,S,E>>::iterator iLink );
 			
 		public:
 			//constructors
@@ -89,10 +88,10 @@ namespace ben {
 		//================== output_iterator =======================
 		class output_iterator {
 		private:
-			vector< Link<W,S,E>* >::iterator current;
+			typename std::vector< Link<W,S,E>* >::iterator current;
 			
-			friend Node;
-			output_iterator( vector< Link<W,S,E>* >::iterator iLink );
+			friend class Node;
+			output_iterator( std::vector< Link<W,S,E>* >::iterator iLink );
 			
 		public:
 			//constructors
@@ -131,5 +130,4 @@ namespace ben {
 	unsigned int Node::IDCOUNT = 0; //initialize static member
 } //namespace ben
 
-#endif //ifndef GraphNode_h
-#endif //ifndef GraphIndex_h
+#endif //ifndef BenoitNode_h

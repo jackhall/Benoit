@@ -2,7 +2,6 @@
 #define BenoitLink_h
 //(c) Jack Hall 2011, licensed under GNU GPL v3
 
-#include <deque>
 #include <mutex>
 
 namespace ben {
@@ -10,10 +9,9 @@ namespace ben {
 	template<typename W, typename S, typename E> 
 	class Link {
 	
-	using namespace std;
 	private:
 		//============ FIELDS =============
-		mutex mlock; //locked by Node::iterators
+		std::mutex mlock; //locked by Node::iterators
 		W weight; 
 		S forward[2]; 
 		E backward[2]; 
