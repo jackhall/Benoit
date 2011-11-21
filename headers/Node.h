@@ -10,17 +10,31 @@
 
 namespace ben {
 	
+	//forward declarations for port streaming operators
+	template<typename W, typename S, typename E>
+	typename Node<W,S,E>::input_port& operator<<(typename Node<W,S,E>::input_port& out, E& eError);
+	
+	template<typename W, typename S, typename E>
+	typename Node<W,S,E>::input_port& operator>>(typename Node<W,S,E>::input_port& in, S& sSignal);
+	
+	template<typename W, typename S, typename E>
+	typename Node<W,S,E>::output_port& operator<<(typename Node<W,S,E>::output_port& out, S& sSignal);
+	
+	template<typename W, typename S, typename E>
+	typename Node<W,S,E>::output_port& operator>>(typename Node<W,S,E>::output_port& in, E& eError);
+	
+	//begin class template declaration
 	template<typename W, typename S, typename E> 
 	class Node {
 	
 	private:
 		//logistics
 		static unsigned int IDCOUNT;
-		inline static unsigned int getNewID() { return IDCount++; }
+		inline static unsigned int getNewID() { return IDCOUNT++; }
 		std::mutex m;
-		Index<W,S,E>* pIndex; //FIELD
+		Index<W,S,E>* index; //FIELD
 		void update_index(const Index<W,S,E>* pIndex);
-
+		
 		friend class Index<W,S,E>; //manager class rights for move and swap
 		
 		void update_output(const Link<W,S,E>* oldLink, const Link<W,S,E>* newLink);
@@ -38,9 +52,9 @@ namespace ben {
 		const unsigned int ID; //FIELD
 		
 		//============= constructors, destructor ===============
-		Node() = delete;
+		Node();
 		Node(const Node& rhs); //should preserve uniqueness
-		Node(const Index<W,S,E>* pIndex=&INDEX);
+		Node(const Index<W,S,E>* pIndex);
 		Node& operator=(const Node& cSource); //should preserve uniqueness
 		~Node(); 
 	
@@ -58,7 +72,7 @@ namespace ben {
 			typename std::list< Link<W,S,E> >::iterator current;
 
 			friend class Node;
-			input_port( std::list< Link<W,S,E> >::iterator iLink );
+			input_port(const typename std::list< Link<W,S,E> >::iterator iLink);
 
 			
 		public:
@@ -77,8 +91,8 @@ namespace ben {
 			input_port& operator--();
 				
 			//streaming operators
-			friend input_port& operator>>(input_port& out, S& sSignal);
-			friend input_port& operator<<(input_port& in, E& eError); 
+			friend input_port& operator>> <W,S,E>(input_port& out, S& sSignal);
+			friend input_port& operator<< <W,S,E>(input_port& in, E& eError); 
 			
 			//comparisons
 			bool operator==(const input_port& rhs) const
@@ -93,7 +107,7 @@ namespace ben {
 			typename std::vector< Link<W,S,E>* >::iterator current;
 			
 			friend class Node;
-			output_port( std::vector< Link<W,S,E>* >::iterator iLink );
+			output_port(const typename std::vector< Link<W,S,E>* >::iterator iLink);
 			
 		public:
 			//constructors
@@ -111,13 +125,13 @@ namespace ben {
 			output_port& operator--();
 				
 			//streaming operators
-			friend output_port& operator<<(output_port& out, S& sSignal); 
-			friend output_port& operator>>(output_port& in, E& eError); 
+			friend output_port& operator<< <W,S,E>(output_port& out, S& sSignal); 
+			friend output_port& operator>> <W,S,E>(output_port& in, E& eError); 
 			
 			//comparisons
 			bool operator==(const output_port& rhs) const
 				{ return current==rhs.current; }
-			bool operator!=(const output_port& cTwo) const
+			bool operator!=(const output_port& rhs) const
 				{ return current!=rhs.current; } 
 		}; //class output_port
 	
@@ -128,8 +142,15 @@ namespace ben {
 		output_port output_end()   { return output_port( outputs.end() ); }
 		
 	}; //class Node
-
-	unsigned int Node::IDCOUNT = 0; //initialize static member
+	
+	
+	//initialize static members
+	template<typename W, typename S, typename E>
+	unsigned int Node<W,S,E>::IDCOUNT = 0;
+	
+	template<typename W, typename S, typename E>
+	Index<W,S,E> Node<W,S,E>::INDEX = Index<W,S,E>(); 
+	
 } //namespace ben
 
 #endif //ifndef BenoitNode_h
