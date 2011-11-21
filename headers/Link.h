@@ -38,6 +38,8 @@ namespace ben {
 		S pull_fore();
 		E pull_back();
 		
+		void update_index(const Index<W,S,E>* pIndex);
+		
 		void set_weight(const W& newWeight) { weight = newWeight; }
 		W get_weight() const { return weight; }
 		

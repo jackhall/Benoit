@@ -25,14 +25,13 @@ namespace ben {
 		Node<W,S,E>* find(const unsigned int address) const;
 		bool contains(const unsigned int address) const;
 		
-		//void add(const Node<W,S,E>* pNode); //only called by Node constructor?
+		void add(const Node<W,S,E>* pNode); //only called by Node constructor?
 		void remove(const unsigned int address);
 		bool update(const Node<W,S,E>* pNode);
 		
-		bool move_node(Index& destination, const unsigned int address);
-		void swap(Index& other);
+		void move_to(Index& destination, const unsigned int address);
+		void swap_with(Index& other);
 		void merge_into(Index& other);
-		void clear();
 			
 	}; //class Index
 	

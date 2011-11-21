@@ -20,6 +20,7 @@ namespace ben {
 		std::mutex m;
 		Index<W,S,E>* pIndex; //FIELD
 		void update_index(const Index<W,S,E>* pIndex);
+
 		friend class Index<W,S,E>; //manager class rights for move and swap
 		
 		void update_output(const Link<W,S,E>* oldLink, const Link<W,S,E>* newLink);
@@ -51,79 +52,80 @@ namespace ben {
 		bool contains_input(const unsigned int nOrigin) const;
 		bool contains_output(const unsigned int nTarget) const;
 		
-		//=================== input_iterator ============================
-		class input_iterator {	
+		//=================== input_port ============================
+		class input_port {	
 		private:
 			typename std::list< Link<W,S,E> >::iterator current;
-			
+
 			friend class Node;
-			input_iterator( std::list<Link<W,S,E>>::iterator iLink );
+			input_port( std::list< Link<W,S,E> >::iterator iLink );
+
 			
 		public:
 			//constructors
-			input_iterator() = default;
-			input_iterator(const input_iterator& rhs);
-			input_iterator& operator=(const input_iterator& rhs);
-			~input_iterator();
+			input_port() = default;
+			input_port(const input_port& rhs);
+			input_port& operator=(const input_port& rhs);
+			~input_port();
 			
-			//indirection
+			//indirection, replace with more specific methods?
 			Link<W,S,E>& operator*() const { return *current; }
 			Link<W,S,E>* operator->() const { return &*current; }
 			
 			//pointer arithmetic
-			input_iterator& operator++();
-			input_iterator& operator--();
+			input_port& operator++();
+			input_port& operator--();
 				
 			//streaming operators
-			friend input_iterator& operator>>(input_iterator& out, S& sSignal);
-			friend input_iterator& operator<<(input_iterator& in, E& eError); 
+			friend input_port& operator>>(input_port& out, S& sSignal);
+			friend input_port& operator<<(input_port& in, E& eError); 
 			
 			//comparisons
-			bool operator==(const input_iterator& rhs) const
+			bool operator==(const input_port& rhs) const
 				{ return current==rhs.current; }
-			bool operator!=(const input_iterator& rhs) const
+			bool operator!=(const input_port& rhs) const
 				{ return current!=rhs.current; } 
-		}; //class input_iterator
+		}; //class input_port
 		
-		//================== output_iterator =======================
-		class output_iterator {
+		//================== output_port =======================
+		class output_port {
 		private:
 			typename std::vector< Link<W,S,E>* >::iterator current;
 			
 			friend class Node;
-			output_iterator( std::vector< Link<W,S,E>* >::iterator iLink );
+			output_port( std::vector< Link<W,S,E>* >::iterator iLink );
 			
 		public:
 			//constructors
-			output_iterator() = default;
-			output_iterator(const output_iterator& rhs);
-			output_iterator& operator=(const output_iterator& rhs);
-			~output_iterator();
+			output_port() = default;
+			output_port(const output_port& rhs);
+			output_port& operator=(const output_port& rhs);
+			~output_port();
 			
-			//indirection
+			//indirection, replace with more specific methods?
 			Link<W,S,E>& operator*() const { return **current; }
 			Link<W,S,E>* operator->() const { return *current; }
 			
 			//pointer arithmetic
-			output_iterator& operator++();
-			output_iterator& operator--();
+			output_port& operator++();
+			output_port& operator--();
 				
 			//streaming operators
-			friend output_iterator& operator<<(output_iterator& out, S& sSignal); 
-			friend output_iterator& operator>>(output_iterator& in, E& eError); 
+			friend output_port& operator<<(output_port& out, S& sSignal); 
+			friend output_port& operator>>(output_port& in, E& eError); 
 			
 			//comparisons
-			bool operator==(const output_iterator& rhs) const
+			bool operator==(const output_port& rhs) const
 				{ return current==rhs.current; }
-			bool operator!=(const output_iterator& cTwo) const
+			bool operator!=(const output_port& cTwo) const
 				{ return current!=rhs.current; } 
-		}; //class output_iterator
+		}; //class output_port
 	
 		//================ iterator generation ======================
-		input_iterator  input_begin()  { return input_iterator( inputs.begin() ); }
-		input_iterator  input_end()    { return input_iterator( inputs.end() ); }
-		output_iterator output_begin() { return output_iterator( outputs.begin() ); }
-		output_iterator output_end()   { return output_iterator( outputs.end() ); }
+		input_port  input_begin()  { return input_port( inputs.begin() ); }
+		input_port  input_end()    { return input_port( inputs.end() ); }
+		output_port output_begin() { return output_port( outputs.begin() ); }
+		output_port output_end()   { return output_port( outputs.end() ); }
 		
 	}; //class Node
 
