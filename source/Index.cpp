@@ -5,6 +5,7 @@
 namespace ben {
 	template<typename W, typename S,typename E>
 	Index<W,S,E>::~Index() {
+		//shift network to static index (the default)
 		if(this != Node<W,S,E>.INDEX) merge_into(Node<W,S,E>.INDEX);
 	}
 
@@ -21,34 +22,45 @@ namespace ben {
 	}
 	
 	
-	/*template<typename W, typename S,typename E>
-	bool Index<W,S,E>::add(const Node<W,S,E>* pNode) {
-		IDMap.insert( pair< unsigned int, <Node<W,S,E>* >(pNode->ID, pNode) );
-	} */
+	template<typename W, typename S,typename E>
+	void Index<W,S,E>::add(const Node<W,S,E>* pNode) {
+		if( IDMap.find(pNode->ID) == IDMap.end() ) {
+			IDMap.insert( std::make_pair(pNode->ID, pNode) );
+		}
+	} 
 	
 	template<typename W, typename S,typename E>
 	void Index<W,S,E>::remove(const unsigned int address) {
-		
+		auto it = IDMap.find(address);
+		if(it != IDMap.end()) IDMap.erase(it);
 	}
 	
 	template<typename W, typename S,typename E>
 	bool Index<W,S,E>::update(const Node<W,S,E>* pNode) {
-		
+		//returns true iff Node is already a member
+		auto it = IDMap.find(pNode->ID);
+		if( it != IDMap.end() ) {
+			it->second = pNode;
+			return true;
+		} else return false;
 	}
 
 	template<typename W, typename S,typename E>
-	void Index<W,S,E>::move_node(Index<W,S,E>& cDestination, const unsigned int address) {
+	void Index<W,S,E>::move_to(Index<W,S,E>& destination, const unsigned int address) {
+		//removes Node from graph and moves it to destination Index
 		auto it = IDMap.find(address);
 		if(it != IDMap.end()) {
 			it->second->clear();
-			cDestination.IDMap.insert( pair< unsigned int, Node<W,S,E>* >(it-second->ID, *it) );
+			destination.add(it->second);
+			it->second->update_index(&destination);
 			IDMap.erase(it);
 		} 
 		return;
 	} 
 	
 	template<typename W, typename S,typename E>
-	void Index<W,S,E>::swap(Index& other) {
+	void Index<W,S,E>::swap_with(Index& other) {
+		//uses move semantics to trade IDMaps
 		auto temp = std::move(IDMap);
 		IDMap = std::move(other.IDMap);
 		other.IDMap = std::move(temp);
@@ -56,16 +68,16 @@ namespace ben {
 	
 	template<typename W, typename S,typename E>
 	void Index<W,S,E>::merge_into(Index& other) {
-		
-	}
-	
-	template<typename W, typename S,typename E>
-	void Index<W,S,E>::clear() {
-		auto it = IDMap.begin();
-		auto ite = IDMap.end();
-		while(it != ite) {
-			
-			++it;
+		//moves all Nodes to other Index, keeping Links intact
+		//current Index is left empty
+		if(this != &other) {
+			auto it = IDMap.begin();
+			auto ite = IDMap.end();
+			while(it != ite) {
+				it->second->update_index(&other);
+				other.add(it->second);
+				IDMap.erase(it++);
+			}
 		}
 	}
 

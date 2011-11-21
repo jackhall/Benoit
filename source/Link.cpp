@@ -10,6 +10,7 @@ namespace ben {
 		   	  const unsigned int nTarget, 
 		   	  const W& wWeight)
 		: index(pIndex), origin(nOrigin), target(nTarget), weight(wWeight) {
+		//add pointer to origin Node
 		index->find(origin)->add_output(this);
 		mark[0] = false;
 		mark[1] = false;
@@ -20,6 +21,7 @@ namespace ben {
 	template<typename W, typename S, typename E>
 	Link<W,S,E>::Link(const Link& rhs)
 		: origin(rhs.origin), target(rhs.target), weight(rhs.weight), mlock()) {
+		//change point at origin Node to match the new Link location
 		index->find(origin)->update_output(&rhs, this);
 		mark[0] = false;
 		mark[1] = false;
@@ -29,6 +31,7 @@ namespace ben {
 			
 	template<typename W, typename S, typename E>
 	Link<W,S,E>::~Link() {
+		//remove pointer at origin Node
 		if(index != NULL) index->find(origin)->remove_output(this);
 	}
 	
@@ -76,6 +79,11 @@ namespace ben {
 			mark[2] = true;
 			return backward[1];
 		}
+	}
+	
+	template<typename W, typename S, typename E>
+	void Link<W,S,E>::update_index(const Index<W,S,E>* pIndex) {
+		index = pIndex;
 	}
 	
 } //namespace ben
