@@ -5,19 +5,25 @@
 namespace ben {
 	//=================== CTOR, DTOR ==================== 
 	template<typename W, typename S, typename E>
+	Node<W,S,E>::Node() 
+		: ID( getNewID() ), index( &(Node::INDEX) ) {
+		index->add(ID,this);
+	}
+	
+	template<typename W, typename S, typename E>
 	Node<W,S,E>::Node(const Index<W,S,E>* pIndex) 
-		: ID( getNewID() ), pIndex(pIndex) {
+		: ID( getNewID() ), index(pIndex) {
 		//add self to manager
-		pIndex->add(ID,this);
+		index->add(ID,this);
 	}
 
 	template<typename W, typename S, typename E>
 	Node<W,S,E>::Node(const Node& rhs)
-		: ID(rhs.ID), pIndex(rhs.pIndex) {
+		: ID(rhs.ID), index(rhs.index) {
 		//uses move semantics to preserve Links at original locations
 		inputs = std::move(rhs.inputs);
 		//inform manager of new location
-		pIndex->update(ID,this);
+		index->update(ID,this);
 	}
 
 	template<typename W, typename S, typename E>
@@ -25,7 +31,7 @@ namespace ben {
 		//delete all Links (input and output)
 		clear();
 		//remove self from manager
-		pIndex->remove(ID);
+		index->remove(ID);
 	}
 	
 	//=================== other methods ===================
@@ -59,9 +65,9 @@ namespace ben {
 	//---------------- adding ---------------------
 	template<typename W, typename S, typename E>
 	void Node<W,S,E>::add_input(	const unsigned int origin,
-					const W weight) {
+					const W& weight) {
 		//Link will create its own pointer at the origin Node
-		inputs.push_back( Link(pIndex, target, ID, weight) );
+		inputs.push_back( Link<W,S,E>(index, origin, ID, weight) );
 	}
 
 	template<typename W, typename S, typename E>
@@ -105,7 +111,7 @@ namespace ben {
 		auto it = outputs.begin();
 		auto ite = outputs.end();
 		while(it != ite) {
-			pIndex->find( (*it)->get_target() )->remove_input(ID);
+			index->find( (*it)->get_target() )->remove_input(ID);
 			++it;
 		}
 		
@@ -140,7 +146,7 @@ namespace ben {
 	//--------------- constructors, destructor ------------
 	//input_port version
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::input_port::input_port( list< Link<W,S,E> >::iterator iLink ) 
+	Node<W,S,E>::input_port::input_port(const typename std::list< Link<W,S,E> >::iterator iLink) 
 		: current(iLink) {
 	}
 	
@@ -150,7 +156,7 @@ namespace ben {
 	}
 	
 	template<typename W, typename S, typename E>
-	input_port& Node<W,S,E>::input_port::operator=(const input_port& rhs) {
+	typename Node<W,S,E>::input_port& Node<W,S,E>::input_port::operator=(const input_port& rhs) {
 		current = rhs.current;
 	}
 	
@@ -161,7 +167,7 @@ namespace ben {
 	
 	//output_port version
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::output_port::output_port( vector< Link<W,S,E>* >::iterator iLink ) 
+	Node<W,S,E>::output_port::output_port(const typename std::vector< Link<W,S,E>* >::iterator iLink) 
 		: current(iLink) {
 	}
 	
@@ -171,7 +177,7 @@ namespace ben {
 	}
 	
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::output_port& Node<W,S,E>::output_port::operator=(const output_port& rhs) {
+	typename Node<W,S,E>::output_port& Node<W,S,E>::output_port::operator=(const output_port& rhs) {
 		current = rhs.current;
 	}
 	
@@ -183,14 +189,14 @@ namespace ben {
 	//---------------- increment, decrement ---------------
 	//input_port version
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::input_port Node<W,S,E>::input_port::operator++() {
+	typename Node<W,S,E>::input_port& Node<W,S,E>::input_port::operator++() {
 		//lock current?
 		++current; 
 		return *this;
 	}
 
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::input_port Node<W,S,E>::input_port::operator--() {
+	typename Node<W,S,E>::input_port& Node<W,S,E>::input_port::operator--() {
 		//lock current?
 		--current; 
 		return *this;
@@ -198,14 +204,14 @@ namespace ben {
 
 	//output_port version
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::output_port Node<W,S,E>::output_port::operator++() {
+	typename Node<W,S,E>::output_port& Node<W,S,E>::output_port::operator++() {
 		//lock current?
 		++current; 
 		return *this;
 	}
 
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::output_port Node<W,S,E>::output_port::operator--() {
+	typename Node<W,S,E>::output_port& Node<W,S,E>::output_port::operator--() {
 		//lock current?
 		--current; 
 		return *this;
@@ -214,16 +220,16 @@ namespace ben {
 	//---------------- streaming ------------------
 	//input_port
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::input_port&  operator<<(Node<W,S,E>::input_port& out, 
-					     E& eError) {
+	typename Node<W,S,E>::input_port& operator<<(typename Node<W,S,E>::input_port& out, 
+					     			E& eError) {
 		//pushes error backwards into buffer
 		out.current->push_back(eError);
 		return out;
 	}
 
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::input_port&  operator>>(Node<W,S,E>::input_port& in, 
-					     S& sSignal) {
+	typename Node<W,S,E>::input_port& operator>>(typename Node<W,S,E>::input_port& in, 
+					     			S& sSignal) {
 		//pulls signal forward out of buffer and deletes it from the buffer
 		sSignal = in.current->pull_fore();
 		return in;
@@ -231,16 +237,16 @@ namespace ben {
 	
 	//output_port
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::output_port&  operator<<(Node<W,S,E>::output_port& out, 
-					      S& sSignal) {
+	typename Node<W,S,E>::output_port& operator<<(typename Node<W,S,E>::output_port& out, 
+					      			S& sSignal) {
 		//pushes signal forward into buffer
 		(*out.current)->push_fore(sSignal);
 		return out;
 	}
 
 	template<typename W, typename S, typename E>
-	Node<W,S,E>::output_port&  operator>>(Node<W,S,E>::output_port& in, 
-					      E& eError) {
+	typename Node<W,S,E>::output_port& operator>>(typename Node<W,S,E>::output_port& in, 
+					      			E& eError) {
 		//pulls error backwards out of buffer and deletes it from the buffer
 		eError = (*in.current)->pull_back();
 		return in;

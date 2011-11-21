@@ -20,7 +20,7 @@ namespace ben {
 	
 	template<typename W, typename S, typename E>
 	Link<W,S,E>::Link(const Link& rhs)
-		: origin(rhs.origin), target(rhs.target), weight(rhs.weight), mlock()) {
+		: origin(rhs.origin), target(rhs.target), weight(rhs.weight), mlock() {
 		//change point at origin Node to match the new Link location
 		index->find(origin)->update_output(&rhs, this);
 		mark[0] = false;

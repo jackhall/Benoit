@@ -6,19 +6,19 @@ namespace ben {
 	template<typename W, typename S,typename E>
 	Index<W,S,E>::~Index() {
 		//shift network to static index (the default)
-		if(this != Node<W,S,E>.INDEX) merge_into(Node<W,S,E>.INDEX);
+		if(this != Node<W,S,E>::INDEX) merge_into(Node<W,S,E>::INDEX);
 	}
 
 	template<typename W, typename S,typename E>
-	Node<W,S,E>* Index<W,S,E>::find(const unsigned int nAddress) {
+	Node<W,S,E>* Index<W,S,E>::find(const unsigned int nAddress) const {
 		auto it = IDMap.find(nAddress);
 		if(it == IDMap.end()) return NULL;
 		else return it->second;
 	}
 
 	template<typename W, typename S,typename E>
-	bool Index<W,S,E>::contains(const unsigned int address) {
-		return IDMap.end() != IDmap.find(address);
+	bool Index<W,S,E>::contains(const unsigned int address) const {
+		return IDMap.end() != IDMap.find(address);
 	}
 	
 	
