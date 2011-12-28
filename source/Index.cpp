@@ -6,7 +6,7 @@ namespace ben {
 	template<typename W, typename S,typename E>
 	Index<W,S,E>::~Index() {
 		//shift network to static index (the default)
-		if(this != Node<W,S,E>::INDEX) merge_into(Node<W,S,E>::INDEX);
+		//if(this != Node<W,S,E>::INDEX) merge_into(Node<W,S,E>::INDEX);
 	}
 
 	template<typename W, typename S,typename E>
@@ -23,7 +23,7 @@ namespace ben {
 	
 	
 	template<typename W, typename S,typename E>
-	void Index<W,S,E>::add(const Node<W,S,E>* pNode) {
+	void Index<W,S,E>::add(Node<W,S,E>* const pNode) {
 		if( IDMap.find(pNode->ID) == IDMap.end() ) {
 			IDMap.insert( std::make_pair(pNode->ID, pNode) );
 		}
@@ -36,7 +36,7 @@ namespace ben {
 	}
 	
 	template<typename W, typename S,typename E>
-	bool Index<W,S,E>::update(const Node<W,S,E>* pNode) {
+	bool Index<W,S,E>::update(Node<W,S,E>* const pNode) {
 		//returns true iff Node is already a member
 		auto it = IDMap.find(pNode->ID);
 		if( it != IDMap.end() ) {

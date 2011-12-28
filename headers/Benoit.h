@@ -3,11 +3,11 @@
 //(c) Jack Hall 2011, licensed under GNU GPL v3
 
 #include "Index.h" //forward declares Node
-#include "Link.h"
-#include "Node.h"
+#include "Link-part.h"
+#include "Node-part.h"
 
-#include "Link.cpp"
-#include "Node.cpp"
+#include "Link-part.cpp"
+#include "Node-part.cpp"
 #include "Index.cpp"
 
 #endif
