@@ -8,26 +8,26 @@
 
 namespace ben {
 
-	template<typename W, typename S, typename E> class Node;
+	template<typename W, typename S> class Node;
 
-	template<typename W, typename S, typename E> 
+	template<typename W, typename S> 
 	class Index {
 	
 	private:
 		std::mutex readLock, writeLock;
-		std::map< unsigned int, Node<W,S,E>* > IDMap;
+		std::map< unsigned int, Node<W,S>* > IDMap;
 		
 	public:
 		Index()=default;
 		~Index();
 		Index(const Index& rhs) = delete;
 		Index& operator=(const Index& rhs) = delete;
-		Node<W,S,E>* find(const unsigned int address) const;
+		Node<W,S>* find(const unsigned int address) const;
 		bool contains(const unsigned int address) const;
 		
-		void add(Node<W,S,E>* const pNode); //only called by Node constructor?
+		void add(Node<W,S>* const pNode); //only called by Node constructor?
 		void remove(const unsigned int address);
-		bool update(Node<W,S,E>* const pNode);
+		bool update(Node<W,S>* const pNode);
 		
 		void move_to(Index& destination, const unsigned int address);
 		void swap_with(Index& other);

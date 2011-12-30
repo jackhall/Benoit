@@ -4,9 +4,12 @@
 
 int main() {
 	using namespace ben;
-	Index<double,double,double> first_index;
 	
-	Node<double,double,double>* pfirst_node = new Node<double,double,double>(&first_index);
-	delete pfirst_node;
+	Index<double,double> first_index;
+	
+	Node<double,double>* pfirst_node = new Node<double,double>(&first_index);
+	Node<double,double>* psecond_node = new Node<double,double>(&first_index);
+	
+	delete pfirst_node, psecond_node;
 	return 0;
 }

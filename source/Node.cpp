@@ -3,53 +3,31 @@
 //(c) Jack Hall 2011, licensed under GNU GPL v3
 
 namespace ben {
-	//=================== CTOR, DTOR ==================== 
-	template<typename W, typename S, typename E>
-	Node<W,S,E>::Node() 
+	//=============== CTOR, DTOR ===================
+	template<typename W, typename S>
+	Node<W,S>::Node() 
 		: ID( getNewID() ), index( &(Node::INDEX) ) {
-		index->add(ID,this);
-	}
-	
-	template<typename W, typename S, typename E>
-	Node<W,S,E>::Node(const Index<W,S,E>* pIndex) 
+		index->add(this);
+	} //default constructor
+
+	template<typename W, typename S>
+	Node<W,S>::Node(Index<W,S>* const pIndex) 
 		: ID( getNewID() ), index(pIndex) {
 		//add self to manager
-		index->add(ID,this);
-	}
+		index->add(this);
+	} //constructor
 
-	template<typename W, typename S, typename E>
-	Node<W,S,E>::Node(const Node& rhs)
-		: ID(rhs.ID), index(rhs.index) {
-		//uses move semantics to preserve Links at original locations
-		inputs = std::move(rhs.inputs);
-		//inform manager of new location
-		index->update(ID,this);
-	}
-
-	template<typename W, typename S, typename E>
-	Node<W,S,E>::~Node() {
+	template<typename W, typename S>
+	Node<W,S>::~Node() {
 		//delete all Links (input and output)
 		clear();
 		//remove self from manager
 		index->remove(ID);
-	}
+	} //destructor
 	
-	//=================== other methods ===================
-	template<typename W, typename S, typename E>
-	void Node<W,S,E>::update_index(const Index<W,S,E>* pIndex) {
-		//changes index point in self and in all member Links
-		index = pIndex;
-		auto it = inputs.begin();
-		auto ite = inputs.end();
-		while(it != ite) {
-			it->update_index(pIndex);
-			++it;
-		}
-	}
-	
-	//=================== Connection management ==================
-	template<typename W, typename S, typename E>
-	void Node<W,S,E>::update_output(const Link<W,S,E>* oldLink, const Link<W,S,E>* newLink) {
+	//==================== METHODS =====================
+	template<typename W, typename S>
+	void Node<W,S>::update_output(Link<W,S>* const oldLink, Link<W,S>* const newLink) {
 		//updates output Link pointer
 		auto it = outputs.begin();
 		auto ite = outputs.end();
@@ -62,23 +40,15 @@ namespace ben {
 		}
 	}
 	
-	//---------------- adding ---------------------
-	template<typename W, typename S, typename E>
-	void Node<W,S,E>::add_input(	const unsigned int origin,
+	template<typename W, typename S>
+	void Node<W,S>::add_input(	const unsigned int origin,
 					const W& weight) {
 		//Link will create its own pointer at the origin Node
-		inputs.push_back( Link<W,S,E>(index, origin, ID, weight) );
-	}
-
-	template<typename W, typename S, typename E>
-	void Node<W,S,E>::add_output(const Link<W,S,E>* pLink) {
-		//private; for adding output Link pointer
-		outputs.push_back(pLink);
-	}
-
-	//------------------ removing -----------------------
-	template<typename W, typename S, typename E>
-	void Node<W,S,E>::remove_input(const unsigned int origin) {
+		inputs.push_back( Link<W,S>(index, origin, ID, weight) );
+	} //add_input
+	
+	template<typename W, typename S>
+	void Node<W,S>::remove_input(const unsigned int origin) {
 		//destroys input Link to the specified Node
 		auto it = inputs.begin();
 		auto ite = inputs.end();
@@ -89,10 +59,16 @@ namespace ben {
 			}
 			++it;
 		}
-	}
-
-	template<typename W, typename S, typename E>
-	void Node<W,S,E>::remove_output(const Link<W,S,E>* pLink) {
+	} //remove_input
+	
+	template<typename W, typename S>
+	void Node<W,S>::add_output(Link<W,S>* const pLink) {
+		//private; for adding output Link pointer
+		outputs.push_back(pLink);
+	} //add_output
+	
+	template<typename W, typename S>
+	void Node<W,S>::remove_output(Link<W,S>* const pLink) {
 		//removes output Link pointer
 		auto it = outputs.begin();
 		auto ite = outputs.end();
@@ -103,156 +79,92 @@ namespace ben {
 			}
 			++it;
 		}
-	}
-
-	template<typename W, typename S, typename E>
-	void Node<W,S,E>::clear() {
+	} //remove_output
+	
+	template<typename W, typename S>
+	void Node<W,S>::clear() {
 		//delete all outputs from other nodes (where they are inputs)
 		auto it = outputs.begin();
 		auto ite = outputs.end();
 		while(it != ite) {
-			index->find( (*it)->get_target() )->remove_input(ID);
+			index->find( (*it)->target )->remove_input(ID);
 			++it;
 		}
 		
 		//remove all inputs from other nodes (where they are outputs)
 		inputs.clear();
-	}
+	} //clear
 	
-	//----------------- boolean tests -------------------
-	template<typename W, typename S, typename E>
-	bool Node<W,S,E>::contains_input(const unsigned int in) const {
-		auto it = inputs.begin();
-		auto ite = inputs.end();
-		while(it != ite) {
-			if(it->origin == in) return true;
-			++it;
-		}
-		return false;
-	}
-	
-	template<typename W, typename S, typename E>
-	bool Node<W,S,E>::contains_output(const unsigned int out) const {
-		auto it = outputs.begin();
-		auto ite = outputs.end();
-		while(it != ite) {
-			if( (*it)->origin == out ) return true;
-			++it;
-		}
-		return false;
-	}
-		
-	//=================== iterator methods ========================
-	//--------------- constructors, destructor ------------
-	//input_port version
-	template<typename W, typename S, typename E>
-	Node<W,S,E>::input_port::input_port(const typename std::list< Link<W,S,E> >::iterator iLink) 
-		: current(iLink) {
-	}
-	
-	template<typename W, typename S, typename E>
-	Node<W,S,E>::input_port::input_port(const input_port& rhs) 
-		: current(rhs.current) {	
-	}
-	
-	template<typename W, typename S, typename E>
-	typename Node<W,S,E>::input_port& Node<W,S,E>::input_port::operator=(const input_port& rhs) {
-		current = rhs.current;
-	}
-	
-	template<typename W, typename S, typename E>
-	Node<W,S,E>::input_port::~input_port() {
-		//unlock if necessary
-	}
-	
-	//output_port version
-	template<typename W, typename S, typename E>
-	Node<W,S,E>::output_port::output_port(const typename std::vector< Link<W,S,E>* >::iterator iLink) 
-		: current(iLink) {
-	}
-	
-	template<typename W, typename S, typename E>
-	Node<W,S,E>::output_port::output_port(const output_port& rhs) 
-		: current(rhs.current) {
-	}
-	
-	template<typename W, typename S, typename E>
-	typename Node<W,S,E>::output_port& Node<W,S,E>::output_port::operator=(const output_port& rhs) {
-		current = rhs.current;
-	}
-	
-	template<typename W, typename S, typename E>
-	Node<W,S,E>::output_port::~output_port() {
-		//unlock if necessary
-	}
-	
-	//---------------- increment, decrement ---------------
-	//input_port version
-	template<typename W, typename S, typename E>
-	typename Node<W,S,E>::input_port& Node<W,S,E>::input_port::operator++() {
-		//lock current?
-		++current; 
-		return *this;
-	}
-
-	template<typename W, typename S, typename E>
-	typename Node<W,S,E>::input_port& Node<W,S,E>::input_port::operator--() {
-		//lock current?
-		--current; 
-		return *this;
-	}
-
-	//output_port version
-	template<typename W, typename S, typename E>
-	typename Node<W,S,E>::output_port& Node<W,S,E>::output_port::operator++() {
-		//lock current?
-		++current; 
-		return *this;
-	}
-
-	template<typename W, typename S, typename E>
-	typename Node<W,S,E>::output_port& Node<W,S,E>::output_port::operator--() {
-		//lock current?
-		--current; 
-		return *this;
-	}
-
-	//---------------- streaming ------------------
+	//================== port methods ======================
+	//---------- increment/decrement -------------
 	//input_port
-	template<typename W, typename S, typename E>
-	typename Node<W,S,E>::input_port& operator<<(typename Node<W,S,E>::input_port& out, 
-					     			E& eError) {
-		//pushes error backwards into buffer
-		out.current->push_back(eError);
-		return out;
+	template<typename W, typename S>
+	typename Node<W,S>::input_port& Node<W,S>::input_port::operator++() {
+		++current; 
+		return *this;
 	}
 
-	template<typename W, typename S, typename E>
-	typename Node<W,S,E>::input_port& operator>>(typename Node<W,S,E>::input_port& in, 
-					     			S& sSignal) {
-		//pulls signal forward out of buffer and deletes it from the buffer
-		sSignal = in.current->pull_fore();
-		return in;
+	template<typename W, typename S>
+	typename Node<W,S>::input_port  Node<W,S>::input_port::operator++(int) {
+		auto temp = *this;
+		++current; 
+		return temp;
+	}	
+	
+	template<typename W, typename S>
+	typename Node<W,S>::input_port& Node<W,S>::input_port::operator--() {
+		--current; 
+		return *this;
+	}
+	
+	template<typename W, typename S>
+	typename Node<W,S>::input_port  Node<W,S>::input_port::operator--(int) {
+		auto temp = *this;
+		--current; 
+		return temp;
 	}
 	
 	//output_port
-	template<typename W, typename S, typename E>
-	typename Node<W,S,E>::output_port& operator<<(typename Node<W,S,E>::output_port& out, 
-					      			S& sSignal) {
-		//pushes signal forward into buffer
-		(*out.current)->push_fore(sSignal);
-		return out;
+	template<typename W, typename S>
+	typename Node<W,S>::output_port& Node<W,S>::output_port::operator++() {
+		++current; 
+		return *this;
+	}
+	
+	template<typename W, typename S>
+	typename Node<W,S>::output_port  Node<W,S>::output_port::operator++(int) {
+		auto temp = *this;
+		++current; 
+		return temp;
 	}
 
-	template<typename W, typename S, typename E>
-	typename Node<W,S,E>::output_port& operator>>(typename Node<W,S,E>::output_port& in, 
-					      			E& eError) {
-		//pulls error backwards out of buffer and deletes it from the buffer
-		eError = (*in.current)->pull_back();
+	template<typename W, typename S>
+	typename Node<W,S>::output_port& Node<W,S>::output_port::operator--() {
+		--current; 
+		return *this;
+	}
+	
+	template<typename W, typename S>
+	typename Node<W,S>::output_port  Node<W,S>::output_port::operator--(int) {
+		auto temp = *this;
+		--current; 
+		return temp;
+	}
+	
+	//------------- streaming operators --------------------
+	template<typename W, typename S>
+	typename Node<W,S>::input_port& operator>>(typename Node<W,S>::input_port& in, S& signal) {
+		//pulls signal forward out of buffer, leaving the value in the buffer but passing over it
+		signal = in.current->pull();
 		return in;
 	}
 	
+	template<typename W, typename S>
+	typename Node<W,S>::output_port& operator<<(typename Node<W,S>::output_port& out, S& signal) {
+		//pushes signal forward into buffer, overwriting whatever was in that space
+		(*out.current)->push(signal); //this syntax is more efficient than out->current->push
+		return out;
+	}
 } //namespace ben
 
 #endif
-
