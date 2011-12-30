@@ -25,23 +25,27 @@ namespace ben {
 		std::list< Link<W,S> > inputs; //FIELD
 		std::vector< Link<W,S>* > outputs; //FIELD
 		Index<W,S>* index; //FIELD
-		//how is the index pointer updated?
+		
+		friend Index<W,S>; //managing Index needs to update its pointer
 		
 		friend Link<W,S>::Link(Index<W,S>* const pIndex,
 		     			 const unsigned int nOrigin, 
 		     			 const unsigned int nTarget, 
 		     			 const W& wWeight);
-		friend Link<W,S>::~Link();
+		friend Link<W,S>::~Link(); //Link ctor and dtor need to manage their pointers
 		void update_output(Link<W,S>* const oldLink, Link<W,S>* const newLink);
 		void remove_output(Link<W,S>* const pLink);
 		void add_output(Link<W,S>* const pLink);
 	
 	public:
 		const unsigned int ID;
+		W bias;
 		
 		Node();
 		Node(Index<W,S>* const pIndex);
 		//copy constructor, assignment operator?
+		Node(const Node& rhs); //duplicates all input links but no output links
+		Node& operator=(const Node& rhs); //like copy ctor, but first clears all previous links
 		~Node(); 
 	
 		void add_input(	const unsigned int nOrigin,

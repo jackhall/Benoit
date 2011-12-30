@@ -16,6 +16,16 @@ namespace ben {
 		//add self to manager
 		index->add(this);
 	} //constructor
+	
+	template<typename W, typename S>
+	Node<W,S>::Node(const Node& rhs) {
+		
+	} //copy constructor
+
+	template<typename W, typename S>
+	Node<W,S>& Node<W,S>::operator=(const Node& rhs) {
+		
+	} //assignment operator
 
 	template<typename W, typename S>
 	Node<W,S>::~Node() {

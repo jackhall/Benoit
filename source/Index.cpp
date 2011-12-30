@@ -74,7 +74,7 @@ namespace ben {
 			auto it = IDMap.begin();
 			auto ite = IDMap.end();
 			while(it != ite) {
-				it->second->update_index(&other);
+				it->second->index = &other;
 				other.add(it->second);
 				IDMap.erase(it++);
 			}

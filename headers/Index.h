@@ -4,7 +4,7 @@
 
 #include <map>
 #include <iostream>
-#include <mutex>
+//#include <mutex>
 
 namespace ben {
 
@@ -14,14 +14,14 @@ namespace ben {
 	class Index {
 	
 	private:
-		std::mutex readLock, writeLock;
+		//std::mutex readLock, writeLock;
 		std::map< unsigned int, Node<W,S>* > IDMap;
 		
 	public:
 		Index()=default;
 		~Index();
-		Index(const Index& rhs) = delete;
-		Index& operator=(const Index& rhs) = delete;
+		Index(const Index& rhs) = delete; //allow copying of whole network? 
+		Index& operator=(const Index& rhs) = delete; //assign whole network?
 		Node<W,S>* find(const unsigned int address) const;
 		bool contains(const unsigned int address) const;
 		

@@ -1,6 +1,9 @@
 #include "Benoit.h"
+//(c) Jack Hall 2011, licensed under GNU GPL v3
 
-//g++ -std=c++0x -I ~/Code/Benoit/headers -I ~/Code/Benoit/source test_benoit.cpp -o test
+//To test Benoit, run the following in the source directory:
+//	g++ -std=c++0x -I ~/Code/Benoit/headers -I ~/Code/Benoit/source test_benoit.cpp -o test
+//	./test
 
 int main() {
 	using namespace ben;

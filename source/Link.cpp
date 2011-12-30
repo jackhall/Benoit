@@ -6,15 +6,20 @@ namespace ben {
 	//=================== CTOR ==========================
 	template<typename W, typename S>
 	Link<W,S>::Link(Index<W,S>* const pIndex,
-			  const unsigned int nOrigin, 
-		   	  const unsigned int nTarget, 
-		   	  const W& wWeight)
+			const unsigned int nOrigin, 
+		   	const unsigned int nTarget, 
+		   	const W& wWeight)
 		: index(pIndex), origin(nOrigin), target(nTarget), weight(wWeight) {
 		//add pointer to origin Node
 		index->find(origin)->add_output(this);
 		mark[0] = false;
 		mark[1] = false;
 	} //constructor
+	
+	template<typename W, typename S>
+	Link<W,S>::Link(const Link& rhs) {
+	
+	} //copy constructor
 	
 	//===================== DTOR ========================
 	template<typename W, typename S>
