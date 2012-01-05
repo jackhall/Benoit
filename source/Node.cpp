@@ -19,12 +19,12 @@ namespace ben {
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(const Node& rhs) {
-		
+		//not finished
 	} //copy constructor
 
 	template<typename W, typename S>
 	Node<W,S>& Node<W,S>::operator=(const Node& rhs) {
-		
+		//not finished
 	} //assignment operator
 
 	template<typename W, typename S>

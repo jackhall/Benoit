@@ -12,7 +12,58 @@ int main() {
 	
 	Node<double,double>* pfirst_node = new Node<double,double>(&first_index);
 	Node<double,double>* psecond_node = new Node<double,double>(&first_index);
+	Node<double,double>* pthird_node = new Node<double,double>(&first_index);
+	/*
+		instantiations call:
+		Node::Node() 
+		Node::Node(Index* const) 
+		Node::operator=(const Node&) 
+	*/
 	
-	delete pfirst_node, psecond_node;
+	
+	///////////////////////////
+	///////test Nodes and Links
+	try ;
+	catch {
+	
+	} //create links
+	/*
+		calls:
+		Node::add_input(const unsigned int, const W&)	[ 
+		Node::add_output(Link* const) 	[
+	*/
+	
+	//-------------------
+	try ;
+	catch {
+	
+	} //copy Node w/ input Links
+	/*
+		call:
+		Node::Node(const Node&)
+	*/
+	
+	//-----------------
+	try ;
+	catch {
+	
+	} //transmit data
+	
+	//-----------------
+	try ;
+	catch {
+	
+	} //destroy links
+	
+	//////////////////////////
+	///////test Index
+	try ;
+	catch {
+	
+	} //
+	
+	
+	
+	delete pfirst_node, psecond_node, pthird_node;
 	return 0;
 }
