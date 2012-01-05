@@ -47,6 +47,7 @@ namespace ben {
 		//make sure each Node has a unique ID
 		static unsigned int IDCOUNT; 
 		inline static unsigned int getNewID() { return IDCOUNT++; }
+		//static Index<W,S> INDEX;
 		
 		std::list< Link<W,S> > inputs; //FIELD
 		std::vector< Link<W,S>* > outputs; //FIELD, vector is better for the cache
@@ -62,6 +63,9 @@ namespace ben {
 		void update_output(Link<W,S>* const oldLink, Link<W,S>* const newLink); //in case Link gets reallocated
 		void remove_output(Link<W,S>* const pLink); //only removes pointer
 		void add_output(Link<W,S>* const pLink); //only adds pointer to vector
+		
+		//needs update_index because Link versions also need to be updated
+		bool update_index(const Index<W,S>* const pIndex);
 	
 	public:
 		const unsigned int ID;
@@ -151,6 +155,10 @@ namespace ben {
 	//initialize static members
 	template<typename W, typename S>
 	unsigned int Node<W,S>::IDCOUNT = 0;
+	
+	//template<typename W, typename S>
+	//Index<W,S>::INDEX = ? //had trouble with this before
+	//////////////////////////////
 	
 } //namespace ben
 

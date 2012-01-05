@@ -31,7 +31,8 @@ namespace ben {
 	//=================== METHODS ==========================
 	template<typename W, typename S>
 	void Link<W,S>::push(const S& data) { 
-		if(mark[1]) {
+		//writes data packet to buffer and moves the write mark to the next buffer space
+		if(mark[1]) { 
 			buffer[1] = data;
 			mark[1] = false;
 		} else {
@@ -40,9 +41,10 @@ namespace ben {
 		}
 	} //push
 	
-	//add readiness checks later
+	//add readiness checks later? probably not, for speed's sake
 	template<typename W, typename S>
 	S Link<W,S>::pull() {
+		//reads next data packet from buffer and moves the read mark to the next buffer space
 		if(mark[0]) {
 			mark[0] = false;
 			return buffer[1];
@@ -53,7 +55,7 @@ namespace ben {
 	} //pull
 	
 	template<typename W, typename S>
-	void Link<W,S>::update_index(const Index<W,S>* pIndex) {
+	void Link<W,S>::update_index(const Index<W,S>* const pIndex) {
 		index = pIndex;
 	} //update_index
 	

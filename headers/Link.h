@@ -45,7 +45,7 @@ namespace ben {
 		void push(const S& data); //write to buffer
 		S pull(); //read from buffer
 		
-		void update_index(const Index<W,S>* pIndex); //called when owning Node updates
+		void update_index(const Index<W,S>* const pIndex); //called when owning Node updates
 	}; //class Link
 } //namespace ben
 

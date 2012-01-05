@@ -19,12 +19,12 @@ namespace ben {
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(const Node& rhs) {
-		//not finished
+		//not finished! must decide on semantics
 	} //copy constructor
 
 	template<typename W, typename S>
 	Node<W,S>& Node<W,S>::operator=(const Node& rhs) {
-		//not finished
+		//not finished! must decide on semantics
 	} //assignment operator
 
 	template<typename W, typename S>
@@ -51,8 +51,7 @@ namespace ben {
 	}
 	
 	template<typename W, typename S>
-	void Node<W,S>::add_input(	const unsigned int origin,
-					const W& weight) {
+	void Node<W,S>::add_input(const unsigned int origin, const W& weight) {
 		//Link will create its own pointer at the origin Node
 		inputs.push_back( Link<W,S>(index, origin, ID, weight) );
 	} //add_input
@@ -104,6 +103,11 @@ namespace ben {
 		//remove all inputs from other nodes (where they are outputs)
 		inputs.clear();
 	} //clear
+	
+	template<typename W, typename S>
+	bool update_index(const Index<W,S>* const pIndex) {
+		//update all Link index pointers!
+	} //update_index
 	
 	//================== port methods ======================
 	//---------- increment/decrement -------------

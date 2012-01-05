@@ -26,7 +26,7 @@ namespace ben {
 	
 	private:
 		//std::mutex readLock, writeLock;
-		//set up muticies so that a write lock is exlcusive, but a read lock is not. A read lock
+		//set up muticies so that a write lock is exclusive, but a read lock is not. A read lock
 		//only prevents writing. 
 		
 		std::map< unsigned int, Node<W,S>* > IDMap; 
