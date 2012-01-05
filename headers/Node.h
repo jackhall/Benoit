@@ -53,7 +53,8 @@ namespace ben {
 		std::vector< Link<W,S>* > outputs; //FIELD, vector is better for the cache
 		Index<W,S>* index; //FIELD
 		
-		friend Index<W,S>; //managing Index needs to update its pointer
+		friend class Index<W,S>; //managing Index needs to update its pointer
+		bool update_index(Index<W,S>* const pIndex); //updates Link::index pointers too
 		
 		friend Link<W,S>::Link(	Index<W,S>* const pIndex,
 		     			const unsigned int nOrigin, 
@@ -63,19 +64,16 @@ namespace ben {
 		void update_output(Link<W,S>* const oldLink, Link<W,S>* const newLink); //in case Link gets reallocated
 		void remove_output(Link<W,S>* const pLink); //only removes pointer
 		void add_output(Link<W,S>* const pLink); //only adds pointer to vector
-		
-		//needs update_index because Link versions also need to be updated
-		bool update_index(const Index<W,S>* const pIndex);
 	
 	public:
-		const unsigned int ID;
-		W bias;
+		const unsigned int ID; //FIELD
+		W bias; //FIELD
 		
 		Node(); //(will be) managed by static Index by default
 		Node(Index<W,S>* const pIndex);
 		//copy constructor, assignment operator? yes, but use unique ownership semantics
-		Node(const Node& rhs); //duplicates all input links but no output links
-		Node& operator=(const Node& rhs); //like copy ctor, but first clears all previous links
+		Node(const Node& rhs); //use move semantics to transfer all Links
+		Node& operator=(const Node& rhs); //duplicates Node, not including output Links
 		~Node(); 
 	
 		void add_input(	const unsigned int nOrigin,

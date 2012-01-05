@@ -18,13 +18,25 @@ namespace ben {
 	} //constructor
 	
 	template<typename W, typename S>
-	Node<W,S>::Node(const Node& rhs) {
-		//not finished! must decide on semantics
+	Node<W,S>::Node(const Node& rhs) 
+		: ID(rhs.ID), index(rhs.index), bias(rhs.bias) {
+		inputs = std::move(rhs.inputs);
+		outputs = std::move(rhs.outputs); 
+		index->update(this);
 	} //copy constructor
 
 	template<typename W, typename S>
 	Node<W,S>& Node<W,S>::operator=(const Node& rhs) {
-		//not finished! must decide on semantics
+		index = rhs.index;
+		bias = rhs.bias;
+		
+		//create new copies of all input Links
+		auto it = rhs.inputs.begin();
+		auto ite = rhs.inputs.end();
+		while(it != ite) {
+			add_input(it->origin, it->weight);
+			++it;
+		}
 	} //assignment operator
 
 	template<typename W, typename S>
@@ -105,8 +117,19 @@ namespace ben {
 	} //clear
 	
 	template<typename W, typename S>
-	bool update_index(const Index<W,S>* const pIndex) {
-		//update all Link index pointers!
+	bool Node<W,S>::update_index(Index<W,S>* const pIndex) {
+		if(pIndex->contains(ID)) {
+			index = pIndex;
+			
+			//update all Link::index pointers
+			auto it = inputs.begin();
+			auto ite = inputs.end();
+			while(it != ite) {
+				it->update_index(pIndex);
+				++it;
+			}
+			return true;
+		} else return false;
 	} //update_index
 	
 	//================== port methods ======================

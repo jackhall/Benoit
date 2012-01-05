@@ -20,28 +20,24 @@ int main() {
 		Node::operator=(const Node&) 
 	*/
 	
-	
+	/*
 	///////////////////////////
 	///////test Nodes and Links
 	try ;
 	catch {
 	
 	} //create links
-	/*
-		calls:
-		Node::add_input(const unsigned int, const W&)	[ 
-		Node::add_output(Link* const) 	[
-	*/
+	//calls:
+	//Node::add_input(const unsigned int, const W&)	[ 
+	//Node::add_output(Link* const) 	[
 	
 	//-------------------
 	try ;
 	catch {
 	
 	} //copy Node w/ input Links
-	/*
-		call:
-		Node::Node(const Node&)
-	*/
+	//call:
+	//Node::Node(const Node&)
 	
 	//-----------------
 	try ;
@@ -62,7 +58,7 @@ int main() {
 	
 	} //
 	
-	
+	*/
 	
 	delete pfirst_node, psecond_node, pthird_node;
 	return 0;

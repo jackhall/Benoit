@@ -30,18 +30,19 @@ namespace ben {
 		//only prevents writing. 
 		
 		std::map< unsigned int, Node<W,S>* > IDMap; 
+		void update_all();
 		
 	public:
 		Index()=default;
 		~Index(); //transfers all Nodes to that class's static Index
-		Index(const Index& rhs) = delete; //allow copying of whole network? 
-		Index& operator=(const Index& rhs) = delete; //assign whole network?
+		Index(const Index& rhs); //use move semantics to transfer all Nodes
+		Index& operator=(const Index& rhs) = delete; //assign whole network? yes, but move semantics only
 		Node<W,S>* find(const unsigned int address) const;
 		bool contains(const unsigned int address) const;
 		
 		void add(Node<W,S>* const pNode); //only called by Node constructor?
 		void remove(const unsigned int address);  //does not remove Node's Index pointer (for now)
-		bool update(Node<W,S>* const pNode); //makes sure if Node is listed and has an up-to-date pointer
+		bool update_node(Node<W,S>* const pNode); //makes sure if Node is listed and has an up-to-date pointer
 		
 		void move_to(Index& destination, const unsigned int address); //move individual Node
 		void swap_with(Index& other); //all Nodes

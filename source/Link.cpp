@@ -17,8 +17,13 @@ namespace ben {
 	} //constructor
 	
 	template<typename W, typename S>
-	Link<W,S>::Link(const Link& rhs) {
-	
+	Link<W,S>::Link(const Link& rhs) 
+		: origin(rhs.origin), target(rhs.target), index(rhs.index), weight(rhs.weight) {
+		if(index != NULL) index->find(origin)->add_output(this);
+		buffer[0] = rhs.buffer[0];
+		buffer[1] = rhs.buffer[1];
+		mark[0] = rhs.mark[0];
+		mark[1] = rhs.mark[1];
 	} //copy constructor
 	
 	//===================== DTOR ========================
@@ -55,7 +60,7 @@ namespace ben {
 	} //pull
 	
 	template<typename W, typename S>
-	void Link<W,S>::update_index(const Index<W,S>* const pIndex) {
+	void Link<W,S>::update_index(Index<W,S>* const pIndex) {
 		index = pIndex;
 	} //update_index
 	
