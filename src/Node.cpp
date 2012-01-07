@@ -22,7 +22,7 @@ namespace ben {
 		: ID(rhs.ID), index(rhs.index), bias(rhs.bias) {
 		inputs = std::move(rhs.inputs);
 		outputs = std::move(rhs.outputs); 
-		index->update(this);
+		index->update_node(this);
 	} //copy constructor
 
 	template<typename W, typename S>
@@ -115,6 +115,28 @@ namespace ben {
 		//remove all inputs from other nodes (where they are outputs)
 		inputs.clear();
 	} //clear
+	
+	template<typename W, typename S>
+	bool Node<W,S>::contains_input(const unsigned int nOrigin) const {
+		auto it = inputs.begin();
+		auto ite = inputs.end();
+		while(it != ite) {
+			if(it->origin == nOrigin) return true;
+			++it;
+		}
+		return false;
+	}
+	
+	template<typename W, typename S>
+	bool Node<W,S>::contains_output(const unsigned int nTarget) const {
+		auto it = outputs.begin();
+		auto ite = outputs.end();
+		while(it != ite) {
+			if(it->origin == nTarget) return true;
+			++it;
+		}
+		return false;
+	}
 	
 	template<typename W, typename S>
 	bool Node<W,S>::update_index(Index<W,S>* const pIndex) {

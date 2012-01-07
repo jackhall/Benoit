@@ -19,7 +19,7 @@ namespace ben {
 	template<typename W, typename S>
 	Link<W,S>::Link(const Link& rhs) 
 		: origin(rhs.origin), target(rhs.target), index(rhs.index), weight(rhs.weight) {
-		if(index != NULL) index->find(origin)->add_output(this);
+		if(index != NULL) index->find(origin)->update_output(&rhs, this);
 		buffer[0] = rhs.buffer[0];
 		buffer[1] = rhs.buffer[1];
 		mark[0] = rhs.mark[0];

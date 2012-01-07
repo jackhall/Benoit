@@ -12,7 +12,7 @@ namespace ben {
 	template<typename W, typename S>
 	Index<W,S>::~Index() {
 		//shift network to static Index (the default)!
-		//if(this != Node<W,S>::INDEX) merge_into(Node<W,S>::INDEX);
+		if(this != &Node<W,S>::INDEX) merge_into(Node<W,S>::INDEX);
 		
 		//in the meantime before Node has a static Index, just leave hanging Node::index pointers
 	}
@@ -57,7 +57,7 @@ namespace ben {
 			it->second = pNode;
 			return true;
 		} else return false;
-	} //update
+	} //update_node
 
 	template<typename W, typename S>
 	void Index<W,S>::update_all() {

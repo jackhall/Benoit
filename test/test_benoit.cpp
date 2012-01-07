@@ -2,7 +2,7 @@
 //(c) Jack Hall 2011, licensed under GNU GPL v3
 
 //To test Benoit, run the following in the source directory:
-//	g++ -std=c++0x -I ~/Code/Benoit/headers -I ~/Code/Benoit/source test_benoit.cpp -o test
+//	g++ -std=c++0x -I ~/Code/Benoit/src test_benoit.cpp -o test
 //	./test
 
 int main() {
