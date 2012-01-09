@@ -11,10 +11,15 @@ namespace ben {
 	
 	template<typename W, typename S>
 	Index<W,S>::~Index() {
-		//shift network to static Index (the default)!
 		if(this != &Node<W,S>::INDEX) merge_into(Node<W,S>::INDEX);
-		
-		//in the meantime before Node has a static Index, just leave hanging Node::index pointers
+		else {
+			auto it = IDMap.begin();
+			auto ite = IDMap.end();
+			while(it != ite) {
+				it->second->update_index(NULL);
+				++it;
+			}
+		}
 	}
 
 	template<typename W, typename S>

@@ -36,7 +36,7 @@ namespace ben {
 		Index()=default;
 		~Index(); //transfers all Nodes to that class's static Index
 		Index(const Index& rhs); //use move semantics to transfer all Nodes
-		Index& operator=(const Index& rhs) = delete; //assign whole network? yes, but move semantics only
+		Index& operator=(const Index& rhs) = delete; //this is accomplished by merge_into
 		Node<W,S>* find(const unsigned int address) const;
 		bool contains(const unsigned int address) const;
 		

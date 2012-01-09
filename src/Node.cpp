@@ -44,7 +44,7 @@ namespace ben {
 		//delete all Links (input and output)
 		clear();
 		//remove self from manager
-		index->remove(ID);
+		if(index != NULL) index->remove(ID); //index is only NULL if Node::INDEX has been destroyed
 	} //destructor
 	
 	//==================== METHODS =====================

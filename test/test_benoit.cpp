@@ -1,18 +1,27 @@
 #include "Benoit.h"
 //(c) Jack Hall 2011, licensed under GNU GPL v3
 
-//To test Benoit, run the following in the source directory:
-//	g++ -std=c++0x -I ~/Code/Benoit/src test_benoit.cpp -o test
+//To test Benoit, run the following in the test directory:
+//	g++ -std=c++0x -I ../src test_benoit.cpp -o test
 //	./test
 
 int main() {
 	using namespace ben;
 	
+	//testing Index default constructor
 	Index<double,double> first_index;
 	
-	Node<double,double>* pfirst_node = new Node<double,double>(&first_index);
+	//testing Node default constructor
+	Node<double,double>* pfirst_node = new Node<double,double>();
+	//testing Index::move_to
+	//Node<double,double>.INDEX.move_to(first_index, pfirst_node->ID);
+	
+	//testing Node(Index*) constructor
 	Node<double,double>* psecond_node = new Node<double,double>(&first_index);
-	Node<double,double>* pthird_node = new Node<double,double>(&first_index);
+	//testing Node copy constructor (uses move semantics)
+	Node<double,double>* pthird_node = new Node<double,double>();//*psecond_node);
+	//testing Node::operator= (creates new copies of input links)
+	*pfirst_node = *pthird_node; 
 	/*
 		instantiations call:
 		Node::Node() 

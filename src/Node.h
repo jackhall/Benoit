@@ -59,8 +59,9 @@ namespace ben {
 		     			const unsigned int nOrigin, 
 		     			const unsigned int nTarget, 
 		     			const W& wWeight);
+		friend Link<W,S>::Link(const Link<W,S>& rhs);
 		friend Link<W,S>::~Link(); //Link ctor and dtor need to manage their pointers
-		void update_output(Link<W,S>* const oldLink, Link<W,S>* const newLink); //in case Link gets reallocated
+		void update_output(const Link<W,S>* oldLink, const Link<W,S>* newLink); //in case Link gets reallocated (const is broken here)
 		void remove_output(Link<W,S>* const pLink); //only removes pointer
 		void add_output(Link<W,S>* const pLink); //only adds pointer to vector
 	
@@ -154,7 +155,7 @@ namespace ben {
 	template<typename W, typename S>
 	unsigned int Node<W,S>::IDCOUNT = 0;
 	
-	template<typename W, typename S> Index<W,S>::INDEX; //having trouble with this
+	template<typename W, typename S> Index<W,S> Node<W,S>::INDEX; 
 	//////////////////////////////
 	
 } //namespace ben
