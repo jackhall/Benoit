@@ -19,23 +19,25 @@ namespace ben {
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(const Node& rhs) 
-		: ID(rhs.ID), index(rhs.index), bias(rhs.bias) {
-		inputs = std::move(rhs.inputs);
-		outputs = std::move(rhs.outputs); 
+		: ID(rhs.ID), index(rhs.index), bias(rhs.bias),
+			inputs(std::move(rhs.inputs)),
+			outputs(std::move(rhs.outputs)) {
 		index->update_node(this);
 	} //copy constructor
 
 	template<typename W, typename S>
 	Node<W,S>& Node<W,S>::operator=(const Node& rhs) {
-		index = rhs.index;
-		bias = rhs.bias;
+		if(this != &rhs) {
+			index = rhs.index;
+			bias = rhs.bias;
 		
-		//create new copies of all input Links
-		auto it = rhs.inputs.begin();
-		auto ite = rhs.inputs.end();
-		while(it != ite) {
-			add_input(it->origin, it->weight);
-			++it;
+			//create new copies of all input Links
+			auto it = rhs.inputs.begin();
+			auto ite = rhs.inputs.end();
+			while(it != ite) {
+				add_input(it->origin, it->weight);
+				++it;
+			}
 		}
 	} //assignment operator
 
@@ -49,7 +51,7 @@ namespace ben {
 	
 	//==================== METHODS =====================
 	template<typename W, typename S>
-	void Node<W,S>::update_output(Link<W,S>* const oldLink, Link<W,S>* const newLink) {
+	void Node<W,S>::update_output(const Link<W,S>* const oldLink, Link<W,S>* const newLink) {
 		//updates output Link pointer
 		auto it = outputs.begin();
 		auto ite = outputs.end();

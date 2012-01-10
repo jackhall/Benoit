@@ -12,14 +12,14 @@ namespace ben {
 	template<typename W, typename S>
 	Index<W,S>::~Index() {
 		if(this != &Node<W,S>::INDEX) merge_into(Node<W,S>::INDEX);
-		else {
+		/*else { //this case is segfaulting
 			auto it = IDMap.begin();
 			auto ite = IDMap.end();
 			while(it != ite) {
 				it->second->update_index(NULL);
 				++it;
 			}
-		}
+		} */ //RULE: never call delete on Node::INDEX!!! 
 	}
 
 	template<typename W, typename S>
