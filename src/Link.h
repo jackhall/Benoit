@@ -38,8 +38,10 @@ namespace ben {
 		     const unsigned int nOrigin, 
 		     const unsigned int nTarget, 
 		     const W& wWeight);
-		Link(const Link& rhs); //for use by STL container (list for now, which does not copy elements)
+		Link(const Link& rhs) = delete; 
+		Link(Link&& rhs);
 		Link& operator=(const Link& rhs) = delete; //because origin and target are const
+		Link& operator=(Link&& rhs) = delete;
 		~Link(); //cleans up pointer at origin Node
 		
 		void push(const S& data); //write to buffer

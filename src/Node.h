@@ -59,7 +59,7 @@ namespace ben {
 		     			const unsigned int nOrigin, 
 		     			const unsigned int nTarget, 
 		     			const W& wWeight);
-		friend Link<W,S>::Link(const Link<W,S>& rhs);
+		friend Link<W,S>::Link(Link<W,S>&& rhs);
 		friend Link<W,S>::~Link(); //Link ctor and dtor need to manage their pointers
 		void update_output(const Link<W,S>* const oldLink, Link<W,S>* const newLink); //in case Link gets reallocated (const is broken here)
 		void remove_output(Link<W,S>* const pLink); //only removes pointer
@@ -73,8 +73,10 @@ namespace ben {
 		Node(); //(will be) managed by static Index by default
 		Node(Index<W,S>* const pIndex);
 		//copy constructor, assignment operator? yes, but use unique ownership semantics
-		Node(const Node& rhs); //use move semantics to transfer all Links
+		Node(const Node& rhs) = delete;
+		Node(Node&& rhs); //use move semantics to transfer all Links
 		Node& operator=(const Node& rhs); //duplicates Node, not including output Links
+		Node& operator=(Node&& rhs) = delete;
 		~Node(); 
 	
 		void add_input(	const unsigned int nOrigin,

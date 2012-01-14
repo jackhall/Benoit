@@ -18,20 +18,25 @@ namespace ben {
 	} //constructor
 	
 	template<typename W, typename S>
-	Node<W,S>::Node(const Node& rhs) 
+	Node<W,S>::Node(Node&& rhs) 
 		: ID(rhs.ID), index(rhs.index), bias(rhs.bias),
 			inputs(std::move(rhs.inputs)),
 			outputs(std::move(rhs.outputs)) {
 		index->update_node(this);
+		rhs.index = NULL;
 	} //copy constructor
 
 	template<typename W, typename S>
 	Node<W,S>& Node<W,S>::operator=(const Node& rhs) {
 		if(this != &rhs) {
+			index->remove(ID);
 			index = rhs.index;
+			index->add(this);
+			
 			bias = rhs.bias;
 		
 			//create new copies of all input Links
+			clear();
 			auto it = rhs.inputs.begin();
 			auto ite = rhs.inputs.end();
 			while(it != ite) {
@@ -134,7 +139,7 @@ namespace ben {
 		auto it = outputs.begin();
 		auto ite = outputs.end();
 		while(it != ite) {
-			if(it->origin == nTarget) return true;
+			if((*it)->origin == nTarget) return true;
 			++it;
 		}
 		return false;

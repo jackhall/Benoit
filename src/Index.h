@@ -35,12 +35,14 @@ namespace ben {
 	public:
 		Index()=default;
 		~Index(); //transfers all Nodes to that class's static Index
-		Index(const Index& rhs); //use move semantics to transfer all Nodes
-		Index& operator=(const Index& rhs) = delete; //this is accomplished by merge_into
+		Index(const Index& rhs) = delete;
+		Index(Index&& rhs); //use move semantics to transfer all Nodes
+		Index& operator=(const Index& rhs) = delete; //make unique copy of all Nodes?
+		Index& operator=(Index&& rhs);
 		Node<W,S>* find(const unsigned int address) const;
 		bool contains(const unsigned int address) const;
 		
-		void add(Node<W,S>* const pNode); //only called by Node constructor?
+		void add(Node<W,S>* const pNode); //only called by Node constructor
 		void remove(const unsigned int address);  //does not remove Node's Index pointer (for now)
 		bool update_node(Node<W,S>* const pNode); //makes sure if Node is listed and has an up-to-date pointer
 		

@@ -17,9 +17,10 @@ namespace ben {
 	} //constructor
 	
 	template<typename W, typename S>
-	Link<W,S>::Link(const Link& rhs) 
+	Link<W,S>::Link(Link&& rhs) 
 		: origin(rhs.origin), target(rhs.target), index(rhs.index), weight(rhs.weight) {
 		if(index != NULL) index->find(origin)->update_output(&rhs, this);
+		rhs.index = NULL;
 		buffer[0] = rhs.buffer[0];
 		buffer[1] = rhs.buffer[1];
 		mark[0] = rhs.mark[0];

@@ -4,22 +4,17 @@
 
 namespace ben {
 	template<typename W, typename S>
-	Index<W,S>::Index(const Index& rhs) {
-		IDMap = std::move(rhs.IDMap);
+	Index<W,S>::Index(Index&& rhs) 
+		: IDMap(std::move(rhs.IDMap)) {
 		update_all();
+		//rhs.IDMap.clear();
 	}
 	
 	template<typename W, typename S>
 	Index<W,S>::~Index() {
-		if(this != &Node<W,S>::INDEX) merge_into(Node<W,S>::INDEX);
-		/*else { //this case is segfaulting
-			auto it = IDMap.begin();
-			auto ite = IDMap.end();
-			while(it != ite) {
-				it->second->update_index(NULL);
-				++it;
-			}
-		} */ //RULE: never call delete on Node::INDEX!!! 
+		//RULE: never call delete on Node::INDEX!!! 
+		//this if() should not be necessary, but it is
+		if(this != &Node<W,S>::INDEX) merge_into(Node<W,S>::INDEX); 
 	}
 
 	template<typename W, typename S>
@@ -40,6 +35,7 @@ namespace ben {
 	template<typename W, typename S>
 	void Index<W,S>::add(Node<W,S>* const pNode) {
 		//adds a Node pointer to this Index, removing it from its previous Index
+		//if statement may not be necessary since add is private
 		if( IDMap.find(pNode->ID) == IDMap.end() ) {
 			IDMap.insert( std::make_pair(pNode->ID, pNode) );
 			pNode->update_index(this);
@@ -112,9 +108,9 @@ namespace ben {
 			auto it = IDMap.begin();
 			auto ite = IDMap.end();
 			while(it != ite) {
-				it->second->index = &other;
 				other.add(it->second); //calls Node::update_index
-				IDMap.erase(it++);
+				IDMap.erase(it);
+				++it;
 			}
 		}
 	} //merge_into
