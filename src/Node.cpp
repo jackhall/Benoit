@@ -139,7 +139,7 @@ namespace ben {
 		auto it = outputs.begin();
 		auto ite = outputs.end();
 		while(it != ite) {
-			if((*it)->origin == nTarget) return true;
+			if((*it)->target == nTarget) return true;
 			++it;
 		}
 		return false;
