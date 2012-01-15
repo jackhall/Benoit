@@ -22,6 +22,7 @@ int main() {
 	results.push_back( test_four() );
 	
 	int test_number = 1;
+	bool all_tests_passed = true;
 	auto it = results.begin();
 	auto ite = results.end();
 	while(it != ite) {
@@ -30,10 +31,13 @@ int main() {
 			cout << " passed." << endl;
 		} else {
 			cout << " failed with error code " << *it << "." << endl;
+			all_tests_passed = false;
 		}
 		++it;
 		++test_number;
 	}
+	
+	if(all_tests_passed) cout << "All tests passed." << endl;
 	return 0;
 } //main
 
@@ -198,10 +202,56 @@ int test_three() { //test data transmission
 	if( z != 13.0*(7.0*23.0) ) return 3;
 	
 	return 0;
-}
+} //test_three
 
 int test_four() { //test Node management (copying, Index methods...)
 	using namespace ben;
 	
+	Node<double,double> node_one, node_two, node_three;
+	node_one.bias = 11.0;
+	node_two.bias = 13.0;
+	node_three.bias = 17.0;
+	
+	node_three.add_input(node_one.ID,3.0);
+	node_three.add_input(node_two.ID,5.0);
+	node_two.add_input(node_one.ID,7.0);
+	
+	Index<double,double> index_one;
+	
+	//Node(Node&&)
+	Node<double,double> node_four(std::move(node_two));
+	//node_two is now useless because its const ID matches node_four
+	//check: node_four has input from node_one, output to node_three, 
+	//	 all index pointers are correct
+	
+	//Node::operator=(Node&)
+	Node<double,double> node_five;
+	node_five = node_four;
+	//check: node_five has input from node_one, output to node_three, 
+	//	 all index pointers are correct, ID is unique
+	
+	//swap_with
+	index_one.swap_with(Node<double,double>::INDEX);
+	//check: index_one has 4 nodes, full feedforward connectivity, INDEX is empty
+	
+	//merge_into
+	Node<double,double> node_six;
+	index_one.merge_into(Node<double,double>::INDEX);
+	node_six.add_input(node_two.ID,19.0);
+	node_six.add_input(node_four.ID,23.0);
+	//check: index_one is empty, INDEX has 5 nodes - 4 with same connectivity
+	
+	//Index(Index&&)
+	Index<double,double> index_two(std::move(index_one));
+	//check: index_two has same connectivity, index_one is empty
+	
+	//Index::operator=(Index&&)
+	index_one = std::move(index_two);
+	//check: index_two is empty, index_one is full again
+	
+	//move_to
+	index_one.move_to(index_two, node_two.ID);
+	//check: index_two now has one empty node, index_one has 4 and severed the right Links
+	
 	return 0;
-}
+} //test_four

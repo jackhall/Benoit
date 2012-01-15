@@ -23,20 +23,20 @@ namespace ben {
 			inputs(std::move(rhs.inputs)),
 			outputs(std::move(rhs.outputs)) {
 		index->update_node(this);
+		update_index(index); //for Links
 		rhs.index = NULL;
 	} //copy constructor
 
 	template<typename W, typename S>
 	Node<W,S>& Node<W,S>::operator=(const Node& rhs) {
 		if(this != &rhs) {
-			index->remove(ID);
-			index = rhs.index;
-			index->add(this);
+			if( index == NULL ) rhs.index->add(this);
+			else if( index != rhs.index ) index->move_to(*rhs.index, ID); 
+			else clear();
 			
 			bias = rhs.bias;
 		
 			//create new copies of all input Links
-			clear();
 			auto it = rhs.inputs.begin();
 			auto ite = rhs.inputs.end();
 			while(it != ite) {

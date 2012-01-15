@@ -11,6 +11,13 @@ namespace ben {
 	}
 	
 	template<typename W, typename S>
+	Index<W,S>& Index<W,S>::operator=(Index<W,S>&& rhs) {
+		merge_into(Node<W,S>::INDEX); //keeps old network valid
+		IDMap = std::move(rhs.IDMap);
+		update_all();
+	}
+	
+	template<typename W, typename S>
 	Index<W,S>::~Index() {
 		//RULE: never call delete on Node::INDEX!!! 
 		//this if() should not be necessary, but it is
@@ -75,11 +82,10 @@ namespace ben {
 	void Index<W,S>::move_to(Index<W,S>& destination, const unsigned int address) {
 		//removes Node from graph and moves it to destination Index
 		//calls: Node::clear(), Index::add(Node* const), Node::update_index(Index* const)
-		auto it = IDMap.find(address);
+		auto it = IDMap.find(address); 
 		if(it != IDMap.end()) {
 			it->second->clear();
 			destination.add(it->second);
-			it->second->update_index(&destination);
 			IDMap.erase(it);
 		} 
 		return;

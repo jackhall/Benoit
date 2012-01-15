@@ -11,7 +11,7 @@ namespace ben {
 		   	const W& wWeight)
 		: index(pIndex), origin(nOrigin), target(nTarget), weight(wWeight) {
 		//add pointer to origin Node
-		index->find(origin)->add_output(this);
+		index->find(origin)->add_output(this); //index is NULL?
 		mark[0] = false;
 		mark[1] = false;
 	} //constructor
