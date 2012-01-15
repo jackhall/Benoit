@@ -162,6 +162,15 @@ namespace ben {
 	} //update_index
 	
 	//================== port methods ======================
+	//---------- constructor -----------------
+	template<typename W, typename S>
+	Node<W,S>::input_port::input_port(const typename std::list< Link<W,S> >::iterator iLink) 
+		: current(iLink) {}
+	
+	template<typename W, typename S>
+	Node<W,S>::output_port::output_port(const typename std::vector< Link<W,S>* >::iterator iLink) 
+		: current(iLink) {}
+	
 	//---------- increment/decrement -------------
 	//input_port
 	template<typename W, typename S>
@@ -219,17 +228,17 @@ namespace ben {
 	
 	//------------- streaming operators --------------------
 	template<typename W, typename S>
-	typename Node<W,S>::input_port& operator>>(typename Node<W,S>::input_port& in, S& signal) {
+	typename Node<W,S>::input_port& Node<W,S>::input_port::operator>>(S& signal) {
 		//pulls signal forward out of buffer, leaving the value in the buffer but passing over it
-		signal = in.current->pull();
-		return in;
+		signal = current->pull();
+		return *this;
 	}
 	
 	template<typename W, typename S>
-	typename Node<W,S>::output_port& operator<<(typename Node<W,S>::output_port& out, S& signal) {
+	typename Node<W,S>::output_port& Node<W,S>::output_port::operator<<(const S& signal) {
 		//pushes signal forward into buffer, overwriting whatever was in that space
-		(*out.current)->push(signal); //this syntax is more efficient than out->current->push
-		return out;
+		(*current)->push(signal); 
+		return *this;
 	}
 } //namespace ben
 

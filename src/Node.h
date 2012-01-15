@@ -6,16 +6,7 @@
 #include <list>
 #include <vector>
 
-namespace ben {
-	
-	//forward declarations for port streaming operators
-	template<typename W, typename S>
-	typename Node<W,S>::input_port& operator>>(typename Node<W,S>::input_port& in, S& signal);
-	
-	template<typename W, typename S>
-	typename Node<W,S>::output_port& operator<<(typename Node<W,S>::output_port& out, S& signal);
-	////////////////////////////
-	
+namespace ben {	
 	/*
 		A Node is the vertex of a distributed directed graph structure. Each is managed by an Index, 
 		but it is designed to be owned by any object the programmer wishes. The Nodes are connected by 
@@ -66,15 +57,16 @@ namespace ben {
 		void add_output(Link<W,S>* const pLink); //only adds pointer to vector
 	
 	public:
+		Node& operator<<(const S& signal);
+	
 		static Index<W,S> INDEX;
 		const unsigned int ID; //FIELD
 		W bias; //FIELD
 		
-		Node(); //(will be) managed by static Index by default
+		Node(); //managed by static Index by default
 		Node(Index<W,S>* const pIndex);
-		//copy constructor, assignment operator? yes, but use unique ownership semantics
 		Node(const Node& rhs) = delete;
-		Node(Node&& rhs); //use move semantics to transfer all Links
+		Node(Node&& rhs); //move semantics to transfer all Links
 		Node& operator=(const Node& rhs); //duplicates Node, not including output Links
 		Node& operator=(Node&& rhs) = delete;
 		~Node(); 
@@ -113,7 +105,7 @@ namespace ben {
 			bool operator!=(const input_port& rhs) const
 				{ return current!=rhs.current; }
 				
-			friend input_port& operator>> <W,S>(input_port& out, S& signal); //buffer access is only one way
+			input_port& operator>>(S& signal); //buffer access is only one way
 		}; //class input_port
 	
 		class output_port { //see above input_port
@@ -142,7 +134,7 @@ namespace ben {
 			bool operator!=(const output_port& rhs) const
 				{ return current!=rhs.current; } 
 				
-			friend output_port& operator<< <W,S>(output_port& out, S& signal);
+			output_port& operator<<(const S& signal);
 		}; //class output_port
 		
 		//similar to STL, but haven't added rbegin or rend yet

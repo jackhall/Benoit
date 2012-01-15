@@ -10,6 +10,7 @@
 int test_one(); //test Node & Index constructors
 int test_two(); //test Link constructors & management
 int test_three(); //test data transmission
+int test_four(); //test Node management (copying, Index methods...)
 
 int main() {
 	using namespace std;
@@ -18,10 +19,7 @@ int main() {
 	results.push_back( test_one() );
 	results.push_back( test_two() );
 	results.push_back( test_three() );
-	
-	//test Node management (copying, Index methods...)
-	
-	//test destruction: Links, Nodes/Index
+	results.push_back( test_four() );
 	
 	int test_number = 1;
 	auto it = results.begin();
@@ -144,11 +142,11 @@ int test_three() { //test data transmission
 	node_three.add_input(node_two.ID,5.0);
 	node_two.add_input(node_one.ID,7.0);
 	
-	//send signal frome node_one
+	//send signal from node_one
 	auto po1 = node_one.output_begin();
 	auto po1e = node_one.output_end();
 	while(po1 != po1e) {
-		po1 << 19.0;
+		po1 << 19.0 << 23.0; //23.0 is time-delayed
 		++po1;
 	}
 	
@@ -161,6 +159,7 @@ int test_three() { //test data transmission
 		z *= pi2->weight * x;
 		++pi2;
 	} 
+	if( z != 13.0*(7.0*19.0) ) return 1;
 	
 	//send product of all numbers to node_three
 	auto po2 = node_two.output_begin();
@@ -179,7 +178,30 @@ int test_three() { //test data transmission
 		z *= pi3->weight * x;
 		++pi3;
 	}
+	if( z != 17.0*(3.0*19.0)*(5.0*13.0*(7.0*19.0)) ) return 2;
+	
+	//transmit from node_one again
+	po1 = node_one.output_begin();
+	while(po1 != po1e) {
+		po1 << 29.0;
+		++po1;
+	}
+	
+	//test time delay too
+	pi2 = node_two.input_begin();
+	z = node_two.bias;
+	while(pi2 != pi2e) {
+		pi2 >> x;
+		z *= pi2->weight * x;
+		++pi2;
+	}
+	if( z != 13.0*(7.0*23.0) ) return 3;
 	
 	return 0;
 }
 
+int test_four() { //test Node management (copying, Index methods...)
+	using namespace ben;
+	
+	return 0;
+}
