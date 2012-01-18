@@ -30,19 +30,15 @@ namespace ben {
 	template<typename W, typename S>
 	Node<W,S>& Node<W,S>::operator=(const Node& rhs) {
 		if(this != &rhs) {
-			if( index == NULL ) rhs.index->add(this);
-			else if( index != rhs.index ) index->move_to(*rhs.index, ID); 
+			//if( index == NULL ) you're screwed because the Node has a duplicate ID
+			if( index != rhs.index ) index->move_to(*rhs.index, ID); 
 			else clear();
 			
 			bias = rhs.bias;
 		
-			//create new copies of all input Links
-			auto it = rhs.inputs.begin();
-			auto ite = rhs.inputs.end();
-			while(it != ite) {
-				add_input(it->origin, it->weight);
-				++it;
-			}
+			//create new copies of all Links
+			copy_inputs(rhs);
+			copy_outputs(rhs);
 		}
 	} //assignment operator
 
@@ -55,6 +51,35 @@ namespace ben {
 	} //destructor
 	
 	//==================== METHODS =====================
+	template<typename W, typename S>
+	bool Node<W,S>::copy_inputs(const Node& other) {
+		if(index == other.index) {
+			auto it = other.inputs.begin();
+			auto ite = other.inputs.end();
+			while(it != ite) {
+				add_input(it->origin, it->weight);
+				++it;
+			}
+			return true;
+		} else return false;
+		
+	}
+	
+	template<typename W, typename S>
+	bool Node<W,S>::copy_outputs(const Node& other) {
+		if(index == other.index) {
+			unsigned int address;
+			auto it = other.outputs.begin();
+			auto ite = other.outputs.end();
+			while(it != ite) {
+				address = (*it)->target;
+				index->find(address)->add_input(ID, (*it)->weight);
+				++it;
+			}
+			return true;
+		} else return false;
+	}
+	
 	template<typename W, typename S>
 	void Node<W,S>::update_output(const Link<W,S>* const oldLink, Link<W,S>* const newLink) {
 		//updates output Link pointer
@@ -111,17 +136,25 @@ namespace ben {
 	
 	template<typename W, typename S>
 	void Node<W,S>::clear() {
-		//delete all outputs from other nodes (where they are inputs)
+		clear_outputs();
+		clear_inputs();
+		
+	} //clear
+	
+	template<typename W, typename S>
+	void Node<W,S>::clear_inputs() {
+		inputs.clear();
+	}
+	
+	template<typename W, typename S>
+	void Node<W,S>::clear_outputs() {
 		auto it = outputs.begin();
 		auto ite = outputs.end();
 		while(it != ite) {
 			index->find( (*it)->target )->remove_input(ID);
 			++it;
 		}
-		
-		//remove all inputs from other nodes (where they are outputs)
-		inputs.clear();
-	} //clear
+	}
 	
 	template<typename W, typename S>
 	bool Node<W,S>::contains_input(const unsigned int nOrigin) const {

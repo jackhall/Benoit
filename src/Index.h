@@ -49,6 +49,32 @@ namespace ben {
 		void move_to(Index& destination, const unsigned int address); //move individual Node
 		void swap_with(Index& other); //all Nodes
 		void merge_into(Index& other); 
+		
+		class iterator {
+		private:
+			typename std::map< unsigned int, Node<W,S>* >::iterator current;
+			friend class Index;
+			iterator(const typename std::map<unsigned int, Node<W,S>* >::iterator iNode);
+		public:
+			iterator() = default;
+			iterator(const iterator& rhs) = default;
+			iterator& operator=(const iterator& rhs) = default;
+			~iterator() = default;
+			
+			Node<W,S>& operator*() const { return *(current->second); } 
+			Node<W,S>* operator->() const { return current->second; }
+			unsigned int address() { return current->first; }
+			
+			iterator& operator++();
+			iterator  operator++(int);
+			iterator& operator--();
+			iterator  operator--(int);
+			
+			bool operator==(const iterator& rhs) const //compare iterator locations
+				{ return current==rhs.current; }
+			bool operator!=(const iterator& rhs) const
+				{ return current!=rhs.current; }
+		}; //class iterator
 			
 	}; //class Index
 	

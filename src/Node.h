@@ -71,10 +71,15 @@ namespace ben {
 		Node& operator=(Node&& rhs) = delete;
 		~Node(); 
 	
+		bool copy_inputs(const Node& other);
+		bool copy_outputs(const Node& other);
+		
 		void add_input(	const unsigned int nOrigin,
 				const W& wWeight); //creates Link object
 		void remove_input(const unsigned int nOrigin); //destroys Link object
 		void clear(); //deletes all associated Links
+		void clear_inputs();
+		void clear_outputs();
 		
 		bool contains_input(const unsigned int nOrigin) const; 
 		bool contains_output(const unsigned int nTarget) const;

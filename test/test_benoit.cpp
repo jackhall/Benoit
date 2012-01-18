@@ -74,7 +74,7 @@ int test_one() { //test Node & Index constructors
 	delete psecond_node; //psecond_node shares an ID with pthird_node, so delete it
 	psecond_node = NULL; 
 	
-	//testing Node::operator= (creates new copies of input links)
+	//testing Node::operator= (creates new copies of input links) AND OUTPUT LINKS NOW!
 	Node<double,double>* pfourth_node = new Node<double,double>();
 	*pthird_node = *pfourth_node; 
 	if( first_index.contains(pthird_node->ID) ) return 9;

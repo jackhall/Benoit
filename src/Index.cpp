@@ -120,6 +120,38 @@ namespace ben {
 			}
 		}
 	} //merge_into
+	
+	////////////////////////////////////////////////////
+	//iterator methods
+	template<typename W, typename S>
+	Index<W,S>::iterator::iterator(const typename std::map<unsigned int, Node<W,S>* >::iterator iNode) 
+		: current(iNode) {}
+	
+	template<typename W, typename S>
+	typename Index<W,S>::iterator&  Index<W,S>::iterator::operator++() {
+		++current;
+		return *this;
+	}
+	
+	template<typename W, typename S>
+	typename Index<W,S>::iterator   Index<W,S>::iterator::operator++(int) {
+		auto temp = *this;
+		++current;
+		return temp;
+	}
+	
+	template<typename W, typename S>
+	typename Index<W,S>::iterator&  Index<W,S>::iterator::operator--() {
+		--current;
+		return *this;
+	}
+	
+	template<typename W, typename S>
+	typename Index<W,S>::iterator   Index<W,S>::iterator::operator--(int) {
+		auto temp = *this;
+		--current;
+		return temp;
+	}
 
 } //namespace ben
 
