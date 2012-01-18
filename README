@@ -1,11 +1,11 @@
-Benoit is an extremely flexible framework and representation for distributed networks and graphs. I plan to use it as a basis for a multithreaded neural networks library. 
+Benoit is an extremely flexible framework and representation for distributed networks and graphs. I plan to use it as a basis for a multithreaded neural networks library, among other things.
 
-Benoit is licensed under the GPL v3, copyright John Wendell Hall 7/23/2011. Current release date: 1/4/2012. 
-Version numbers are three-field like so: core-x.y.z
-x will only change with major overhauls. It will remain 0 until Benoit is useable.
+Benoit is licensed under the GPL v3, copyright John Wendell Hall 7/23/2011. Current release date: 1/15/2012. 
+Version numbers are three-field like so: benoit-x.y.z
+x will only change with major overhauls. 
 y will change when functionality is modified. 
 z will change with bug fixes and other minor alterations. 
-The current version is 0.4.2. 
+The current version is: 1.0.0 
 
 Benoit is made up of three templated classes: Node, Link, and Index. 
 
