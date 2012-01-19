@@ -37,7 +37,7 @@ namespace ben {
 	private:
 		//make sure each Node has a unique ID
 		static unsigned int IDCOUNT; 
-		inline static unsigned int getNewID() { return IDCOUNT++; }
+		inline static unsigned int get_new_ID() { return IDCOUNT++; }
 		
 		std::list< Link<W,S> > inputs; //FIELD
 		std::vector< Link<W,S>* > outputs; //FIELD, vector is better for the cache
@@ -63,14 +63,19 @@ namespace ben {
 		const unsigned int ID; //FIELD
 		W bias; //FIELD
 		
+		//need to add constructor to set bias
 		Node(); //managed by static Index by default
+		Node(const W& wBias);
 		Node(Index<W,S>& cIndex);
+		Node(Index<W,S>& cIndex, const W& wBias);
 		Node(const Node& rhs);
 		Node(Node&& rhs); //move semantics to transfer all Links
 		Node& operator=(const Node& rhs); //duplicates Node, not including output Links
 		Node& operator=(Node&& rhs) = delete;
 		~Node(); 
-	
+		
+		const Index<W,S>& get_index() { return *index; }
+		
 		bool copy_inputs(const Node& other);
 		bool copy_outputs(const Node& other);
 		

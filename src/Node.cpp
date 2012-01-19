@@ -6,20 +6,31 @@ namespace ben {
 	//=============== CTOR, DTOR ===================
 	template<typename W, typename S>
 	Node<W,S>::Node() 
-		: ID( getNewID() ), index( &(Node::INDEX) ) {
+		: ID( get_new_ID() ), index( &(Node::INDEX) ) {
 		index->add(*this);
 	} //default constructor
 
 	template<typename W, typename S>
-	Node<W,S>::Node(Index<W,S>& cIndex) 
-		: ID( getNewID() ), index(&cIndex) {
-		//add self to manager
+	Node<W,S>::Node(const W& wBias) 
+		: ID( get_new_ID() ), index( &(Node::INDEX) ), bias(wBias) {
 		index->add(*this);
-	} //constructor
+	}
+	
+	template<typename W, typename S>
+	Node<W,S>::Node(Index<W,S>& cIndex) 
+		: ID( get_new_ID() ), index(&cIndex) {
+		index->add(*this);
+	}
+	
+	template<typename W, typename S>
+	Node<W,S>::Node(Index<W,S>& cIndex, const W& wBias) 
+		: ID( get_new_ID() ), index(&cIndex), bias(wBias) {
+		index->add(*this);	
+	} 
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(const Node& rhs) 
-		: ID( getNewID() ), index(rhs.index), bias(rhs.bias) {
+		: ID( get_new_ID() ), index(rhs.index), bias(rhs.bias) {
 		copy_inputs(rhs);
 		copy_outputs(rhs);
 	} //copy constructor
