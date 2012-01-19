@@ -7,11 +7,10 @@ namespace ben {
 	Index<W,S>::Index(Index&& rhs) 
 		: IDMap(std::move(rhs.IDMap)) {
 		update_all();
-		//rhs.IDMap.clear();
 	}
 	
 	template<typename W, typename S>
-	Index<W,S>& Index<W,S>::operator=(Index<W,S>&& rhs) {
+	Index<W,S>& Index<W,S>::operator=(Index&& rhs) {
 		merge_into(Node<W,S>::INDEX); //keeps old network valid
 		IDMap = std::move(rhs.IDMap);
 		update_all();
@@ -40,12 +39,12 @@ namespace ben {
 	
 	
 	template<typename W, typename S>
-	void Index<W,S>::add(Node<W,S>* const pNode) {
+	void Index<W,S>::add(Node<W,S>& node) {
 		//adds a Node pointer to this Index, removing it from its previous Index
 		//if statement may not be necessary since add is private
-		if( IDMap.find(pNode->ID) == IDMap.end() ) {
-			IDMap.insert( std::make_pair(pNode->ID, pNode) );
-			pNode->update_index(this);
+		if( IDMap.find(node.ID) == IDMap.end() ) {
+			IDMap.insert( std::make_pair(node.ID, &node) );
+			node.update_index(this);
 		}
 	} //add
 	
@@ -58,11 +57,11 @@ namespace ben {
 	} //remove
 	
 	template<typename W, typename S>
-	bool Index<W,S>::update_node(Node<W,S>* const pNode) {
+	bool Index<W,S>::update_node(Node<W,S>& node) {
 		//returns true iff Node is already a member
-		auto it = IDMap.find(pNode->ID);
+		auto it = IDMap.find(node.ID);
 		if( it != IDMap.end() ) {
-			it->second = pNode;
+			it->second = &node;
 			return true;
 		} else return false;
 	} //update_node
@@ -85,7 +84,7 @@ namespace ben {
 		auto it = IDMap.find(address); 
 		if(it != IDMap.end()) {
 			it->second->clear();
-			destination.add(it->second);
+			destination.add( *(it->second) );
 			IDMap.erase(it);
 		} 
 		return;
@@ -114,7 +113,7 @@ namespace ben {
 			auto it = IDMap.begin();
 			auto ite = IDMap.end();
 			while(it != ite) {
-				other.add(it->second); //calls Node::update_index
+				other.add( *(it->second) ); //calls Node::update_index
 				IDMap.erase(it);
 				++it;
 			}

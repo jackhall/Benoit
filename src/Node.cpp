@@ -7,25 +7,32 @@ namespace ben {
 	template<typename W, typename S>
 	Node<W,S>::Node() 
 		: ID( getNewID() ), index( &(Node::INDEX) ) {
-		index->add(this);
+		index->add(*this);
 	} //default constructor
 
 	template<typename W, typename S>
-	Node<W,S>::Node(Index<W,S>* const pIndex) 
-		: ID( getNewID() ), index(pIndex) {
+	Node<W,S>::Node(Index<W,S>& cIndex) 
+		: ID( getNewID() ), index(&cIndex) {
 		//add self to manager
-		index->add(this);
+		index->add(*this);
 	} //constructor
+	
+	template<typename W, typename S>
+	Node<W,S>::Node(const Node& rhs) 
+		: ID( getNewID() ), index(rhs.index), bias(rhs.bias) {
+		copy_inputs(rhs);
+		copy_outputs(rhs);
+	} //copy constructor
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(Node&& rhs) 
 		: ID(rhs.ID), index(rhs.index), bias(rhs.bias),
 			inputs(std::move(rhs.inputs)),
 			outputs(std::move(rhs.outputs)) {
-		index->update_node(this);
+		index->update_node(*this);
 		update_index(index); //for Links
 		rhs.index = NULL;
-	} //copy constructor
+	} //move constructor
 
 	template<typename W, typename S>
 	Node<W,S>& Node<W,S>::operator=(const Node& rhs) {

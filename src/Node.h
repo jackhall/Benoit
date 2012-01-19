@@ -44,7 +44,7 @@ namespace ben {
 		Index<W,S>* index; //FIELD
 		
 		friend class Index<W,S>; //managing Index needs to update its pointer
-		bool update_index(Index<W,S>* const pIndex); //updates Link::index pointers too
+		bool update_index(Index<W,S>* const cIndex); //updates Link::index pointers too
 		
 		friend Link<W,S>::Link(	Index<W,S>* const pIndex,
 		     			const unsigned int nOrigin, 
@@ -64,8 +64,8 @@ namespace ben {
 		W bias; //FIELD
 		
 		Node(); //managed by static Index by default
-		Node(Index<W,S>* const pIndex);
-		Node(const Node& rhs) = delete;
+		Node(Index<W,S>& cIndex);
+		Node(const Node& rhs);
 		Node(Node&& rhs); //move semantics to transfer all Links
 		Node& operator=(const Node& rhs); //duplicates Node, not including output Links
 		Node& operator=(Node&& rhs) = delete;

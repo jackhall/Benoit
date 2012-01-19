@@ -22,7 +22,7 @@ int test_Node_Index_constructors() {
 	if( !first_index.contains(pfirst_node->ID) ) return 4;
 	
 	//testing Node(Index*) constructor
-	Node<double,double>* psecond_node = new Node<double,double>(&first_index);
+	Node<double,double>* psecond_node = new Node<double,double>(first_index);
 	if( !first_index.contains(psecond_node->ID) ) return 5;
 	
 	//testing Node move constructor
@@ -34,7 +34,7 @@ int test_Node_Index_constructors() {
 	delete psecond_node; //psecond_node shares an ID with pthird_node, so delete it
 	psecond_node = NULL; 
 	
-	//testing Node::operator= (creates new copies of input links) //AND OUTPUT LINKS NOW!
+	//testing Node::operator= (creates new copies of links) 
 	Node<double,double>* pfourth_node = new Node<double,double>();
 	*pthird_node = *pfourth_node; 
 	if( first_index.contains(pthird_node->ID) ) return 9;

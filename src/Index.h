@@ -42,9 +42,9 @@ namespace ben {
 		Node<W,S>* find(const unsigned int address) const;
 		bool contains(const unsigned int address) const;
 		
-		void add(Node<W,S>* const pNode); //only called by Node constructor
+		void add(Node<W,S>& pNode); //only called by Node constructor
 		void remove(const unsigned int address);  //does not remove Node's Index pointer (for now)
-		bool update_node(Node<W,S>* const pNode); //makes sure if Node is listed and has an up-to-date pointer
+		bool update_node(Node<W,S>& pNode); //makes sure if Node is listed and has an up-to-date pointer
 		
 		void move_to(Index& destination, const unsigned int address); //move individual Node
 		void swap_with(Index& other); //all Nodes
