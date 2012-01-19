@@ -81,7 +81,7 @@ namespace ben {
 			return true;
 		} else return false;
 		
-	}
+	} //copy_inputs
 	
 	template<typename W, typename S>
 	bool Node<W,S>::copy_outputs(const Node& other) {
@@ -96,7 +96,7 @@ namespace ben {
 			}
 			return true;
 		} else return false;
-	}
+	} //copy_outputs
 	
 	template<typename W, typename S>
 	void Node<W,S>::update_output(const Link<W,S>* const oldLink, Link<W,S>* const newLink) {
@@ -110,21 +110,22 @@ namespace ben {
 			}
 			++it;
 		}
-	}
+	} //update_output
 	
 	template<typename W, typename S>
-	void Node<W,S>::add_input(const unsigned int origin, const W& weight) {
+	void Node<W,S>::add_input(const unsigned int address, const W& weight) {
 		//Link will create its own pointer at the origin Node
-		inputs.push_back( Link<W,S>(index, origin, ID, weight) );
+		if(index->contains(address))
+			inputs.push_back( Link<W,S>(index, address, ID, weight) );
 	} //add_input
 	
 	template<typename W, typename S>
-	void Node<W,S>::remove_input(const unsigned int origin) {
+	void Node<W,S>::remove_input(const unsigned int address) {
 		//destroys input Link to the specified Node
 		auto it = inputs.begin();
 		auto ite = inputs.end();
 		while(it != ite) {
-			if(it->origin == origin) {
+			if(it->origin == address) {
 				inputs.erase(it);
 				break;
 			}
@@ -133,10 +134,20 @@ namespace ben {
 	} //remove_input
 	
 	template<typename W, typename S>
+	void Node<W,S>::add_output(const unsigned int address, const W& weight) {
+		index->find(address)->add_input(ID,weight);
+	} //add_output(unsigned int)
+	
+	template<typename W, typename S>
 	void Node<W,S>::add_output(Link<W,S>* const pLink) {
 		//private; for adding output Link pointer
 		outputs.push_back(pLink);
-	} //add_output
+	} //add_output(Link*)
+	
+	template<typename W, typename S>
+	void Node<W,S>::remove_output(const unsigned int address) {
+		index->find(address)->remove_input(ID);
+	} //remove_output(unsigned int)
 	
 	template<typename W, typename S>
 	void Node<W,S>::remove_output(Link<W,S>* const pLink) {
@@ -150,19 +161,18 @@ namespace ben {
 			}
 			++it;
 		}
-	} //remove_output
+	} //remove_output(Link*)
 	
 	template<typename W, typename S>
 	void Node<W,S>::clear() {
 		clear_outputs();
 		clear_inputs();
-		
 	} //clear
 	
 	template<typename W, typename S>
 	void Node<W,S>::clear_inputs() {
 		inputs.clear();
-	}
+	} //clear_inputs
 	
 	template<typename W, typename S>
 	void Node<W,S>::clear_outputs() {
@@ -172,7 +182,7 @@ namespace ben {
 			index->find( (*it)->target )->remove_input(ID);
 			++it;
 		}
-	}
+	} //clear_outputs
 	
 	template<typename W, typename S>
 	bool Node<W,S>::contains_input(const unsigned int nOrigin) const {
@@ -183,7 +193,7 @@ namespace ben {
 			++it;
 		}
 		return false;
-	}
+	} //contains_input
 	
 	template<typename W, typename S>
 	bool Node<W,S>::contains_output(const unsigned int nTarget) const {
@@ -194,7 +204,7 @@ namespace ben {
 			++it;
 		}
 		return false;
-	}
+	} //contains_output
 	
 	template<typename W, typename S>
 	bool Node<W,S>::update_index(Index<W,S>* const pIndex) {
