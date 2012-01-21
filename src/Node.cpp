@@ -11,20 +11,26 @@ namespace ben {
 	} //default constructor
 
 	template<typename W, typename S>
-	Node<W,S>::Node(const W& wBias) 
-		: ID( get_new_ID() ), index( &(Node::INDEX) ), bias(wBias) {
+	Node<W,S>::Node(const unsigned int nID) 
+		: ID( nID ), index( &(Node::INDEX) ) {
+		index->add(*this);
+	} 
+
+	template<typename W, typename S>
+	Node<W,S>::Node(const W& wBias, const unsigned int nID) 
+		: ID( nID ), index( &(Node::INDEX) ), bias(wBias) {
 		index->add(*this);
 	}
 	
 	template<typename W, typename S>
-	Node<W,S>::Node(Index<W,S>& cIndex) 
-		: ID( get_new_ID() ), index(&cIndex) {
+	Node<W,S>::Node(Index<W,S>& cIndex, const unsigned int nID) 
+		: ID( nID ), index(&cIndex) {
 		index->add(*this);
 	}
 	
 	template<typename W, typename S>
-	Node<W,S>::Node(Index<W,S>& cIndex, const W& wBias) 
-		: ID( get_new_ID() ), index(&cIndex), bias(wBias) {
+	Node<W,S>::Node(Index<W,S>& cIndex, const W& wBias, const unsigned int nID) 
+		: ID( nID ), index(&cIndex), bias(wBias) {
 		index->add(*this);	
 	} 
 	
@@ -34,6 +40,13 @@ namespace ben {
 		copy_inputs(rhs);
 		copy_outputs(rhs);
 	} //copy constructor
+	
+	template<typename W, typename S>
+	Node<W,S>::Node(const Node& rhs, const unsigned int nID) 
+		: ID( nID ), index(rhs.index), bias(rhs.bias) {
+		copy_inputs(rhs);
+		copy_outputs(rhs);
+	} //alternate copy constructor
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(Node&& rhs) 

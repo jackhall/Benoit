@@ -64,13 +64,15 @@ namespace ben {
 		W bias; //FIELD
 		
 		//need to add constructor to set bias
-		Node(); //managed by static Index by default
-		Node(const W& wBias);
-		Node(Index<W,S>& cIndex);
-		Node(Index<W,S>& cIndex, const W& wBias);
+		Node();
+		explicit Node(const unsigned int nID); //managed by static Index by default
+		explicit Node(const W& wBias, const unsigned int nID = get_new_ID());
+		explicit Node(Index<W,S>& cIndex, const unsigned int nID = get_new_ID());
+		Node(Index<W,S>& cIndex, const W& wBias, const unsigned int nID = get_new_ID());
 		Node(const Node& rhs);
+		Node(const Node& rhs, const unsigned int nID);
 		Node(Node&& rhs); //move semantics to transfer all Links
-		Node& operator=(const Node& rhs); //duplicates Node, not including output Links
+		Node& operator=(const Node& rhs); //duplicates Node, including Links
 		Node& operator=(Node&& rhs) = delete;
 		~Node(); 
 		

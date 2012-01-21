@@ -37,12 +37,12 @@ namespace ben {
 		~Index(); //transfers all Nodes to that class's static Index
 		Index(const Index& rhs) = delete;
 		Index(Index&& rhs); //use move semantics to transfer all Nodes
-		Index& operator=(const Index& rhs) = delete; //make unique copy of all Nodes?
+		Index& operator=(const Index& rhs) = delete; //make unique copy of all Nodes? no
 		Index& operator=(Index&& rhs);
 		Node<W,S>* find(const unsigned int address) const;
 		bool contains(const unsigned int address) const;
 		
-		void add(Node<W,S>& pNode); //only called by Node constructor
+		bool add(Node<W,S>& pNode); //only called by Node constructor
 		void remove(const unsigned int address);  //does not remove Node's Index pointer (for now)
 		bool update_node(Node<W,S>& pNode); //makes sure if Node is listed and has an up-to-date pointer
 		
@@ -76,6 +76,8 @@ namespace ben {
 				{ return current!=rhs.current; }
 		}; //class iterator
 			
+		iterator begin() { return iterator( IDMap.begin() ); }
+		iterator end() { return iterator( IDMap.end() ); }
 	}; //class Index
 	
 } //namespace ben

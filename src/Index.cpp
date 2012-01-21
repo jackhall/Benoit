@@ -39,13 +39,14 @@ namespace ben {
 	
 	
 	template<typename W, typename S>
-	void Index<W,S>::add(Node<W,S>& node) {
+	bool Index<W,S>::add(Node<W,S>& node) {
 		//adds a Node pointer to this Index, removing it from its previous Index
 		//if statement may not be necessary since add is private
-		if( IDMap.find(node.ID) == IDMap.end() ) {
+		if( !contains(node.ID) ) {
 			IDMap.insert( std::make_pair(node.ID, &node) );
 			node.update_index(this);
-		}
+			return true;
+		} else return false;
 	} //add
 	
 	template<typename W, typename S>
@@ -113,7 +114,9 @@ namespace ben {
 			auto it = IDMap.begin();
 			auto ite = IDMap.end();
 			while(it != ite) {
-				other.add( *(it->second) ); //calls Node::update_index
+				if( !other.add( *(it->second) )) { //calls Node::update_index
+					//delete node or make a copy with a new ID?
+				} 
 				IDMap.erase(it);
 				++it;
 			}

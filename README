@@ -5,7 +5,7 @@ Version numbers are three-field like so: benoit-x.y.z
 x will only change with major overhauls. 
 y will change when functionality is modified. 
 z will change with bug fixes and other minor alterations. 
-The current version is: 1.1.0 
+The current version is: 1.2.0 
 
 Benoit is made up of three templated classes: Node, Link, and Index. 
 
