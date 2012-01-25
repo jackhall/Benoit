@@ -7,6 +7,11 @@ y will change when functionality is modified.
 z will change with bug fixes and other minor alterations. 
 The current version is: 1.2.0 
 
+To test, compile test/test_benoit.cpp with:
+	g++ -std=c++0x -g -I ../src test_benoit.cpp -o test
+and run the result with:
+	./test
+
 Benoit is made up of three templated classes: Node, Link, and Index. 
 
 Node instances are the verticies of the graph. They are intended to network across threads; Benoit will be thread-safe and multithreaded (by version 2 if not 1). Include it as a member of any class which you want to communicate across a distributed network. A given class may contain any number of Nodes for connecting to different networks. Data to be sent is pushed into the Node, and data to be received is pulled out. Nodes may be publicly constructed and deleted. Safe destruction is ensured by signalling the Index to clean up after it.
