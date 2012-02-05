@@ -3,7 +3,7 @@
 
 /*
     Benoit: a flexible framework for distributed graphs
-    Copyright (C) 2011  Jack Hall
+    Copyright (C) 2011-2012  Jack Hall
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ namespace ben {
 	class Link {
 	private: 
 		S buffer[2]; //extra space in buffer is for feedforward time delays or indeterminate evaluation order
-		bool mark[2]; //current buffer index: [read write], false -> 0 and true -> 1
+		unsigned char mark; //[delay(8), ready(4), cases(1,2)]
 		Index<W,S>* index; //copy of Node's index pointer, used to access origin Node pointer
 		//also manages its pointer stored at the origin Node
 	
@@ -65,6 +65,10 @@ namespace ben {
 		
 		void push(const S& data); //write to buffer
 		S pull(); //read from buffer
+		
+		bool ready() const;
+		unsigned int values() const;
+		S pop();
 		
 		void update_index(Index<W,S>* const pIndex); //called when owning Node updates
 	}; //class Link

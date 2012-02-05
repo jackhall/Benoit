@@ -86,7 +86,7 @@ int test_data_transmission() {
 		z *= pi2->weight * x;
 		++pi2;
 	}
-	if( z != 13.0*(7.0*23.0) ) return 3;
+	if( z != 13.0*(7.0*19.0) ) return 3;
 	
 	return 0;
 } //test_three
