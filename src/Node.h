@@ -113,8 +113,8 @@ namespace ben {
 		bool contains_input(const unsigned int nOrigin) const; 
 		bool contains_output(const unsigned int nTarget) const;
 		
-		unsigned int size_inputs() { return inputs.size() }
-		unsigned int size_outputs() { return outputs.size() }
+		unsigned int size_inputs() { return inputs.size(); }
+		unsigned int size_outputs() { return outputs.size(); }
 	
 		class input_port { //part bidirectional iterator, part stream object
 		private:
