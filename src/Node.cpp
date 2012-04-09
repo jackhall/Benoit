@@ -31,31 +31,31 @@ namespace ben {
 
 	template<typename W, typename S>
 	Node<W,S>::Node(const unsigned int nID) 
-		: ID( nID ), index( &(Node::INDEX) ) {
+		: index( &(Node::INDEX) ), ID( nID ) {
 		index->add(*this);
 	} 
 
 	template<typename W, typename S>
 	Node<W,S>::Node(const W& wBias, const unsigned int nID) 
-		: ID( nID ), index( &(Node::INDEX) ), bias(wBias) {
+		: index( &(Node::INDEX) ), ID( nID ), bias(wBias) {
 		index->add(*this);
 	}
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(Index<W,S>& cIndex, const unsigned int nID) 
-		: ID( nID ), index(&cIndex) {
+		: index(&cIndex), ID( nID ) {
 		index->add(*this);
 	}
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(Index<W,S>& cIndex, const W& wBias, const unsigned int nID) 
-		: ID( nID ), index(&cIndex), bias(wBias) {
+		: index(&cIndex), ID( nID ), bias(wBias) {
 		index->add(*this);	
 	} 
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(const Node& rhs) 
-		: ID( get_new_ID() ), index(rhs.index), bias(rhs.bias) {
+		: index(rhs.index), ID( get_new_ID() ),  bias(rhs.bias) {
 		copy_inputs(rhs);
 		copy_outputs(rhs);
 	} //copy constructor
@@ -90,6 +90,7 @@ namespace ben {
 			copy_inputs(rhs);
 			copy_outputs(rhs);
 		}
+		return *this;
 	} //assignment operator
 
 	template<typename W, typename S>
