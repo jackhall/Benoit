@@ -55,7 +55,7 @@ namespace ben {
 	class Node {
 	private:
 		//make sure each Node has a unique ID
-		static unsigned int IDCOUNT; 
+		static unsigned int IDCOUNT; //STATIC FIELD
 		inline static unsigned int get_new_ID() { return IDCOUNT++; }
 		
 		unsigned int nodeID; //FIELD
@@ -79,7 +79,7 @@ namespace ben {
 	public:
 		Node& operator<<(const S& signal);
 	
-		static Index<W,S> INDEX;
+		static Index<W,S> INDEX; //STATIC FIELD
 		W bias; //FIELD
 		
 		//need to add constructor to set bias
@@ -92,7 +92,7 @@ namespace ben {
 		Node(const Node& rhs, const unsigned int nID);
 		Node(Node&& rhs); //move semantics to transfer all Links
 		Node& operator=(const Node& rhs); //duplicates Node, including Links
-		Node& operator=(Node&& rhs) = delete;
+		Node& operator=(Node&& rhs);
 		~Node(); 
 		
 		const Index<W,S>& get_index() { return *index; }

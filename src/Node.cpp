@@ -94,6 +94,27 @@ namespace ben {
 	} //assignment operator
 
 	template<typename W, typename S>
+	Node<W,S>& Node<W,S>::operator=(Node&& rhs) {
+		if(this != &rhs) {
+			//if( index == NULL ) you're screwed because the Node has a duplicate ID
+			if( index != rhs.index ) index->move_to(*rhs.index, nodeID);
+			else clear();
+			
+			nodeID = rhs.nodeID;
+			bias = rhs.bias;
+			
+			//move links
+			inputs = std::move( rhs.inputs );
+			outputs = std::move( rhs.outputs );
+			
+			index->update_node(*this);
+			update_index(index); //for Links
+			rhs.index = NULL;
+		}
+		return *this;
+	} //assignment move operator
+
+	template<typename W, typename S>
 	Node<W,S>::~Node() {
 		//delete all Links (input and output)
 		clear();
