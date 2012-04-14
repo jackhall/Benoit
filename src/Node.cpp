@@ -25,51 +25,51 @@ namespace ben {
 	//=============== CTOR, DTOR ===================
 	template<typename W, typename S>
 	Node<W,S>::Node() 
-		: ID( get_new_ID() ), index( &(Node::INDEX) ) {
+		: nodeID( get_new_ID() ), index( &(Node::INDEX) ) {
 		index->add(*this);
 	} //default constructor
 
 	template<typename W, typename S>
 	Node<W,S>::Node(const unsigned int nID) 
-		: index( &(Node::INDEX) ), ID( nID ) {
+		: index( &(Node::INDEX) ), nodeID( nID ) {
 		index->add(*this);
 	} 
 
 	template<typename W, typename S>
 	Node<W,S>::Node(const W& wBias, const unsigned int nID) 
-		: index( &(Node::INDEX) ), ID( nID ), bias(wBias) {
+		: index( &(Node::INDEX) ), nodeID( nID ), bias(wBias) {
 		index->add(*this);
 	}
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(Index<W,S>& cIndex, const unsigned int nID) 
-		: index(&cIndex), ID( nID ) {
+		: index(&cIndex), nodeID( nID ) {
 		index->add(*this);
 	}
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(Index<W,S>& cIndex, const W& wBias, const unsigned int nID) 
-		: index(&cIndex), ID( nID ), bias(wBias) {
+		: index(&cIndex), nodeID( nID ), bias(wBias) {
 		index->add(*this);	
 	} 
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(const Node& rhs) 
-		: index(rhs.index), ID( get_new_ID() ),  bias(rhs.bias) {
+		: index(rhs.index), nodeID( get_new_ID() ),  bias(rhs.bias) {
 		copy_inputs(rhs);
 		copy_outputs(rhs);
 	} //copy constructor
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(const Node& rhs, const unsigned int nID) 
-		: ID( nID ), index(rhs.index), bias(rhs.bias) {
+		: nodeID( nID ), index(rhs.index), bias(rhs.bias) {
 		copy_inputs(rhs);
 		copy_outputs(rhs);
 	} //alternate copy constructor
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(Node&& rhs) 
-		: ID(rhs.ID), index(rhs.index), bias(rhs.bias),
+		: nodeID(rhs.nodeID), index(rhs.index), bias(rhs.bias),
 			inputs(std::move(rhs.inputs)),
 			outputs(std::move(rhs.outputs)) {
 		index->update_node(*this);
@@ -81,7 +81,7 @@ namespace ben {
 	Node<W,S>& Node<W,S>::operator=(const Node& rhs) {
 		if(this != &rhs) {
 			//if( index == NULL ) you're screwed because the Node has a duplicate ID
-			if( index != rhs.index ) index->move_to(*rhs.index, ID); 
+			if( index != rhs.index ) index->move_to(*rhs.index, nodeID); 
 			else clear();
 			
 			bias = rhs.bias;
@@ -98,7 +98,7 @@ namespace ben {
 		//delete all Links (input and output)
 		clear();
 		//remove self from manager
-		if(index != NULL) index->remove(ID); //index is only NULL if Node::INDEX has been destroyed
+		if(index != NULL) index->remove(nodeID); //index is only NULL if Node::INDEX has been destroyed
 	} //destructor
 	
 	//==================== METHODS =====================
@@ -124,7 +124,7 @@ namespace ben {
 			auto ite = other.outputs.end();
 			while(it != ite) {
 				address = (*it)->target;
-				index->find(address)->add_input(ID, (*it)->weight);
+				index->find(address)->add_input(nodeID, (*it)->weight);
 				++it;
 			}
 			return true;
@@ -149,7 +149,7 @@ namespace ben {
 	void Node<W,S>::add_input(const unsigned int address, const W& weight) {
 		//Link will create its own pointer at the origin Node
 		if(index->contains(address))
-			inputs.push_back( Link<W,S>(index, address, ID, weight) );
+			inputs.push_back( Link<W,S>(index, address, nodeID, weight) );
 	} //add_input
 	
 	template<typename W, typename S>
@@ -168,7 +168,7 @@ namespace ben {
 	
 	template<typename W, typename S>
 	void Node<W,S>::add_output(const unsigned int address, const W& weight) {
-		index->find(address)->add_input(ID,weight);
+		index->find(address)->add_input(nodeID,weight);
 	} //add_output(unsigned int)
 	
 	template<typename W, typename S>
@@ -179,7 +179,7 @@ namespace ben {
 	
 	template<typename W, typename S>
 	void Node<W,S>::remove_output(const unsigned int address) {
-		index->find(address)->remove_input(ID);
+		index->find(address)->remove_input(nodeID);
 	} //remove_output(unsigned int)
 	
 	template<typename W, typename S>
@@ -212,7 +212,7 @@ namespace ben {
 		auto it = outputs.begin();
 		auto ite = outputs.end();
 		while(it != ite) {
-			index->find( (*it)->target )->remove_input(ID);
+			index->find( (*it)->target )->remove_input(nodeID);
 			++it;
 		}
 	} //clear_outputs
@@ -241,7 +241,7 @@ namespace ben {
 	
 	template<typename W, typename S>
 	bool Node<W,S>::update_index(Index<W,S>* const pIndex) {
-		if(pIndex->contains(ID)) {
+		if(pIndex->contains(nodeID)) {
 			index = pIndex;
 			
 			//update all Link::index pointers

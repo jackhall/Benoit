@@ -61,8 +61,8 @@ namespace ben {
 	bool Index<W,S>::add(Node<W,S>& node) {
 		//adds a Node pointer to this Index, removing it from its previous Index
 		//if statement may not be necessary since add is private
-		if( !contains(node.ID) ) {
-			IDMap.insert( std::make_pair(node.ID, &node) );
+		if( !contains(node.ID()) ) {
+			IDMap.insert( std::make_pair(node.ID(), &node) );
 			node.update_index(this);
 			return true;
 		} else return false;
@@ -79,7 +79,7 @@ namespace ben {
 	template<typename W, typename S>
 	bool Index<W,S>::update_node(Node<W,S>& node) {
 		//returns true iff Node is already a member
-		auto it = IDMap.find(node.ID);
+		auto it = IDMap.find(node.ID());
 		if( it != IDMap.end() ) {
 			it->second = &node;
 			return true;

@@ -27,7 +27,7 @@
 #include "test_Node_management.cpp"
 
 //To test Benoit, run the following in the test directory:
-//	g++ -std=c++0x -g -I ../src test_benoit.cpp -o test
+//	g++ -std=c++0x -g -I ../src test_benoit.cpp -o test_benoit
 //	./test
 
 int main() {

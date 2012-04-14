@@ -29,9 +29,9 @@ int test_data_transmission() {
 	node_two.bias = 13.0;
 	node_three.bias = 17.0;
 	
-	node_three.add_input(node_one.ID,3.0);
-	node_three.add_input(node_two.ID,5.0);
-	node_two.add_input(node_one.ID,7.0);
+	node_three.add_input(node_one.ID(),3.0);
+	node_three.add_input(node_two.ID(),5.0);
+	node_two.add_input(node_one.ID(),7.0);
 	
 	//send signal from node_one
 	auto po1 = node_one.output_begin();

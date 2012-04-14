@@ -58,6 +58,7 @@ namespace ben {
 		static unsigned int IDCOUNT; 
 		inline static unsigned int get_new_ID() { return IDCOUNT++; }
 		
+		unsigned int nodeID; //FIELD
 		std::list< Link<W,S> > inputs; //FIELD
 		std::vector< Link<W,S>* > outputs; //FIELD, vector is better for the cache
 		Index<W,S>* index; //FIELD
@@ -79,7 +80,6 @@ namespace ben {
 		Node& operator<<(const S& signal);
 	
 		static Index<W,S> INDEX;
-		const unsigned int ID; //FIELD
 		W bias; //FIELD
 		
 		//need to add constructor to set bias
@@ -96,6 +96,7 @@ namespace ben {
 		~Node(); 
 		
 		const Index<W,S>& get_index() { return *index; }
+		inline unsigned int ID() const { return nodeID; }
 		
 		bool copy_inputs(const Node& other);
 		bool copy_outputs(const Node& other);
