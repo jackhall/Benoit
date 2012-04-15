@@ -82,9 +82,7 @@ namespace ben {
 		static Index<W,S> INDEX; //STATIC FIELD
 		W bias; //FIELD
 		
-		//need to add constructor to set bias
-		Node();
-		explicit Node(const unsigned int nID); //managed by static Index by default
+		explicit Node(const unsigned int nID=get_new_ID()); //managed by static Index by default
 		explicit Node(const W& wBias, const unsigned int nID = get_new_ID());
 		explicit Node(Index<W,S>& cIndex, const unsigned int nID = get_new_ID());
 		Node(Index<W,S>& cIndex, const W& wBias, const unsigned int nID = get_new_ID());
@@ -185,7 +183,7 @@ namespace ben {
 	
 	//initialize static members
 	template<typename W, typename S>
-	unsigned int Node<W,S>::IDCOUNT = 0;
+	unsigned int Node<W,S>::IDCOUNT = 100000;
 	
 	template<typename W, typename S> Index<W,S> Node<W,S>::INDEX; 
 	//////////////////////////////
