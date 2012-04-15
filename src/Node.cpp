@@ -162,10 +162,12 @@ namespace ben {
 	} //update_output
 	
 	template<typename W, typename S>
-	void Node<W,S>::add_input(const unsigned int address, const W& weight) {
+	bool Node<W,S>::add_input(const unsigned int address, const W& weight) {
 		//Link will create its own pointer at the origin Node
 		if(index->contains(address))
 			inputs.push_back( Link<W,S>(index, address, nodeID, weight) );
+		else return false;
+		return true;
 	} //add_input
 	
 	template<typename W, typename S>
@@ -183,8 +185,11 @@ namespace ben {
 	} //remove_input
 	
 	template<typename W, typename S>
-	void Node<W,S>::add_output(const unsigned int address, const W& weight) {
-		index->find(address)->add_input(nodeID,weight);
+	bool Node<W,S>::add_output(const unsigned int address, const W& weight) {
+		if(index->contains(address))
+			index->find(address)->add_input(nodeID,weight);
+		else return false;
+		return true;
 	} //add_output(unsigned int)
 	
 	template<typename W, typename S>

@@ -99,10 +99,10 @@ namespace ben {
 		bool copy_inputs(const Node& other);
 		bool copy_outputs(const Node& other);
 		
-		void add_input(	const unsigned int address,
+		bool add_input(	const unsigned int address,
 				const W& weight); //creates Link object
 		void remove_input(const unsigned int address); //destroys Link object
-		void add_output(const unsigned int address,
+		bool add_output(const unsigned int address,
 				const W& weight);
 		void remove_output(const unsigned int address);
 		void clear(); //deletes all associated Links
