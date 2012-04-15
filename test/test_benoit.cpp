@@ -36,7 +36,7 @@ int main() {
 	list<int> results;
 	results.push_back( test_Node_Index_constructors() ); //need to update
 	results.push_back( test_Link_mangement() ); //need to update
-	results.push_back( test_data_transmission() );
+	results.push_back( test_data_transmission() ); //need to update
 	results.push_back( test_Node_management() ); //need to update
 	
 	int test_number = 1;

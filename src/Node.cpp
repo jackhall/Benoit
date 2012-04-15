@@ -26,36 +26,37 @@ namespace ben {
 	template<typename W, typename S>
 	Node<W,S>::Node() 
 		: nodeID( get_new_ID() ), index( &(Node::INDEX) ) {
-		index->add(*this);
+		if( !index->add(*this) ) throw;
 	} //default constructor
 
 	template<typename W, typename S>
 	Node<W,S>::Node(const unsigned int nID) 
 		: index( &(Node::INDEX) ), nodeID( nID ) {
-		index->add(*this);
+		if( !index->add(*this) ) throw;
 	} 
 
 	template<typename W, typename S>
 	Node<W,S>::Node(const W& wBias, const unsigned int nID) 
 		: index( &(Node::INDEX) ), nodeID( nID ), bias(wBias) {
-		index->add(*this);
+		if( !index->add(*this) ) throw;
 	}
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(Index<W,S>& cIndex, const unsigned int nID) 
 		: index(&cIndex), nodeID( nID ) {
-		index->add(*this);
+		if( !index->add(*this) ) throw;
 	}
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(Index<W,S>& cIndex, const W& wBias, const unsigned int nID) 
 		: index(&cIndex), nodeID( nID ), bias(wBias) {
-		index->add(*this);	
+		if( !index->add(*this) ) throw;	
 	} 
 	
 	template<typename W, typename S>
 	Node<W,S>::Node(const Node& rhs) 
 		: index(rhs.index), nodeID( get_new_ID() ),  bias(rhs.bias) {
+		if( !index->add(*this) ) throw;
 		copy_inputs(rhs);
 		copy_outputs(rhs);
 	} //copy constructor
@@ -63,6 +64,7 @@ namespace ben {
 	template<typename W, typename S>
 	Node<W,S>::Node(const Node& rhs, const unsigned int nID) 
 		: nodeID( nID ), index(rhs.index), bias(rhs.bias) {
+		if( !index->add(*this) ) throw;
 		copy_inputs(rhs);
 		copy_outputs(rhs);
 	} //alternate copy constructor
@@ -107,7 +109,6 @@ namespace ben {
 			inputs = std::move( rhs.inputs );
 			outputs = std::move( rhs.outputs );
 			
-			index->update_node(*this);
 			update_index(index); //for Links
 			rhs.index = NULL;
 		}
