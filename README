@@ -5,7 +5,7 @@ Version numbers are three-field like so: benoit-x.y.z
 x will only change with major overhauls. 
 y will change when functionality is modified. 
 z will change with bug fixes and other minor alterations. 
-The current version is: 1.2.0 
+The current version is: 1.2.2 
 
 To test, compile test/test_benoit.cpp with:
 	g++ -std=c++0x -g -I ../src test_benoit.cpp -o test
@@ -19,6 +19,12 @@ Node instances are the verticies of the directed graph. They are intended to net
 Link instances are invisible to the user. They implement thread-safe message passing between Nodes. Links may be manipulated indirectly through one of the Nodes it links by creating a port object, which is a cross between a stream and an iterator. 
 
 Index instances manage a subset of Nodes and the Links between them. Nodes may not link between Indicies. An Index is required to work with any Nodes, but default construction of a Node will automatically use a static Index for ease of use. Nodes may be swapped between Indicies, but all Links involving that Node will be deleted unless the entire network is transferred. These rules limit the possibility for semantic errors. 
+
+Changes for version 2.x.x:
+
+-Transfer ownership of Links to the Index class. This make much more sense semantically and would allow more efficient memory management at the Node level. The drawback is that I would have to write an allocator class for Index to use. The upsides are less fragmented memory and possibly quicker access to Links through the Nodes. 
+
+-Possibly remove Node::bias and Link::weight. While these are likely to be connected semantically to the network, the main purpose of Benoit is to transmit data, not store it. Storage may not even be necessary much of the time. The rest of Benoit ignores these values, and they add clutter to the interface. 
 
 My email is jackwhall7@gmail.com. 
 
