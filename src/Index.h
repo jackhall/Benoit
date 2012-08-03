@@ -52,6 +52,11 @@ namespace ben {
 		void update_all();
 		
 	public:
+		typedef Node<W,S> 	value_type;
+		typedef Node<W,S>* 	pointer;
+		typedef Node<W,S>&	reference;
+		typedef size_t		size_type;
+	
 		Index()=default;
 		~Index(); //transfers all Nodes to that class's static Index
 		Index(const Index& rhs) = delete;
@@ -64,18 +69,18 @@ namespace ben {
 		bool add(Node<W,S>& pNode); //only called by Node constructor
 		void remove(const unsigned int address);  //does not remove Node's Index pointer (for now)
 		bool update_node(Node<W,S>& pNode); //makes sure if Node is listed and has an up-to-date pointer
+		size_type size() { return IDMap.size(); }
 		
 		void move_to(Index& destination, const unsigned int address); //move individual Node
 		void swap_with(Index& other); //all Nodes
 		void merge_into(Index& other); 
 		
-		class iterator {
+		class iterator : public std::iterator<std::bidirectional_iterator_tag, Node<W,S>> {
 		private:
 			typename std::map< unsigned int, Node<W,S>* >::iterator current;
 			friend class Index;
 			iterator(const typename std::map<unsigned int, Node<W,S>* >::iterator iNode);
 		public:
-			typedef Node<W,S>& reference;
 			
 			iterator() = default;
 			iterator(const iterator& rhs) = default;
