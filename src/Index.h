@@ -71,12 +71,12 @@ namespace ben {
 		
 		class iterator {
 		private:
-			typedef Node<W,S>& reference;
-		
 			typename std::map< unsigned int, Node<W,S>* >::iterator current;
 			friend class Index;
 			iterator(const typename std::map<unsigned int, Node<W,S>* >::iterator iNode);
 		public:
+			typedef Node<W,S>& reference;
+			
 			iterator() = default;
 			iterator(const iterator& rhs) = default;
 			iterator& operator=(const iterator& rhs) = default;
