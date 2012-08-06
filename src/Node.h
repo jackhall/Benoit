@@ -123,6 +123,9 @@ namespace ben {
 			input_port(const typename std::list< Link<W,S> >::iterator iLink);
 			
 		public:
+			typedef W weight_type;
+			typedef S signal_type;
+		
 			input_port() = default;
 			input_port(const input_port& rhs) = default;
 			input_port& operator=(const input_port& rhs) = default;
@@ -153,6 +156,9 @@ namespace ben {
 			output_port(const typename std::vector< Link<W,S>* >::iterator iLink);
 			
 		public:
+			typedef W weight_type;
+			typedef S signal_type;
+		
 			output_port() = default;
 			output_port(const output_port& rhs) = default;
 			output_port& operator=(const output_port& rhs) = default;
