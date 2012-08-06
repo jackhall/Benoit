@@ -28,7 +28,7 @@
 
 //To test Benoit, run the following in the test directory:
 //	g++ -std=c++0x -g -I ../src test_benoit.cpp -o test_benoit
-//	./test
+//	./test_benoit
 
 int main() {
 	using namespace std;
