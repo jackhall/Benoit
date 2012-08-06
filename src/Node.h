@@ -142,6 +142,7 @@ namespace ben {
 				{ return current!=rhs.current; }
 				
 			input_port& operator>>(S& signal); //buffer access is only one way
+			S pull() { return current->pull(); }
 		}; //class input_port
 	
 		class output_port { //see above input_port
@@ -171,6 +172,7 @@ namespace ben {
 				{ return current!=rhs.current; } 
 				
 			output_port& operator<<(const S& signal);
+			void push(const S& signal) { (*current)->push(signal); }
 		}; //class output_port
 		
 		//similar to STL, but haven't added rbegin or rend yet
