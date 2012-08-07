@@ -40,38 +40,43 @@ namespace ben {
 		
 		Each Link will have a mutex member when multithreading is implemented. 
 	*/
-	template<typename W, typename S> 
-	class Link {
-	private: 
-		S buffer[2]; //extra space in buffer is for feedforward time delays or indeterminate evaluation order
-		unsigned char mark; //[delay(8), ready(4), cases(1,2)]
-		Index<W,S>* index; //copy of Node's index pointer, used to access origin Node pointer
-		//also manages its pointer stored at the origin Node
-	
-	public:
-		const unsigned int origin, target;
-		W weight;
+	template<typename V, typename S> 
+	struct Link {
+		bool synchronous, ready;
+		S front, back;
+		const unsigned int source, target;
+		V value;
 		
 		Link() = delete; //Links are meaningless without origin and target addresses
-		Link(Index<W,S>* const pIndex,
-		     const unsigned int nOrigin, 
-		     const unsigned int nTarget, 
-		     const W& wWeight);
-		Link(const Link& rhs) = delete; 
-		Link(Link&& rhs);
-		Link& operator=(const Link& rhs) = delete; //because origin and target are const
+		Link(Index<V,S>& const index, const unsigned int nSource, 
+		     const unsigned int nTarget, const V& v) 
+			: synchronous(true), ready(false), source(nSource), target(nTarget),
+			  value(v) {
+			index.find(source).add( InPort(this) );
+			index.find(target).add( OutPort(this) );
+		}
+		
+		Link(const Link& rhs) = delete; //no reason to have this
+		Link& operator=(const Link& rhs) = delete; //because source and target are const
 		Link& operator=(Link&& rhs) = delete;
-		~Link(); //cleans up pointer at origin Node
+		~Link() = default;
 		
-		void push(const S& data); //write to buffer
-		S pull(); //read from buffer
+		bool ready() const { return ready; }
+		void push(const S& signal) {
+			if(synchronous) {
+				front = back; //use move semantics for this?
+				back = signal; //what happens if set to synchronous while ready?
+			} else front = signal;
+			ready = true;
+		}
 		
-		bool ready() const;
-		unsigned int values() const;
-		S pop();
+		S pull() {
+			ready = false;
+			return front;
+		}
 		
-		void update_index(Index<W,S>* const pIndex); //called when owning Node updates
 	}; //class Link
+	
 } //namespace ben
 
 #endif
