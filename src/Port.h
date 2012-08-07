@@ -1,5 +1,5 @@
-#ifndef BenoitLink_h
-#define BenoitLink_h
+#ifndef BenoitPort_h
+#define BenoitPort_h
 
 /*
     Benoit: a flexible framework for distributed graphs
@@ -25,13 +25,16 @@
 
 namespace ben {
 
-	template<typename V, typename S, bool B>
+	template<typename L>
 	class Port {
 	protected:
-		std::shared_ptr< Link<V,S,B> > link_ptr;
-		Port(Link<V,S,B>* ptr) : link_ptr(ptr) {}
+		std::shared_ptr<L> link_ptr;
+		Port(L* ptr) : link_ptr(ptr) {}
 		
 	public:
+		typedef typename L::value_type V;
+		typedef typename L::signal_type S;
+	
 		Port() = delete;
 		Port(const Port&& rhs) : link_ptr( std::move(rhs) ) {}
 		Port& operator=(const Port&& rhs) { 
@@ -47,11 +50,11 @@ namespace ben {
 		bool ready() const { return link_ptr->ready(); }
 	};
 
-	template<typename V, typename S, bool B>
-	struct InPort : public Port<V,S,B> {
+	template<typename L>
+	struct InPort : public Port<L> {
 		unsigned int sourceID;
 	
-		InPort(Link<V,S,B>* ptr, unsigned int nSource) : Port(ptr), sourceID(nSource) {}
+		InPort(L* ptr, unsigned int nSource) : Port(ptr), sourceID(nSource) {}
 		InPort(const InPort&& rhs) : Port( std::move(rhs) ), sourceID(rhs.sourceID) {}
 		InPort& operator=(const InPort&& rhs) {
 			if(&rhs != this) {
@@ -65,11 +68,11 @@ namespace ben {
 		S pull() const { return link_ptr->pull(); }
 	};
 	
-	template<typename V, typename S, bool B>
-	struct OutPort : public Port<V,S,B> {
+	template<typename L>
+	struct OutPort : public Port<L> {
 		unsigned int target;
 	
-		OutPort(Link<V,S,B>* ptr, unsigned int nTarget) : Port(ptr), target(nTarget) {}
+		OutPort(L* ptr, unsigned int nTarget) : Port(ptr), target(nTarget) {}
 		OutPort(const OutPort&& rhs) : Port( std::move(rhs) ), target(rhs.target) {}
 		OutPort& operator=(const OutPort&& rhs) {
 			if(&rhs != this) {

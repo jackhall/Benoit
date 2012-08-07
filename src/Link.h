@@ -40,7 +40,7 @@ namespace ben {
 		
 		Each Link will have a mutex member when multithreading is implemented. 
 	*/
-	template<typename T>
+	template<typename S>
 	struct Signal {
 		Signal(const Signal&& rhs) : ready(rhs.ready), 
 					     data( std::move(rhs.data) ) {}
@@ -51,11 +51,14 @@ namespace ben {
 			}
 		}
 		bool ready;
-		T data;
+		S data;
 	};
 	
 	template<typename V, typename S, bool B> 
 	struct Link {
+		typedef V value_type;
+		typedef S signal_type;
+	
 		Signal<S> front;
 		V value;
 		
