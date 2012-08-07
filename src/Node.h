@@ -51,7 +51,7 @@ namespace ben {
 		Each Node will have a mutex member when multithreading is implemented.
 	*/
 	
-	template<typename W, typename S> 
+	template<typename V, typename S> 
 	class Node {
 	private:
 		//make sure each Node has a unique ID
@@ -59,12 +59,15 @@ namespace ben {
 		inline static unsigned int get_new_ID() { return IDCOUNT++; }
 		
 		unsigned int nodeID; //FIELD
-		std::list< Link<W,S> > inputs; //FIELD
-		std::vector< Link<W,S>* > outputs; //FIELD, vector is better for the cache
-		Index<W,S>* index; //FIELD
+		std::vector< InPort<V,S,false> > asynch_inputs; //FIELD
+		std::vector< InPort<V,S,true> > synch_inputs; //FIELD
+		std::vector< OutPort<V,S,false> > asynch_outputs; //FIELD
+		std::vector< OutPort<V,S,true> > synch_outputs; //FIELD
+		Index<V,S>* index; //FIELD
+		V value; //FIELD
 		
 		friend class Index<W,S>; //managing Index needs to update its pointer
-		bool update_index(Index<W,S>* const cIndex); //updates Link::index pointers too
+		void update_index(Index<V,S>* const cIndex) { index = cIndex; }
 		
 		friend Link<W,S>::Link(	Index<W,S>* const pIndex,
 		     			const unsigned int nOrigin, 
@@ -80,7 +83,6 @@ namespace ben {
 		Node& operator<<(const S& signal);
 	
 		static Index<W,S> INDEX; //STATIC FIELD
-		W bias; //FIELD
 		
 		explicit Node(const unsigned int nID=get_new_ID()); //managed by static Index by default
 		explicit Node(const W& wBias, const unsigned int nID = get_new_ID());
@@ -115,71 +117,7 @@ namespace ben {
 		unsigned int size_inputs() { return inputs.size(); }
 		unsigned int size_outputs() { return outputs.size(); }
 	
-		class input_port { //part bidirectional iterator, part stream object
-		private:
-			typename std::list< Link<W,S> >::iterator current;
-
-			friend class Node;
-			input_port(const typename std::list< Link<W,S> >::iterator iLink);
-			
-		public:
-			typedef W weight_type;
-			typedef S signal_type;
 		
-			input_port() = default;
-			input_port(const input_port& rhs) = default;
-			input_port& operator=(const input_port& rhs) = default;
-			~input_port() = default;
-			
-			Link<W,S>& operator*() const { return *current; } //use this where possible
-			Link<W,S>* operator->() const { return &*current; }
-			
-			input_port& operator++();
-			input_port  operator++(int);
-			input_port& operator--();
-			input_port  operator--(int);
-			
-			bool operator==(const input_port& rhs) const //compare iterator locations
-				{ return current==rhs.current; }
-			bool operator!=(const input_port& rhs) const
-				{ return current!=rhs.current; }
-				
-			input_port& operator>>(S& signal); //buffer access is only one way
-			S pull() { return current->pull(); }
-		}; //class input_port
-	
-		class output_port { //see above input_port
-		private:
-			typename std::vector< Link<W,S>* >::iterator current;
-			
-			friend class Node;
-			output_port(const typename std::vector< Link<W,S>* >::iterator iLink);
-			
-		public:
-			typedef W weight_type;
-			typedef S signal_type;
-		
-			output_port() = default;
-			output_port(const output_port& rhs) = default;
-			output_port& operator=(const output_port& rhs) = default;
-			~output_port() = default;
-			
-			Link<W,S>& operator*() const { return **current; }
-			Link<W,S>* operator->() const { return *current; } //use this where possible
-			
-			output_port& operator++();
-			output_port  operator++(int);
-			output_port& operator--();
-			output_port  operator--(int);
-			
-			bool operator==(const output_port& rhs) const
-				{ return current==rhs.current; }
-			bool operator!=(const output_port& rhs) const
-				{ return current!=rhs.current; } 
-				
-			output_port& operator<<(const S& signal);
-			void push(const S& signal) { (*current)->push(signal); }
-		}; //class output_port
 		
 		//similar to STL, but haven't added rbegin or rend yet
 		input_port  input_begin()  { return input_port( inputs.begin() ); }

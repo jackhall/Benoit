@@ -25,38 +25,60 @@
 
 namespace ben {
 
-	template<typename V, typename S>
+	template<typename V, typename S, bool B>
 	class Port {
 	protected:
-		shared_ptr< Link<V,S> > link_ptr;
-		Port(Link<V,S>* ptr) : link_ptr(ptr) {}
+		std::shared_ptr< Link<V,S,B> > link_ptr;
+		Port(Link<V,S,B>* ptr) : link_ptr(ptr) {}
 		
 	public:
 		Port() = delete;
 		Port(const Port&& rhs) : link_ptr( std::move(rhs) ) {}
+		Port& operator=(const Port&& rhs) { 
+			//check for sameness would be redundant because Port
+			//assignment is only called by InPort or OutPort assignment
+			link_ptr = std::move( rhs.link_ptr );
+			return *this;
+		}
+		virtual ~Port() = default;
 		
-		bool synch() const { return link_ptr->synchronous; }
-		void set_synch() { link_ptr->synchronous = true; }
-		void reset_synch() { link_ptr->synchronous = false; }
 		V& get_value() const { return link_ptr->value; }
 		void set_value(const V& v) const { link_ptr->value = v; }
-		bool ready() const { return link_ptr->ready; }
+		bool ready() const { return link_ptr->ready(); }
 	};
 
-	template<typename V, typename S>
-	struct InPort : public Port<V,S> {
-		InPort(Link<V,S>* ptr) : Port(ptr) {}
-		InPort(const InPort&& rhs) : Port( std::move(rhs) ) {}
+	template<typename V, typename S, bool B>
+	struct InPort : public Port<V,S,B> {
+		unsigned int sourceID;
+	
+		InPort(Link<V,S,B>* ptr, unsigned int nSource) : Port(ptr), sourceID(nSource) {}
+		InPort(const InPort&& rhs) : Port( std::move(rhs) ), sourceID(rhs.sourceID) {}
+		InPort& operator=(const InPort&& rhs) {
+			if(&rhs != this) {
+				Port::operator=( std::move(rhs) );
+				sourceID = rhs.sourceID;
+			}
+			return *this;
+		}
 		
-		unsigned int source() const { return link_ptr->source; }
+		unsigned int source() const { return source; }
 		S pull() const { return link_ptr->pull(); }
 	};
 	
-	template<typename V, typename S>
-	struct OutPort : public Port<V,S> {
-		OutPort(Link<V,S>* ptr) : Port(ptr) {}
-		OutPort(const OutPort&& rhs) : Port( std::move(rhs) ) {}
+	template<typename V, typename S, bool B>
+	struct OutPort : public Port<V,S,B> {
+		unsigned int target;
 	
+		OutPort(Link<V,S,B>* ptr, unsigned int nTarget) : Port(ptr), target(nTarget) {}
+		OutPort(const OutPort&& rhs) : Port( std::move(rhs) ), target(rhs.target) {}
+		OutPort& operator=(const OutPort&& rhs) {
+			if(&rhs != this) {
+				Port::operator=( std::move(rhs) );
+				sourceID = rhs.sourceID;
+			}
+			return *this;
+		}
+		
 		unsigned int target() const { return link_ptr->target; }
 		void push(const S& signal) { link_ptr->push(signal); }
 	};

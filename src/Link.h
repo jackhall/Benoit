@@ -40,42 +40,76 @@ namespace ben {
 		
 		Each Link will have a mutex member when multithreading is implemented. 
 	*/
-	template<typename V, typename S> 
+	template<typename T>
+	struct Signal {
+		Signal(const Signal&& rhs) : ready(rhs.ready), 
+					     data( std::move(rhs.data) ) {}
+		Signal& operator=(const Signal&& rhs) {
+			if(this != &rhs) {
+				ready = rhs.ready;
+				data = std::move( rhs.data );
+			}
+		}
+		bool ready;
+		T data;
+	};
+	
+	template<typename V, typename S, bool B> 
 	struct Link {
-		bool synchronous, ready;
-		S front, back;
-		const unsigned int source, target;
+		Signal<S> front;
 		V value;
 		
 		Link() = delete; //Links are meaningless without origin and target addresses
-		Link(Index<V,S>& const index, const unsigned int nSource, 
-		     const unsigned int nTarget, const V& v) 
-			: synchronous(true), ready(false), source(nSource), target(nTarget),
-			  value(v) {
-			index.find(source).add( InPort(this) );
-			index.find(target).add( OutPort(this) );
-		}
+		Link(Index<V,S>& const index, const unsigned int source, 
+		     const unsigned int target, const V& v); 
 		
 		Link(const Link& rhs) = delete; //no reason to have this
-		Link& operator=(const Link& rhs) = delete; //because source and target are const
+		Link& operator=(const Link& rhs) = delete; //would leave hanging pointers
 		Link& operator=(Link&& rhs) = delete;
 		~Link() = default;
 		
-		bool ready() const { return ready; }
-		void push(const S& signal) {
-			if(synchronous) {
-				front = back; //use move semantics for this?
-				back = signal; //what happens if set to synchronous while ready?
-			} else front = signal;
-			ready = true;
-		}
-		
-		S pull() {
-			ready = false;
-			return front;
-		}
-		
+		bool ready() const { return front.ready; }
+		void push(const S& signal);
+		S pull();
 	}; //class Link
+	
+	template<typename V, typename S>
+	struct Link<true> {
+		Signal<S> back;
+		
+		Link(Index<V,S>& const index, const unsigned int source, 
+		     const unsigned int target, const V& v)
+			: value(v), front{false, S()}, back{false, S()} {
+			index.find(source).add_synch( InPort(this, source) );
+			index.find(target).add_synch( OutPort(this, target) );
+		}
+		
+		void push(const S& signal) { 
+			front = std::move( back );
+			back = Signal<S>{true, signal}; 
+		}
+		S pull() {
+			S temp = std::move( front.data );
+			front = std::move( back );
+			return temp;
+		}
+	}
+	
+	template<typename V, typename S>
+	struct Link<false> {
+		Link(Index<V,S>& const index, const unsigned int source, 
+		     const unsigned int target, const V& v)
+			: value(v), front{false, S()} {
+			index.find(source).add_asynch( InPort(this, source) );
+			index.find(target).add_asynch( OutPort(this, target) );
+		}
+	
+		void push(const S& signal) { front = Signal<S>{true, signal}; }
+		S pull() { 
+			front.ready = false;
+			return front.data;
+		}
+	}
 	
 } //namespace ben
 
