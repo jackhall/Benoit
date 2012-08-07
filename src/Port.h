@@ -27,14 +27,16 @@ namespace ben {
 
 	template<typename L>
 	class Port {
+	public:
+		typedef L 			link_type;
+		typedef typename L::value_type 	value_type;
+		typedef typename L::signal_type signal_type;
+		typedef typename L::id_type 	id_type;
 	protected:
-		std::shared_ptr<L> link_ptr;
-		Port(L* ptr) : link_ptr(ptr) {}
+		std::shared_ptr<link_type> link_ptr;
+		Port(link_type* ptr) : link_ptr(ptr) {}
 		
 	public:
-		typedef typename L::value_type V;
-		typedef typename L::signal_type S;
-	
 		Port() = delete;
 		Port(const Port&& rhs) : link_ptr( std::move(rhs) ) {}
 		Port& operator=(const Port&& rhs) { 
@@ -45,16 +47,16 @@ namespace ben {
 		}
 		virtual ~Port() = default;
 		
-		V& get_value() const { return link_ptr->value; }
-		void set_value(const V& v) const { link_ptr->value = v; }
-		bool ready() const { return link_ptr->ready(); }
+		inline value_type& get_value() const { return link_ptr->value; }
+		inline void set_value(const value_type& v) const { link_ptr->value = v; }
+		inline bool ready() const { return link_ptr->ready(); }
 	};
 
 	template<typename L>
 	struct InPort : public Port<L> {
-		unsigned int sourceID;
+		id_type sourceID;
 	
-		InPort(L* ptr, unsigned int nSource) : Port(ptr), sourceID(nSource) {}
+		InPort(link_type* ptr, id_type nSource) : Port(ptr), sourceID(nSource) {}
 		InPort(const InPort&& rhs) : Port( std::move(rhs) ), sourceID(rhs.sourceID) {}
 		InPort& operator=(const InPort&& rhs) {
 			if(&rhs != this) {
@@ -63,16 +65,17 @@ namespace ben {
 			}
 			return *this;
 		}
+		bool operator<(const InPort& rhs) const { return sourceID < rhs.sourceID; }
 		
-		unsigned int source() const { return source; }
-		S pull() const { return link_ptr->pull(); }
+		inline id_type source() const { return source; }
+		inline S pull() const { return link_ptr->pull(); }
 	};
 	
 	template<typename L>
 	struct OutPort : public Port<L> {
-		unsigned int target;
+		id_type targetID;
 	
-		OutPort(L* ptr, unsigned int nTarget) : Port(ptr), target(nTarget) {}
+		OutPort(L* ptr, id_type nTarget) : Port(ptr), target(nTarget) {}
 		OutPort(const OutPort&& rhs) : Port( std::move(rhs) ), target(rhs.target) {}
 		OutPort& operator=(const OutPort&& rhs) {
 			if(&rhs != this) {
@@ -81,9 +84,10 @@ namespace ben {
 			}
 			return *this;
 		}
+		bool operator<(const OutPort& rhs) const { return sourceID < rhs.sourceID; }
 		
-		unsigned int target() const { return link_ptr->target; }
-		void push(const S& signal) { link_ptr->push(signal); }
+		inline id_type target() const { return link_ptr->target; }
+		inline void push(const S& signal) { link_ptr->push(signal); }
 	};
 
 } //namespace ben

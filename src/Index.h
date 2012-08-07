@@ -26,9 +26,6 @@
 //#include <mutex>
 
 namespace ben {
-
-	template<typename W, typename S> class Node;
-
 	/*
 		Index is a manager of a distributed directed graph consisting of the Nodes and Links that connect
 		them. It does not own the Nodes (or it would not be a distributed structure), but it stores pointers to them 
@@ -40,56 +37,53 @@ namespace ben {
 		Each Index will have both a read and a write mutex when multithreading is implemented.
 	*/
 	
-	template<typename W, typename S> 
+	template<typename N> 
 	class Index {
-	
+	public:
+		typedef N 	node_type;
+		typedef N* 	pointer;
+		typedef N&	reference;
+		typedef size_t	size_type;
+		typedef typename N::id_type id_type;
 	private:
 		//std::mutex readLock, writeLock;
 		//set up muticies so that a write lock is exclusive, but a read lock is not. A read lock
 		//only prevents writing. 
 		
-		std::map< unsigned int, Node<W,S>* > IDMap; 
+		std::map<id_type, pointer> IDMap; 
 		void update_all();
 		
 	public:
-		typedef Node<W,S> 	value_type;
-		typedef Node<W,S>* 	pointer;
-		typedef Node<W,S>&	reference;
-		typedef size_t		size_type;
-	
 		Index()=default;
 		~Index(); //transfers all Nodes to that class's static Index
 		Index(const Index& rhs) = delete;
 		Index(Index&& rhs); //use move semantics to transfer all Nodes
 		Index& operator=(const Index& rhs) = delete; //make unique copy of all Nodes? no
 		Index& operator=(Index&& rhs);
-		Node<W,S>* find(const unsigned int address) const;
-		bool contains(const unsigned int address) const;
+		reference find(const id_type address) const;
+		bool contains(const id_type address) const;
 		
-		bool add(Node<W,S>& pNode); //only called by Node constructor
-		void remove(const unsigned int address);  //does not remove Node's Index pointer (for now)
-		bool update_node(Node<W,S>& pNode); //makes sure if Node is listed and has an up-to-date pointer
+		bool add(node_type& node); //only called by Node constructor
+		void remove(const id_type address);  //does not remove Node's Index pointer (for now)
+		bool update_node(node_type& node); //makes sure if Node is listed and has an up-to-date pointer
 		size_type size() { return IDMap.size(); }
 		
-		void move_to(Index& destination, const unsigned int address); //move individual Node
+		void move_to(Index& destination, const id_type address); //move individual Node
 		void swap_with(Index& other); //all Nodes
 		void merge_into(Index& other); 
 		
-		class iterator : public std::iterator<std::bidirectional_iterator_tag, Node<W,S>> {
+		class iterator : public std::iterator<std::bidirectional_iterator_tag, node_type> {
 		private:
-			typename std::map< unsigned int, Node<W,S>* >::iterator current;
+			typename std::map<id_type, pointer>::iterator current;
 			friend class Index;
-			iterator(const typename std::map<unsigned int, Node<W,S>* >::iterator iNode);
+			iterator(const typename std::map<id_type, pointer>::iterator iNode);
 		public:
 			
 			iterator() = default;
-			iterator(const iterator& rhs) = default;
-			iterator& operator=(const iterator& rhs) = default;
-			~iterator() = default;
 			
-			Node<W,S>& operator*() const { return *(current->second); } 
-			Node<W,S>* operator->() const { return current->second; }
-			unsigned int address() { return current->first; }
+			reference operator*() const { return *(current->second); } 
+			pointer operator->() const { return current->second; }
+			id_type address() { return current->first; } //is this accessible from python?
 			
 			iterator& operator++();
 			iterator  operator++(int);
@@ -103,7 +97,7 @@ namespace ben {
 		}; //class iterator
 			
 		iterator begin() { return iterator( IDMap.begin() ); }
-		iterator end() { return iterator( IDMap.end() ); }
+		iterator end()   { return iterator( IDMap.end() ); }
 	}; //class Index
 	
 } //namespace ben

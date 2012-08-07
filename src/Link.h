@@ -54,17 +54,17 @@ namespace ben {
 		S data;
 	};
 	
-	template<typename V, typename S, bool B> 
+	template<typename V, typename S, bool B, typename I=unsigned int> 
 	struct Link {
+		typedef I id_type;
 		typedef V value_type;
 		typedef S signal_type;
+		typedef Link<V,S,B,I> self_type; //is this necessary?
 	
 		Signal<S> front;
-		V value;
+		value_type value;
 		
 		Link() = delete; //Links are meaningless without origin and target addresses
-		Link(Index<V,S>& const index, const unsigned int source, 
-		     const unsigned int target, const V& v); 
 		
 		Link(const Link& rhs) = delete; //no reason to have this
 		Link& operator=(const Link& rhs) = delete; //would leave hanging pointers
@@ -72,43 +72,43 @@ namespace ben {
 		~Link() = default;
 		
 		bool ready() const { return front.ready; }
-		void push(const S& signal);
-		S pull();
+		void push(const signal_type& signal);
+		signal_type pull();
 	}; //class Link
 	
-	template<typename V, typename S>
+	template<typename V, typename S, typename I=unsigned int>
 	struct Link<true> {
-		Signal<S> back;
+		Signal<signal_type> back;
 		
-		Link(Index<V,S>& const index, const unsigned int source, 
-		     const unsigned int target, const V& v)
+		Link(Index<SyncNode<V,S>>& const index, const id_type source, 
+		     const id_type target, const V& v)
 			: value(v), front{false, S()}, back{false, S()} {
-			index.find(source).add_synch( InPort(this, source) );
-			index.find(target).add_synch( OutPort(this, target) );
+			index.find(source).add( InPort<self_type>(this, source) );
+			index.find(target).add( OutPort<self_type>(this, target) );
 		}
 		
-		void push(const S& signal) { 
+		void push(const signal_type& signal) { 
 			front = std::move( back );
-			back = Signal<S>{true, signal}; 
+			back = Signal<signal_type>{true, signal}; 
 		}
-		S pull() {
-			S temp = std::move( front.data );
+		signal_type pull() {
+			signal_type temp = std::move( front.data );
 			front = std::move( back );
 			return temp;
 		}
 	}
 	
-	template<typename V, typename S>
+	template<typename V, typename S, typename I=unsigned int>
 	struct Link<false> {
-		Link(Index<V,S>& const index, const unsigned int source, 
-		     const unsigned int target, const V& v)
+		Link(Index<AsyncNode<V,S>>& const index, const id_type source, 
+		     const id_type target, const V& v)
 			: value(v), front{false, S()} {
-			index.find(source).add_asynch( InPort(this, source) );
-			index.find(target).add_asynch( OutPort(this, target) );
+			index.find(source).add( InPort<self_type>(this, source) );
+			index.find(target).add( OutPort<self_type>(this, target) );
 		}
 	
-		void push(const S& signal) { front = Signal<S>{true, signal}; }
-		S pull() { 
+		void push(const signal_type& signal) { front = Signal<signal_type>{true, signal}; }
+		signal_type pull() { 
 			front.ready = false;
 			return front.data;
 		}
