@@ -21,6 +21,9 @@
     e-mail: jackwhall7@gmail.com
 */
 
+#include <thread>
+#include <atomic>
+
 namespace ben {
 	
 	/*
@@ -40,8 +43,12 @@ namespace ben {
 		
 		Each Link will have a mutex member when multithreading is implemented. 
 	*/
-	template<typename S>
+	template<typename S> 
 	struct Signal {
+		std::atomic<bool> ready; //needs to be accessed with a memory order policy
+		std::atomic<S> data;
+	
+		Signal() : ready(false), data() {} //needs signal_type to be default-constructible
 		Signal(const Signal&& rhs) : ready(rhs.ready), 
 					     data( std::move(rhs.data) ) {}
 		Signal& operator=(const Signal&& rhs) {
@@ -50,80 +57,53 @@ namespace ben {
 				data = std::move( rhs.data );
 			}
 		}
-		bool ready;
-		S data;
+		
+		void reset() { ready=false; data=S(); }
 	};
 	
-	template<typename V, typename S> 
-	struct BaseLink {
-	public:
-		typedef V value_type;
-		typedef S signal_type;
 	
-		Signal<S> front;
+	template<typename N> //make links atomic?
+	struct AsyncLink {
+	public:
+		typedef typename N::value_type 	value_type;
+		typedef typename N::signal_type signal_type;
+	
+		Signal<signal_type> front; //make this atomic? maybe make Links atomic at the Port level?
 		value_type value;
 		
-		BaseLink() = delete; //Links are meaningless without origin and target addresses
-		
+		BaseLink() : value(), front() {} //needs signal_type to be default-constructible
+		explicit BaseLink(const value_type& v) : value(v), front() {}
 		BaseLink(const BaseLink& rhs) = delete; //no reason to have this
 		BaseLink& operator=(const BaseLink& rhs) = delete; //would leave hanging pointers
 		BaseLink& operator=(BaseLink&& rhs) = delete;
 		~BaseLink() = default;
 		
 		bool ready() const { return front.ready; }
-		
-	protected:
-		//following needs S to be default-constructible
-		explicit BaseLink(const value_type& v) : value(v), front{false, S()} {}
+		void flush() { front.reset(); }
+		//this method probably requires locking for thread safety
+		void push(const signal_type& signal) { front = Signal<signal_type>{true, signal}; }
+		signal_type pull() const { 
+			front.ready = false;
+			return front.data;
+		}
 	}; //class Link
 	
-	template<typename V, typename S, typename I=unsigned int>
-	struct SyncLink : public BaseLink {
-		typedef I id_type;
 	
+	template<typename N>
+	struct SyncLink : public AsyncLink<N> {
 		Signal<signal_type> back;
 		
-		SyncLink(Index<SyncNode<V,S>>& const index, const id_type source, 
-		     const id_type target, const V& v=V()) //needs V to be default-constructible
-			: BaseLink(v), back{false, S()} {
-			//should the link have to do this? it doesn't own the ports...
-			//also, what if one of these adds fails? (especially the first)
-			//index.find(source).add( InPort<self_type>(this, source) );
-			//index.find(target).add( OutPort<self_type>(this, target) );
-		}
+		//following needs value_type to be default-constructible
+		SyncLink(const value_type& v=value_type()) : AsyncLink(v), back() {}
 		
 		//need thread safety but preferably without locking
 		//look up atomic operations 
 		//	- these need to be built-in types 
 		//	- use on Signal::ready?
+		void flush() { front.reset(); back.reset(); }
 		void push(const signal_type& signal) { 
 			front = std::move( back );
 			back = Signal<signal_type>{true, signal}; 
-		}
-		signal_type pull() {
-			signal_type temp = std::move( front.data );
-			//need to make this thread safe, is a simply copy (no move) enough?
-			front = std::move( back ); 
-			return temp;
-		}
-	}
-	
-	template<typename V, typename S, typename I=unsigned int>
-	struct AsyncLink {
-		typedef I id_type;
-	
-		AsyncLink(Index<AsyncNode<V,S>>& const index, const id_type source, 
-		     const id_type target, const V& v)
-			: value(v), front{false, S()} {
-			//index.find(source).add( InPort<self_type>(this, source) );
-			//index.find(target).add( OutPort<self_type>(this, target) );
-		}
-	
-		//these methods require locking for thread safety
-		void push(const signal_type& signal) { front = Signal<signal_type>{true, signal}; }
-		signal_type pull() { 
-			front.ready = false;
-			return front.data;
 		}
 	}
 	

@@ -62,7 +62,7 @@ namespace ben {
 		typedef std::vector< InPort<link_type> >::iterator  input_iterator;
 		typedef std::vector< OutPort<link_type> >::iterator output_iterator;
 	private:		
-		static id_type IDCOUNT; 
+		static id_type IDCOUNT;  //make this atomic with relaxed ordering
 		inline static id_type get_new_ID() { return IDCOUNT++; }
 	
 		id_type nodeID;
