@@ -51,88 +51,91 @@ namespace ben {
 		Each Node will have a mutex member when multithreading is implemented.
 	*/
 	
-	template<typename V, typename S> 
+	template<typename V, typename S, bool B>
 	class Node {
-	private:
-		//make sure each Node has a unique ID
-		static unsigned int IDCOUNT; //STATIC FIELD
-		inline static unsigned int get_new_ID() { return IDCOUNT++; }
-		
-		unsigned int nodeID; //FIELD
-		std::vector< InPort<V,S,false> > asynch_inputs; //FIELD
-		std::vector< InPort<V,S,true> > synch_inputs; //FIELD
-		std::vector< OutPort<V,S,false> > asynch_outputs; //FIELD
-		std::vector< OutPort<V,S,true> > synch_outputs; //FIELD
-		Index<V,S>* index; //FIELD
-		V value; //FIELD
-		
-		friend class Index<W,S>; //managing Index needs to update its pointer
-		void update_index(Index<V,S>* const cIndex) { index = cIndex; }
-		
-		friend Link<W,S>::Link(	Index<W,S>* const pIndex,
-		     			const unsigned int nOrigin, 
-		     			const unsigned int nTarget, 
-		     			const W& wWeight);
-		friend Link<W,S>::Link(Link<W,S>&& rhs);
-		friend Link<W,S>::~Link(); //Link ctor and dtor need to manage their pointers
-		void update_output(const Link<W,S>* const oldLink, Link<W,S>* const newLink); //in case Link gets reallocated (const is broken here)
-		void remove_output(Link<W,S>* const pLink); //only removes pointer
-		void add_output(Link<W,S>* const pLink); //only adds pointer to vector
-	
 	public:
-		Node& operator<<(const S& signal);
+		typedef unsigned int 	id_type;
+		typedef V 		value_type;
+		typedef S		signal_type;
+		typedef Index<Node> 	index_type;
+		typedef Link<V,S,B,id_type>	link_type; 
+		typedef std::vector< InPort<link_type> >::iterator  input_iterator;
+		typedef std::vector< OutPort<link_type> >::iterator output_iterator;
+	private:		
+		static id_type IDCOUNT; 
+		inline static id_type get_new_ID() { return IDCOUNT++; }
 	
-		static Index<W,S> INDEX; //STATIC FIELD
+		id_type nodeID;
+		std::vector< InPort<link_type> > inputs; //maintain as heaps?
+		std::vector< OutPort<link_type> > outputs;
+		index_type* index; 
 		
-		explicit Node(const unsigned int nID=get_new_ID()); //managed by static Index by default
-		explicit Node(const W& wBias, const unsigned int nID = get_new_ID());
-		explicit Node(Index<W,S>& cIndex, const unsigned int nID = get_new_ID());
-		Node(Index<W,S>& cIndex, const W& wBias, const unsigned int nID = get_new_ID());
+	public:
+		static index_type INDEX;
+		
+		explicit Node(const id_type nID=get_new_ID())
+		explicit Node(index_type& cIndex, const id_type nID = get_new_ID());
 		Node(const Node& rhs);
-		Node(const Node& rhs, const unsigned int nID);
-		Node(Node&& rhs); //move semantics to transfer all Links
+		Node(const Node& rhs, const id_type nID);
+		Node(Node&& rhs); 
 		Node& operator=(const Node& rhs); //duplicates Node, including Links
 		Node& operator=(Node&& rhs);
 		~Node(); 
 		
-		const Index<W,S>& get_index() { return *index; }
-		inline unsigned int ID() const { return nodeID; }
+		input_iterator  find_input(const id_type address);
+		output_iterator find_output(const id_type address);
 		
-		bool copy_inputs(const Node& other);
-		bool copy_outputs(const Node& other);
+		void add_input(const id_type address, const value_type& value = V());
+		void add_output(const id_type address, const value_type& value = V());
 		
-		bool add_input(	const unsigned int address,
-				const W& weight); //creates Link object
-		void remove_input(const unsigned int address); //destroys Link object
-		bool add_output(const unsigned int address,
-				const W& weight);
-		void remove_output(const unsigned int address);
-		void clear(); //deletes all associated Links
-		void clear_inputs();
+		void remove_input(const id_type address);
+		void remove_input(const input_iterator iter);
+		void remove_output(const id_type address);
+		void remove_output(const output_iterator iter);
+		
+		void clear_inputs(); //should these clean up other nodes?
 		void clear_outputs();
 		
-		bool contains_input(const unsigned int nOrigin) const; 
-		bool contains_output(const unsigned int nTarget) const;
+		//other std::vector methods - assign, swap, size
 		
-		unsigned int size_inputs() { return inputs.size(); }
-		unsigned int size_outputs() { return outputs.size(); }
-	
+		input_iterator  input_begin() 	{ return inputs.begin(); }
+		input_iterator  input_end() 	{ return inputs.end(); }
+		output_iterator output_begin() 	{ return outputs.begin(); }
+		output_iterator output_end() 	{ return outputs.end(); }
 		
-		
-		//similar to STL, but haven't added rbegin or rend yet
-		input_port  input_begin()  { return input_port( inputs.begin() ); }
-		input_port  input_end()    { return input_port( inputs.end() ); }
-		output_port output_begin() { return output_port( outputs.begin() ); }
-		output_port output_end()   { return output_port( outputs.end() ); }
-		
-	}; //class Node
-	
+	}; //Node
+
 	//initialize static members
-	template<typename W, typename S>
-	unsigned int Node<W,S>::IDCOUNT = 100000;
+	template<typename V, typename S, bool B>
+	unsigned int Node<V,S,B>::IDCOUNT = 100000;
 	
-	template<typename W, typename S> Index<W,S> Node<W,S>::INDEX; 
-	//////////////////////////////
+	template<typename V, typename S, bool B> Index<Node<V,S,B>> Node<V,S,B>::INDEX;
+	
+	//typedefs to eliminate third template parameter
+	template<typename V, typename S>
+	using SyncNode = Node<V,S,true>;
+	
+	template<typename V, typename S>
+	using AsyncNode = Node<V,S,false>;
+	
+	//methods
+	template<typename V, typename S, bool B>
+	Node<V,S,B>::Node(const id_type nID) : Node(INDEX, nID) {}
+	
+	template<typename V, typename S, bool B>
+	Node<V,S,B>::Node(index_type& cIndex, const id_type nID) 
+		: nodeID(nID), index(&cIndex) {
+		if( !index->add(*this) ) throw;	//index already has a node with that ID
+	}
+	
+	template<typename V, typename S, bool B
+	Node<V,S,B>::Node(const Node& rhs) : Node(rhs, get_new_ID()) {}
+	
+	template<typename V, typename S, bool B>
+	Node<V,S,B>::Node(const Node& rhs, const id_type nID) 
+		: Node(*rhs.index, nID) {
+		//make new copies of links	
+	}
 	
 } //namespace ben
 

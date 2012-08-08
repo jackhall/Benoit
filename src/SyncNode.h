@@ -84,5 +84,14 @@ namespace ben {
 	unsigned int SyncNode<V,S>::IDCOUNT = 100000;
 	
 	template<typename V, typename S> Index<SyncNode<V,S>> SyncNode<V,S>::INDEX;
-
+	
+	template<typename V, typename S>
+	SyncNode<V,S>::SyncNode(const id_type nID) : SyncNode(INDEX, nID) {}
+	
+	template<typename V, typename S>
+	SyncNode<V,S>::SyncNode(index_type& cIndex, const id_type nID) 
+		: nodeID(nID), index(&cIndex) {
+		index->add(*this);	
+	}
+	
 } //namespace ben
