@@ -125,7 +125,7 @@ namespace ben {
 	template<typename V, typename S, bool B>
 	Node<V,S,B>::Node(index_type& cIndex, const id_type nID) 
 		: nodeID(nID), index(&cIndex) {
-		if( !index->add(*this) ) throw;	//index already has a node with that ID
+		if( !index->add(*this) ) throw;	//if index already has a node with that ID
 	}
 	
 	template<typename V, typename S, bool B

@@ -54,59 +54,72 @@ namespace ben {
 		S data;
 	};
 	
-	template<typename V, typename S, bool B, typename I=unsigned int> 
-	struct Link {
-		typedef I id_type;
+	template<typename V, typename S> 
+	struct BaseLink {
+	public:
 		typedef V value_type;
 		typedef S signal_type;
-		typedef Link<V,S,B,I> self_type; //is this necessary?
 	
 		Signal<S> front;
 		value_type value;
 		
-		Link() = delete; //Links are meaningless without origin and target addresses
+		BaseLink() = delete; //Links are meaningless without origin and target addresses
 		
-		Link(const Link& rhs) = delete; //no reason to have this
-		Link& operator=(const Link& rhs) = delete; //would leave hanging pointers
-		Link& operator=(Link&& rhs) = delete;
-		~Link() = default;
+		BaseLink(const BaseLink& rhs) = delete; //no reason to have this
+		BaseLink& operator=(const BaseLink& rhs) = delete; //would leave hanging pointers
+		BaseLink& operator=(BaseLink&& rhs) = delete;
+		~BaseLink() = default;
 		
 		bool ready() const { return front.ready; }
-		void push(const signal_type& signal);
-		signal_type pull();
+		
+	protected:
+		//following needs S to be default-constructible
+		explicit BaseLink(const value_type& v) : value(v), front{false, S()} {}
 	}; //class Link
 	
 	template<typename V, typename S, typename I=unsigned int>
-	struct Link<true> {
+	struct SyncLink : public BaseLink {
+		typedef I id_type;
+	
 		Signal<signal_type> back;
 		
-		Link(Index<SyncNode<V,S>>& const index, const id_type source, 
-		     const id_type target, const V& v)
-			: value(v), front{false, S()}, back{false, S()} {
-			index.find(source).add( InPort<self_type>(this, source) );
-			index.find(target).add( OutPort<self_type>(this, target) );
+		SyncLink(Index<SyncNode<V,S>>& const index, const id_type source, 
+		     const id_type target, const V& v=V()) //needs V to be default-constructible
+			: BaseLink(v), back{false, S()} {
+			//should the link have to do this? it doesn't own the ports...
+			//also, what if one of these adds fails? (especially the first)
+			//index.find(source).add( InPort<self_type>(this, source) );
+			//index.find(target).add( OutPort<self_type>(this, target) );
 		}
 		
+		//need thread safety but preferably without locking
+		//look up atomic operations 
+		//	- these need to be built-in types 
+		//	- use on Signal::ready?
 		void push(const signal_type& signal) { 
 			front = std::move( back );
 			back = Signal<signal_type>{true, signal}; 
 		}
 		signal_type pull() {
 			signal_type temp = std::move( front.data );
-			front = std::move( back );
+			//need to make this thread safe, is a simply copy (no move) enough?
+			front = std::move( back ); 
 			return temp;
 		}
 	}
 	
 	template<typename V, typename S, typename I=unsigned int>
-	struct Link<false> {
-		Link(Index<AsyncNode<V,S>>& const index, const id_type source, 
+	struct AsyncLink {
+		typedef I id_type;
+	
+		AsyncLink(Index<AsyncNode<V,S>>& const index, const id_type source, 
 		     const id_type target, const V& v)
 			: value(v), front{false, S()} {
-			index.find(source).add( InPort<self_type>(this, source) );
-			index.find(target).add( OutPort<self_type>(this, target) );
+			//index.find(source).add( InPort<self_type>(this, source) );
+			//index.find(target).add( OutPort<self_type>(this, target) );
 		}
 	
+		//these methods require locking for thread safety
 		void push(const signal_type& signal) { front = Signal<signal_type>{true, signal}; }
 		signal_type pull() { 
 			front.ready = false;
