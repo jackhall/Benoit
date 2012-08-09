@@ -21,7 +21,6 @@
     e-mail: jackwhall7@gmail.com
 */
 
-#include <thread>
 #include <atomic>
 
 namespace ben {
@@ -60,7 +59,7 @@ namespace ben {
 	};
 	
 	
-	template<typename V, typename S, unsigned int B> 
+	template<typename V, typename S, unsigned short B> 
 	class Link {
 	public:
 		typedef V value_type;
@@ -68,7 +67,12 @@ namespace ben {
 	private:	
 		std::atomic<value_type> value;
 		std::array<std::atomic<Frame<signal_type>>, B> buffer;
-		std::atomic<unsigned int> read_index, write_index;
+		std::atomic<unsigned short> read_index, write_index;
+		void increment_read() {
+			auto temp = read_index.load();
+			if(temp >= B-1) read_index.store(0);
+		}
+		
 	public:
 		Link() : value() {} //needs signal_type to be default-constructible
 		explicit Link(const value_type& v) : value(v), buffer() {}
@@ -77,9 +81,23 @@ namespace ben {
 		Link& operator=(Link&& rhs) = delete;
 		~Link() = default;
 		
-		void flush() {  }
-		
-		void push(const signal_type& signal) {  } 
+		value_type get_value() const { return value.load(std::memory_order_consume); }
+		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
+		void flush() { 
+			for(std::atomic<Frame<signal_type>> item : buffer)
+				item.store(Frame<signal_type>(), std::memory_order_release);
+		}
+		void push(const signal_type& signal) { 
+			auto temp = buffer[write_index].load(std::memory_order_acquire);
+			if(temp.ready) { //reading has overtaken writing
+				
+				auto ridx_temp = read_index.fetch_add(1);
+				if(ridx_temp >= B) read_index.fetch_sub(B); 
+				
+			} else {
+				
+			}
+		} 
 		signal_type pull() {  } 
 	}; //class Link
 	
@@ -97,31 +115,21 @@ namespace ben {
 		typedef S signal_type;
 	private:
 		std::atomic<value_type> value;
-		std::atomic<Frame<signal_type>> front;
+		std::atomic<signal_type> front;
 		
 	public:
 		Link() : Link(value_type()) {} //needs value_type to be default-constructible
 		Link(const value_type& v) : value(v), front() {}
 		
+		value_type get_value() const { return value.load(std::memory_order_consume); }
+		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
 		void flush() { 
-			front.exchange(Frame<signal_type>(), std::memory_order_acq_rel); 
+			front.store(signal_type(), std::memory_order_release); 
 		}
 		void push(const signal_type& signal) { 
-			auto temp = front.load(std::memory_order_acquire);
-			temp.data = signal;
-			temp.ready = true;
-			front.store(temp, std::memory_order_release);
+			front.store(signal, std::memory_order_release); 
 		}
-		signal_type pull() {
-			signal_type result();
-			auto temp = front.load(std::memory_order_consume);
-			if(temp.ready) { 
-				result = temp.data; 
-				temp.ready = false;
-			} 
-			front.store(temp, std::memory_order_release);
-			return result;
-		}
+		signal_type pull() { return front.load(std::memory_order_consume); }
 	};
 	
 	
@@ -132,31 +140,28 @@ namespace ben {
 		typedef S signal_type;
 	private:
 		std::atomic<value_type> value;
-		std::atomic<Frame<signal_type>> front, back;
-		
+		std::atomic<bool> ready;
+		std::atomic<signal_type> front, back;
+				
 	public:
 		Link() : Link(value_type()) {} //needs value_type to be default-constructible
 		Link(const value_type& v) : value(v), front(), back() {}
 		
+		value_type get_value() const { return value.load(std::memory_order_consume); }
+		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
 		void flush() { 
-			front.exchange(Frame<signal_type>(), std::memory_order_acq_rel); 
-			back.exchange(Frame<signal_type>(), std::memory_order_acq_rel); 
+			front.store(Frame<signal_type>(), std::memory_order_release); 
+			back.store(Frame<signal_type>(), std::memory_order_release); 
 		}
 		void push(const signal_type& signal) { 
-			auto temp1 = back.load(std::memory_order_acquire); //is this good enough?
-			front.store(temp1, std::memory_order_release);
-			Frame<signal_type> temp2{true, signal};
-			back.store(temp2, std::memory_order_release);
+			auto temp = back.exchange(signal, std::memory_order_acq_release);
+			front.store(temp, std::memory_order_release);
+			ready.store(true);
 		}
 		signal_type pull() { 
-			signal_type result;
-			auto temp = front.load(std::memory_order_consume);
-			if(temp.ready) { 
-				result = temp.data; 
-				temp.ready = false;
-			} 
-			front.store(temp, std::memory_order_release);
-			return result;
+			if(ready.exchange(false)) 
+				return front.load(std::memory_order_consume);
+			else return signal_type();
 		}
 	};
 	

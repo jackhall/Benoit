@@ -47,8 +47,8 @@ namespace ben {
 		}
 		virtual ~Port() = default;
 		
-		inline value_type& get_value() const { return link_ptr->value; }
-		inline void set_value(const value_type& v) const { link_ptr->value = v; }
+		inline value_type& get_value() const { return link_ptr->get_value(); }
+		inline void set_value(const value_type& v) const { link_ptr->set_value(v); }
 		inline bool ready() const { return link_ptr->ready(); }
 	};
 
@@ -84,7 +84,7 @@ namespace ben {
 			}
 			return *this;
 		}
-		bool operator<(const OutPort& rhs) const { return sourceID < rhs.sourceID; }
+		bool operator<(const OutPort& rhs) const { return targetID < rhs.targetID; }
 		
 		inline id_type target() const { return link_ptr->target; }
 		inline void push(const S& signal) { link_ptr->push(signal); }
