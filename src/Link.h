@@ -44,68 +44,121 @@ namespace ben {
 		Each Link will have a mutex member when multithreading is implemented. 
 	*/
 	template<typename S> 
-	struct Signal {
-		std::atomic<bool> ready; //needs to be accessed with a memory order policy
-		std::atomic<S> data;
+	struct Frame {
+		bool ready; 
+		S data;
 	
-		Signal() : ready(false), data() {} //needs signal_type to be default-constructible
-		Signal(const Signal&& rhs) : ready(rhs.ready), 
-					     data( std::move(rhs.data) ) {}
-		Signal& operator=(const Signal&& rhs) {
+		Frame() : ready(false), data() {} //needs signal_type to be default-constructible
+		Frame(const Frame&& rhs) : ready(rhs.ready), 
+					   data( std::move(rhs.data) ) {}
+		Frame& operator=(const Frame&& rhs) {
 			if(this != &rhs) {
 				ready = rhs.ready;
 				data = std::move( rhs.data );
 			}
 		}
-		
-		void reset() { ready=false; data=S(); }
 	};
 	
 	
-	template<typename N> //make links atomic?
-	struct AsyncLink {
+	template<typename V, typename S, unsigned int B> 
+	class Link {
 	public:
-		typedef typename N::value_type 	value_type;
-		typedef typename N::signal_type signal_type;
-	
-		Signal<signal_type> front; //make this atomic? maybe make Links atomic at the Port level?
-		value_type value;
+		typedef V value_type;
+		typedef S signal_type;
+	private:	
+		std::atomic<value_type> value;
+		std::array<std::atomic<Frame<signal_type>>, B> buffer;
+		std::atomic<unsigned int> read_index, write_index;
+	public:
+		Link() : value() {} //needs signal_type to be default-constructible
+		explicit Link(const value_type& v) : value(v), buffer() {}
+		Link(const Link& rhs) = delete; //no reason to have this
+		Link& operator=(const Link& rhs) = delete; //would leave hanging pointers
+		Link& operator=(Link&& rhs) = delete;
+		~Link() = default;
 		
-		BaseLink() : value(), front() {} //needs signal_type to be default-constructible
-		explicit BaseLink(const value_type& v) : value(v), front() {}
-		BaseLink(const BaseLink& rhs) = delete; //no reason to have this
-		BaseLink& operator=(const BaseLink& rhs) = delete; //would leave hanging pointers
-		BaseLink& operator=(BaseLink&& rhs) = delete;
-		~BaseLink() = default;
+		void flush() {  }
 		
-		bool ready() const { return front.ready; }
-		void flush() { front.reset(); }
-		//this method probably requires locking for thread safety
-		void push(const signal_type& signal) { front = Signal<signal_type>{true, signal}; }
-		signal_type pull() const { 
-			front.ready = false;
-			return front.data;
-		}
+		void push(const signal_type& signal) {  } 
+		signal_type pull() {  } 
 	}; //class Link
 	
 	
-	template<typename N>
-	struct SyncLink : public AsyncLink<N> {
-		Signal<signal_type> back;
+	template<typename V, typename S>
+	class Link<V,S,0> { //use this for non-message-passing links later?
+		Link() = delete; //prevent instantiation
+	};
+	
+	
+	template<typename V, typename S>
+	class Link<V,S,1> {
+	public:
+		typedef V value_type;
+		typedef S signal_type;
+	private:
+		std::atomic<value_type> value;
+		std::atomic<Frame<signal_type>> front;
 		
-		//following needs value_type to be default-constructible
-		SyncLink(const value_type& v=value_type()) : AsyncLink(v), back() {}
+	public:
+		Link() : Link(value_type()) {} //needs value_type to be default-constructible
+		Link(const value_type& v) : value(v), front() {}
 		
-		//need thread safety but preferably without locking
-		//look up atomic operations 
-		//	- these need to be built-in types 
-		//	- use on Signal::ready?
-		void flush() { front.reset(); back.reset(); }
-		void push(const signal_type& signal) { 
-			front = std::move( back );
-			back = Signal<signal_type>{true, signal}; 
+		void flush() { 
+			front.exchange(Frame<signal_type>(), std::memory_order_acq_rel); 
 		}
-	}
+		void push(const signal_type& signal) { 
+			auto temp = front.load(std::memory_order_acquire);
+			temp.data = signal;
+			temp.ready = true;
+			front.store(temp, std::memory_order_release);
+		}
+		signal_type pull() {
+			signal_type result();
+			auto temp = front.load(std::memory_order_consume);
+			if(temp.ready) { 
+				result = temp.data; 
+				temp.ready = false;
+			} 
+			front.store(temp, std::memory_order_release);
+			return result;
+		}
+	};
+	
+	
+	template<typename V, typename S>
+	class Link<V,S,2> {
+	public:
+		typedef V value_type;
+		typedef S signal_type;
+	private:
+		std::atomic<value_type> value;
+		std::atomic<Frame<signal_type>> front, back;
+		
+	public:
+		Link() : Link(value_type()) {} //needs value_type to be default-constructible
+		Link(const value_type& v) : value(v), front(), back() {}
+		
+		void flush() { 
+			front.exchange(Frame<signal_type>(), std::memory_order_acq_rel); 
+			back.exchange(Frame<signal_type>(), std::memory_order_acq_rel); 
+		}
+		void push(const signal_type& signal) { 
+			auto temp1 = back.load(std::memory_order_acquire); //is this good enough?
+			front.store(temp1, std::memory_order_release);
+			Frame<signal_type> temp2{true, signal};
+			back.store(temp2, std::memory_order_release);
+		}
+		signal_type pull() { 
+			signal_type result;
+			auto temp = front.load(std::memory_order_consume);
+			if(temp.ready) { 
+				result = temp.data; 
+				temp.ready = false;
+			} 
+			front.store(temp, std::memory_order_release);
+			return result;
+		}
+	};
 	
 } //namespace ben
 

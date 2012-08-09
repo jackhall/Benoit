@@ -51,14 +51,15 @@ namespace ben {
 		Each Node will have a mutex member when multithreading is implemented.
 	*/
 	
-	template<typename V, typename S, bool B>
+	template<typename V, typename S, unsigned int B>
 	class Node {
 	public:
 		typedef unsigned int 	id_type;
 		typedef V 		value_type;
 		typedef S		signal_type;
+		typedef B		buffer_size;
 		typedef Index<Node> 	index_type;
-		typedef Link<V,S,B,id_type>	link_type; 
+		typedef Link<V,S,B>	link_type; 
 		typedef std::vector< InPort<link_type> >::iterator  input_iterator;
 		typedef std::vector< OutPort<link_type> >::iterator output_iterator;
 	private:		
@@ -106,32 +107,32 @@ namespace ben {
 	}; //Node
 
 	//initialize static members
-	template<typename V, typename S, bool B>
+	template<typename V, typename S, unsigned int B>
 	unsigned int Node<V,S,B>::IDCOUNT = 100000;
 	
-	template<typename V, typename S, bool B> Index<Node<V,S,B>> Node<V,S,B>::INDEX;
+	template<typename V, typename S, unsigned int B> Index<Node<V,S,B>> Node<V,S,B>::INDEX;
 	
 	//typedefs to eliminate third template parameter
 	template<typename V, typename S>
-	using SyncNode = Node<V,S,true>;
+	using SyncNode = Node<V,S,2>;
 	
 	template<typename V, typename S>
-	using AsyncNode = Node<V,S,false>;
+	using AsyncNode = Node<V,S,1>;
 	
 	//methods
-	template<typename V, typename S, bool B>
+	template<typename V, typename S, unsigned int B>
 	Node<V,S,B>::Node(const id_type nID) : Node(INDEX, nID) {}
 	
-	template<typename V, typename S, bool B>
+	template<typename V, typename S, unsigned int B>
 	Node<V,S,B>::Node(index_type& cIndex, const id_type nID) 
 		: nodeID(nID), index(&cIndex) {
 		if( !index->add(*this) ) throw;	//if index already has a node with that ID
 	}
 	
-	template<typename V, typename S, bool B
+	template<typename V, typename S, unsigned int B
 	Node<V,S,B>::Node(const Node& rhs) : Node(rhs, get_new_ID()) {}
 	
-	template<typename V, typename S, bool B>
+	template<typename V, typename S, unsigned int B>
 	Node<V,S,B>::Node(const Node& rhs, const id_type nID) 
 		: Node(*rhs.index, nID) {
 		//make new copies of links	
