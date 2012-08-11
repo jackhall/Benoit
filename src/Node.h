@@ -27,6 +27,8 @@
 
 namespace ben {	
 	/*
+		Overview needs major updates!
+	
 		A Node is the vertex of a distributed directed graph structure. Each is managed by an Index, 
 		but it is designed to be owned by any object the programmer wishes. The Nodes are connected by 
 		Links, which are owned by the Node to which they are inputs. Links are not visible to the user; 
@@ -70,6 +72,7 @@ namespace ben {
 		std::vector< InPort<link_type> > inputs; //maintain as heaps?
 		std::vector< OutPort<link_type> > outputs;
 		index_type* index; 
+		//add mutex member
 		
 	public:
 		static index_type INDEX;

@@ -26,52 +26,38 @@
 namespace ben {
 	
 	/*
-		Links are the edges of a distributed directed graph structure. Each Link has an origin Node from which it conveys 
-		data, and a target Node to which it conveys data. Links are owned by their target Node. A Link owns its own 
-		pointer as it is stored in the origin Node. 
-		
-		The template parameters are shared with the owning Node. W is the type of the weight (for Links) or bias (for Nodes).
-		S is the type of message passed between Nodes. The buffer is a statically allocated array of this type. The extra
-		space (there are two) may be wasted, but static allocation allows for faster access than dynamic allocation. 
-		
-		The origin and target Nodes are stored by their ID rather than by pointer. This avoids hanging pointers if a Node 
-		object gets moved around or copied. It does mean that the Link needs to have a copy of the Index pointer, though. 
-		
-		Links are not designed to be visible to the user of Benoit. They should be accessed via the Node::input_port or
-		Node::output_port classes, which are a cross between iterators and stream objects. 
-		
-		Each Link will have a mutex member when multithreading is implemented. 
+		Rewrite overview!
 	*/
-	template<typename S> 
-	struct Frame {
-		bool ready; 
-		S data;
-	
-		Frame() : ready(false), data() {} //needs signal_type to be default-constructible
-		Frame(const Frame&& rhs) : ready(rhs.ready), 
-					   data( std::move(rhs.data) ) {}
-		Frame& operator=(const Frame&& rhs) {
-			if(this != &rhs) {
-				ready = rhs.ready;
-				data = std::move( rhs.data );
-			}
-		}
-	};
-	
 	
 	template<typename V, typename S, unsigned short B> 
 	class Link {
 	public:
 		typedef V value_type;
 		typedef S signal_type;
-	private:	
+	private:
+		struct Frame {
+			bool ready; 
+			signal_type data;
+	
+			Frame() : ready(false), data() {} //needs signal_type to be default-constructible
+			Frame(const Frame&& rhs) : ready(rhs.ready), 
+						   data( std::move(rhs.data) ) {}
+			Frame& operator=(const Frame&& rhs) {
+				if(this != &rhs) {
+					ready = rhs.ready;
+					data = std::move( rhs.data );
+				}
+			}
+		};
+		
+		//for convenience/readability
+		typedef std::memory_order_consume consume;
+		typedef std::memory_order_acquire acquire;
+		typedef std::memory_order_release release;
+		
 		std::atomic<value_type> value;
-		std::array<std::atomic<Frame<signal_type>>, B> buffer;
-		std::atomic<unsigned short> read_index, write_index;
-		void increment_read() {
-			auto temp = read_index.load();
-			if(temp >= B-1) read_index.store(0);
-		}
+		std::array<std::atomic<Frame>, B> buffer;
+		unsigned short read_index, write_index;
 		
 	public:
 		Link() : value() {} //needs signal_type to be default-constructible
@@ -81,24 +67,34 @@ namespace ben {
 		Link& operator=(Link&& rhs) = delete;
 		~Link() = default;
 		
-		value_type get_value() const { return value.load(std::memory_order_consume); }
-		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
+		value_type get_value() const { return value.load(consume); }
+		void set_value(const value_type& v) { value.store(v, release); }
 		void flush() { 
-			for(std::atomic<Frame<signal_type>> item : buffer)
-				item.store(Frame<signal_type>(), std::memory_order_release);
+			for(std::atomic<Frame> item : buffer)
+				item.store(Frame(), release);
 		}
-		void push(const signal_type& signal) { 
-			auto temp = buffer[write_index].load(std::memory_order_acquire);
-			if(temp.ready) { //reading has overtaken writing
-				
-				auto ridx_temp = read_index.fetch_add(1);
-				if(ridx_temp >= B) read_index.fetch_sub(B); 
-				
-			} else {
-				
+		bool push(const signal_type& signal) { //needs play-by-play
+			auto item_temp = buffer[write_index].load(acquire);
+			if(!temp.ready) return false; //reading has overtaken writing
+			else {
+				buffer[write_index].store(signal, release);
+				if(write_index >= (B-1)) write_index = 0;
+				else ++write_index;
+				return true;
 			}
 		} 
-		signal_type pull() {  } 
+		signal_type pull() { //needs play-by-play
+			signal_type result();
+			auto temp = buffer[read_index].load(consume);
+			if(temp.ready) {
+				temp.ready = false;
+				buffer[read_index].store(temp, release); //overwrites new data?
+				result = temp.data;
+				if(read_index >= (B-1)) read_index = 0;
+				else ++read_index;
+			} 
+			return result;
+		} 
 	}; //class Link
 	
 	
@@ -126,8 +122,9 @@ namespace ben {
 		void flush() { 
 			front.store(signal_type(), std::memory_order_release); 
 		}
-		void push(const signal_type& signal) { 
+		bool push(const signal_type& signal) { 
 			front.store(signal, std::memory_order_release); 
+			return true;
 		}
 		signal_type pull() { return front.load(std::memory_order_consume); }
 	};
@@ -153,10 +150,11 @@ namespace ben {
 			front.store(Frame<signal_type>(), std::memory_order_release); 
 			back.store(Frame<signal_type>(), std::memory_order_release); 
 		}
-		void push(const signal_type& signal) { 
+		bool push(const signal_type& signal) { //needs play-by-play
 			auto temp = back.exchange(signal, std::memory_order_acq_release);
 			front.store(temp, std::memory_order_release);
 			ready.store(true);
+			return true;
 		}
 		signal_type pull() { 
 			if(ready.exchange(false)) 
