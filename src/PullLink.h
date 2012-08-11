@@ -1,5 +1,5 @@
-#ifndef BenoitLink_h
-#define BenoitLink_h
+#ifndef BenoitPullLink_h
+#define BenoitPullLink_h
 
 /*
     Benoit: a flexible framework for distributed graphs
@@ -29,7 +29,7 @@ namespace ben {
 		Rewrite overview!
 	*/
 	template<typename V, typename S, unsigned short B> 
-	class Link {
+	class PullLink {
 	/*
 		Use 
 	*/
@@ -62,12 +62,12 @@ namespace ben {
 		unsigned short read_index, write_index;
 		
 	public:
-		Link() : value() {} //needs signal_type to be default-constructible
-		explicit Link(const value_type& v) : value(v), buffer() {}
-		Link(const Link& rhs) = delete; //no reason to have this
-		Link& operator=(const Link& rhs) = delete; //would leave hanging pointers
-		Link& operator=(Link&& rhs) = delete;
-		~Link() = default;
+		PullLink() : value() {} //needs signal_type to be default-constructible
+		explicit PullLink(const value_type& v) : value(v), buffer() {}
+		PullLink(const PullLink& rhs) = delete; //no reason to have this
+		PullLink& operator=(const PullLink& rhs) = delete; //would leave hanging pointers
+		PullLink& operator=(PullLink&& rhs) = delete;
+		~PullLink() = default;
 		
 		value_type get_value() const { return value.load(consume); }
 		void set_value(const value_type& v) { value.store(v, release); }
@@ -75,6 +75,7 @@ namespace ben {
 			for(std::atomic<Frame> item : buffer)
 				item.store(Frame(), release);
 		}
+		bool is_ready() const { return buffer[read_index].load(consume).ready; }
 		bool push(const signal_type& signal) { 
 			//checks item at write_index
 			//if it hasn't been read, return false (buffer is full)
@@ -104,10 +105,17 @@ namespace ben {
 			} 
 			return result;
 		} 
-	}; //class Link
+	}; //class PullLink
+	
 	
 	template<typename V, typename S>
-	class Link<V,S,2> {
+	class PullLink<V,S,0> { //use this for non-message-passing links later?
+		PullLink() = delete; //prevent instantiation
+	};
+	
+	
+	template<typename V, typename S>
+	class PullLink<V,S,1> {
 	/*
 		Use 
 	*/
@@ -117,12 +125,47 @@ namespace ben {
 	private:
 		std::atomic<value_type> value;
 		std::atomic<bool> ready;
-		std::atomic<signal_type> front, back;
-		bool is_new;
+		std::atomic<signal_type> front;
 		
 	public:
-		Link() : Link(value_type()) {} //needs value_type to be default-constructible
-		Link(const value_type& v) : value(v), front(), back(), is_new(true) {}
+		PullLink() : PullLink(value_type()) {} //needs value_type to be default-constructible
+		PullLink(const value_type& v) : value(v), ready(false), front() {}
+		
+		value_type get_value() const { return value.load(std::memory_order_consume); }
+		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
+		void flush() { 
+			ready.store(false, std::memory_order_release);
+			front.store(signal_type(), std::memory_order_release); 
+		}
+		bool is_ready() const { return ready.load(std::memory_consume); }
+		bool push(const signal_type& signal) { 
+			front.store(signal, std::memory_order_release); 
+			return true;
+		}
+		signal_type pull() { 
+			if(ready.exchange(false, std::memory_order_acq_rel)
+				return front.load(std::memory_order_consume); 
+			else return signal_type();
+		}
+	};
+	
+	
+	template<typename V, typename S>
+	class PullLink<V,S,2> {
+	/*
+		Use 
+	*/
+	public:
+		typedef V value_type;
+		typedef S signal_type;
+	private:
+		std::atomic<value_type> value;
+		std::atomic<bool> ready; //use count method?
+		std::atomic<signal_type> front, back;
+		
+	public:
+		PullLink() : PullLink(value_type()) {} //needs value_type to be default-constructible
+		PullLink(const value_type& v) : value(v), front(), back(), ready(false) {}
 		
 		value_type get_value() const { return value.load(std::memory_order_consume); }
 		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
@@ -130,20 +173,15 @@ namespace ben {
 			front.store(Frame<signal_type>(), std::memory_order_release); 
 			back.store(Frame<signal_type>(), std::memory_order_release); 
 		}
+		bool is_ready() const { return ready.load(std::memory_consume); }
 		bool push(const signal_type& signal) { 
-			//check if 
-			//write signal to back and read previous value simultaneously
-			//move previous value of back to front
-			//flag link as ready to read and return true
 			if(ready.load(std::memory_order_acquire)) return false;
 			else {
-			
+				auto temp = back.exchange(signal, std::memory_order_acq_rel);
+				front.store(temp, std::memory_order_release);
+				ready.store(true, std::memory_order_acq_rel);
+				return true;
 			}
-			/*auto temp = back.exchange(signal, std::memory_order_acq_rel);
-			front.store(temp, std::memory_order_release);
-			ready.store(!is_new, std::memory_order_release); 
-			is_new = false; //overhead to compensate for init period
-			return true;*/
 		}
 		signal_type pull() { 
 			if( ready.exchange(false, std::memory_order_acq_rel) ) 
