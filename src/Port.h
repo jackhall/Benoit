@@ -29,13 +29,13 @@ namespace ben {
 		Write overview!
 	*/
 	
-	template<typename L>
+	template<typename L, typename I>
 	class Port {
 	public:
 		typedef L 			link_type;
 		typedef typename L::value_type 	value_type;
 		typedef typename L::signal_type signal_type;
-		typedef typename L::id_type 	id_type;
+		typedef typename I 		id_type;
 	protected:
 		std::shared_ptr<link_type> link_ptr;
 		Port(link_type* ptr) : link_ptr(ptr) {}
@@ -91,7 +91,7 @@ namespace ben {
 		bool operator<(const OutPort& rhs) const { return targetID < rhs.targetID; }
 		
 		inline id_type target() const { return link_ptr->target; }
-		inline void push(const S& signal) { link_ptr->push(signal); }
+		inline bool push(const S& signal) { return link_ptr->push(signal); }
 	};
 
 } //namespace ben

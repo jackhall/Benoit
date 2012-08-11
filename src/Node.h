@@ -24,6 +24,8 @@
 #include <iostream>
 #include <list>
 #include <vector>
+#include <atomic>
+#include <mutex>
 
 namespace ben {	
 	/*
@@ -65,14 +67,15 @@ namespace ben {
 		typedef std::vector< InPort<link_type> >::iterator  input_iterator;
 		typedef std::vector< OutPort<link_type> >::iterator output_iterator;
 	private:		
-		static id_type IDCOUNT;  //make this atomic with relaxed ordering
-		inline static id_type get_new_ID() { return IDCOUNT++; }
+		static std::atomic<id_type> IDCOUNT;  
+		inline static id_type get_new_ID() 
+			{ return IDCOUNT.fetch_add(1, std::memory_order_relaxed); }
 	
-		id_type nodeID;
+		std::atomic<id_type> nodeID;
 		std::vector< InPort<link_type> > inputs; //maintain as heaps?
 		std::vector< OutPort<link_type> > outputs;
 		index_type* index; 
-		//add mutex member
+		std::mutex node_mutex;
 		
 	public:
 		static index_type INDEX;
@@ -85,6 +88,8 @@ namespace ben {
 		Node& operator=(const Node& rhs); //duplicates Node, including Links
 		Node& operator=(Node&& rhs);
 		~Node(); 
+		
+		id_type ID() const { return nodeID.load(std::memory_order_consume); }
 		
 		input_iterator  find_input(const id_type address);
 		output_iterator find_output(const id_type address);
@@ -111,7 +116,7 @@ namespace ben {
 
 	//initialize static members
 	template<typename V, typename S, unsigned int B>
-	unsigned int Node<V,S,B>::IDCOUNT = 100000;
+	Node<V,S,B>::id_type Node<V,S,B>::IDCOUNT = 100000;
 	
 	template<typename V, typename S, unsigned int B> Index<Node<V,S,B>> Node<V,S,B>::INDEX;
 	

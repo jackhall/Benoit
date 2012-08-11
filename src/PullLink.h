@@ -28,7 +28,6 @@ namespace ben {
 	/*
 		Rewrite overview!
 	*/
-	
 	template<typename V, typename S, unsigned short B> 
 	class Link {
 	/*
@@ -107,42 +106,6 @@ namespace ben {
 		} 
 	}; //class Link
 	
-	
-	template<typename V, typename S>
-	class Link<V,S,0> { //use this for non-message-passing links later?
-		Link() = delete; //prevent instantiation
-	};
-	
-	
-	template<typename V, typename S>
-	class Link<V,S,1> {
-	/*
-		Use 
-	*/
-	public:
-		typedef V value_type;
-		typedef S signal_type;
-	private:
-		std::atomic<value_type> value;
-		std::atomic<signal_type> front;
-		
-	public:
-		Link() : Link(value_type()) {} //needs value_type to be default-constructible
-		Link(const value_type& v) : value(v), front() {}
-		
-		value_type get_value() const { return value.load(std::memory_order_consume); }
-		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
-		void flush() { 
-			front.store(signal_type(), std::memory_order_release); 
-		}
-		bool push(const signal_type& signal) { 
-			front.store(signal, std::memory_order_release); 
-			return true;
-		}
-		signal_type pull() { return front.load(std::memory_order_consume); }
-	};
-	
-	
 	template<typename V, typename S>
 	class Link<V,S,2> {
 	/*
@@ -189,8 +152,5 @@ namespace ben {
 		}
 	};
 	
-	//think about Links as either push-controlled or pull-controlled
-	
 } //namespace ben
 
-#endif
