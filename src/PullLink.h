@@ -159,34 +159,71 @@ namespace ben {
 		typedef V value_type;
 		typedef S signal_type;
 	private:
+		enum class State {
+			empty,
+			read0_write0_full,
+			read1_write1_full,
+			read0_write1,
+			read1_write0
+		};
 		std::atomic<value_type> value;
-		std::atomic<bool> ready; //use count method?
-		std::atomic<signal_type> front, back;
+		std::atomic<State> state; 
+		std::atomic<signal_type> zeroth, first;
 		
 	public:
 		PullLink() : PullLink(value_type()) {} //needs value_type to be default-constructible
-		PullLink(const value_type& v) : value(v), front(), back(), ready(false) {}
+		PullLink(const value_type& v) : value(v), front(), back(), state(empty) {}
 		
 		value_type get_value() const { return value.load(std::memory_order_consume); }
 		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
 		void flush() { 
-			front.store(Frame<signal_type>(), std::memory_order_release); 
-			back.store(Frame<signal_type>(), std::memory_order_release); 
+			state.store(empty, std::memory_order_release);
+			front.store(signal_type(), std::memory_order_release); 
+			back.store(signal_type(), std::memory_order_release); 
 		}
-		bool is_ready() const { return ready.load(std::memory_consume); }
+		bool is_ready() const { return state.load(std::memory_order_acquire) != empty; }
 		bool push(const signal_type& signal) { 
-			if(ready.load(std::memory_order_acquire)) return false;
-			else {
-				auto temp = back.exchange(signal, std::memory_order_acq_rel);
-				front.store(temp, std::memory_order_release);
-				ready.store(true, std::memory_order_acq_rel);
-				return true;
-			}
+			auto temp_state = state.load(std::memory_order_acquire);
+			switch(temp_state) {
+				case read0_write1:
+					first.store(signal, std::memory_order_release);
+					state.store(read0_write0_full, std::memory_order_release);
+					return true;
+				case read1_write0:
+					zeroth.store(signal, std::memory_order_release);
+					state.store(read1_write1_full, std::memory_order_release);
+					return true;
+				case empty:
+					zeroth.store(signal, std::memory_order_release);
+					state.store(read0_write1, std::memory_order_release);
+					return true;
+				default:
+					return false;
+			} 
 		}
 		signal_type pull() { 
-			if( ready.exchange(false, std::memory_order_acq_rel) ) 
-				return front.load(std::memory_order_consume);
-			else return signal_type();
+			signal_type result();
+			auto temp_state = state.load(std::memory_order_acquire);
+			switch(temp_state) {
+				case read0_write0_full:
+					result = zeroth.load(std::memory_order_consume);
+					state.store(read1_write0, std::memory_order_release);
+					break;
+				case read1_write1_full:
+					result = first.load(std::memory_order_consume);
+					state.store(read0_write1, std::memory_order_release);
+					break;
+				case read0_write1:
+					result = zeroth.load(std::memory_order_consume);
+					state.store(empty, std::memory_order_release);
+					break;
+				case read1_write0:
+					result = first.load(std::memory_order_consume);
+					state.store(empty, std::memory_order_release);
+					break;
+				default:
+			} 
+			return result;
 		}
 	};
 	

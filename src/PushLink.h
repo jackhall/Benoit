@@ -22,7 +22,6 @@
 */
 
 #include <atomic>
-#include <climits>
 
 namespace ben {
 	
@@ -125,7 +124,10 @@ namespace ben {
 			ready.store(true, std::memory_order_release);
 			return true;
 		}
-		signal_type pull() { return front.load(std::memory_order_consume); }
+		signal_type pull() { 
+			ready.store(false, std::memory_order_acq_rel);
+			return front.load(std::memory_order_consume); 
+		}
 	};
 	
 	
@@ -138,31 +140,82 @@ namespace ben {
 		typedef V value_type;
 		typedef S signal_type;
 	private:
+		//for convenience/readability
+		typedef std::memory_order_consume consume;
+		typedef std::memory_order_acquire acquire;
+		typedef std::memory_order_release release;
+		typedef std::memory_order_acq_rel acq_rel;
+		
+		enum class State {
+			full_unread,
+			full_read,
+			half_full_unread,
+			half_full_read,
+			empty
+		};
 		std::atomic<value_type> value;
-		std::atomic<unsigned char> count;
+		std::atomic<State> state;
 		std::atomic<signal_type> front, back;
 		
 	public:
 		PushLink() : PushLink(value_type()) {} //needs value_type to be default-constructible
-		PushLink(const value_type& v) : value(v), count(0), front(), back() {}
+		PushLink(const value_type& v) : value(v), state(empty), front(), back() {}
 		
-		value_type get_value() const { return value.load(std::memory_order_consume); }
-		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
+		value_type get_value() const { return value.load(consume); }
+		void set_value(const value_type& v) { value.store(v, release); }
 		void flush() { 
-			count.store(0, std::memory_order_release);
-			front.store(signal_type(), std::memory_order_release); 
-			back.store(signal_type(), std::memory_order_release); 
-			count.store(0, std::memory_order_release); //to be safe
+			state.store(empty, release);
+			front.store(signal_type(), release); 
+			back.store(signal_type(), release); 
 		}
-		bool is_ready() const { return count.load(std::memory_consume) > 1; }
-		bool push(const signal_type& signal) { //needs play-by-play
-			auto temp = back.exchange(signal, std::memory_order_acq_rel);
-			front.store(temp, std::memory_order_release);
-			if( count.fetch_add(1, std::memory_order_acq_rel) >= UCHAR_MAX-1 )
-				count.store(2, std::memory_order_release);
+		bool is_ready() const { 
+			return state.load(consume) == full_unread; 
+		}
+		bool push(const signal_type& signal) { 
+			auto temp_state = state.load(acquire);
+			switch(temp_state) { 
+				case full_unread:
+					front.load(consume);
+					state.store(full_read, release);
+					break;
+				case half_full_read:
+					back.store(signal, release);
+					state.store(half_full_unread, release);
+					break;
+				case full_read:
+					auto temp_item = back.exchange(signal, acq_rel);
+					front.store(temp_item, release);
+					state.store(full_unread, release);
+					break;
+				case half_full_unread: //tricky, need a mutex?
+					state.store(full_unread, release);
+					back.store(signal, release);
+					break;
+				default: //empty
+					front.store(signal, release);
+					back.store(signal, release);
+					state.store(half_full_unread, release);
+			}
 			return true;
 		}
-		signal_type pull() { return front.load(std::memory_order_consume); }
+		signal_type pull() { 
+			signal_type result();
+			auto temp_state = state.load(acquire);
+			switch(temp_state) {
+				case full_read:
+				case full_unread:
+					result = front.load(consume);
+					state.store(full_read, release);
+					break;
+				case half_full_read:
+				case half_full_unread:
+					result = back.load(consume);
+					state.store(half_full_read, release);
+					break;
+				default:
+			}
+			return result; 
+		}
 	};
 	
 } //namespace ben
