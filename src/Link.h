@@ -26,170 +26,72 @@
 namespace ben {
 	
 	/*
-		Rewrite overview!
+		Link is base class that does not touch message-passing behavior
+		except for a protected typedef for the Frame struct. Instead, 
+		Link handles value storage and access (atomic). Since it lacks
+		push(), pull() and is_ready() methods, it doesn't not have enough
+		traits to be wrapped by a conventional Port, even if it could be
+		constructed (it can't).  
+		
+		For interoperability with the rest of Benoit, every Link type should 
+		provide:
+			value_type and signal_type typedefs
+			get_value() and set_value() methods
+			pull(), push() and is_ready() methods
+			default construction and construction from a value_type reference
+			
 	*/
 	
-	template<typename V, typename S, unsigned short B> 
+	template<typename S>
+	struct Frame {
+	/*
+		Frame is a moveable helper struct for use with Link types. It combines
+		a signal and a boolean denoting whether the signal has been read. It 
+		is meant to be treated as an atomic. 
+	*/
+		bool ready; 
+		S data;
+
+		Frame() : ready(false), data() {} //needs signal_type to be default-constructible
+		Frame(const Frame&& rhs) : ready(rhs.ready), 
+					   data( std::move(rhs.data) ) {}
+		Frame& operator=(const Frame&& rhs) {
+			if(this != &rhs) {
+				ready = rhs.ready;
+				data = std::move( rhs.data );
+			}
+		}
+	}; //struct Frame
+	
+	
+	template<typename V, typename S>
 	class Link {
 	/*
-		Use 
+		A general link, including appropriate and convenient typedefs 
+		and a value field. The value field is accessed atomically by
+		getters and setters. 
 	*/
 	public:
 		typedef V value_type;
 		typedef S signal_type;
-	private:
-		struct Frame {
-			bool ready; 
-			signal_type data;
-	
-			Frame() : ready(false), data() {} //needs signal_type to be default-constructible
-			Frame(const Frame&& rhs) : ready(rhs.ready), 
-						   data( std::move(rhs.data) ) {}
-			Frame& operator=(const Frame&& rhs) {
-				if(this != &rhs) {
-					ready = rhs.ready;
-					data = std::move( rhs.data );
-				}
-			}
-		};
-		
-		//for convenience/readability
+	protected:
+		//for convenience/readability 
 		typedef std::memory_order_consume consume;
 		typedef std::memory_order_acquire acquire;
 		typedef std::memory_order_release release;
+		typedef Frame<signal_type> frame_type;
 		
 		std::atomic<value_type> value;
-		std::array<std::atomic<Frame>, B> buffer;
-		unsigned short read_index, write_index;
+		
+		Link() : Link(value_type()) {} //needs value_type to be default-constructible
+		explicit Link(const value_type& v) : value(v) {}
 		
 	public:
-		Link() : value() {} //needs signal_type to be default-constructible
-		explicit Link(const value_type& v) : value(v), buffer() {}
-		Link(const Link& rhs) = delete; //no reason to have this
-		Link& operator=(const Link& rhs) = delete; //would leave hanging pointers
-		Link& operator=(Link&& rhs) = delete;
-		~Link() = default;
+		virtual ~Link() = default;
 		
 		value_type get_value() const { return value.load(consume); }
 		void set_value(const value_type& v) { value.store(v, release); }
-		void flush() { 
-			for(std::atomic<Frame> item : buffer)
-				item.store(Frame(), release);
-		}
-		bool push(const signal_type& signal) { 
-			//checks item at write_index
-			//if it hasn't been read, return false (buffer is full)
-			//if it has been read, overwrite it, increment write_index & return true
-			auto item_temp = buffer[write_index].load(acquire);
-			if(!temp.ready) return false; //reading has overtaken writing
-			else {
-				buffer[write_index].store(Frame{true,signal}, release);
-				if(write_index >= (B-1)) write_index = 0;
-				else ++write_index;
-				return true;
-			}
-		} 
-		signal_type pull() { 
-			//check item at read_index
-			//if it hasn't been read, overwrite it with ready=false, data=data,
-			//	increment read_index & return its signal
-			//if it has been read, return a blank signal (buffer is empty)
-			signal_type result();
-			auto temp = buffer[read_index].load(consume);
-			if(temp.ready) {
-				temp.ready = false;
-				buffer[read_index].store(temp, release); 
-				result = temp.data;
-				if(read_index >= (B-1)) read_index = 0;
-				else ++read_index;
-			} 
-			return result;
-		} 
 	}; //class Link
-	
-	
-	template<typename V, typename S>
-	class Link<V,S,0> { //use this for non-message-passing links later?
-		Link() = delete; //prevent instantiation
-	};
-	
-	
-	template<typename V, typename S>
-	class Link<V,S,1> {
-	/*
-		Use 
-	*/
-	public:
-		typedef V value_type;
-		typedef S signal_type;
-	private:
-		std::atomic<value_type> value;
-		std::atomic<signal_type> front;
-		
-	public:
-		Link() : Link(value_type()) {} //needs value_type to be default-constructible
-		Link(const value_type& v) : value(v), front() {}
-		
-		value_type get_value() const { return value.load(std::memory_order_consume); }
-		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
-		void flush() { 
-			front.store(signal_type(), std::memory_order_release); 
-		}
-		bool push(const signal_type& signal) { 
-			front.store(signal, std::memory_order_release); 
-			return true;
-		}
-		signal_type pull() { return front.load(std::memory_order_consume); }
-	};
-	
-	
-	template<typename V, typename S>
-	class Link<V,S,2> {
-	/*
-		Use 
-	*/
-	public:
-		typedef V value_type;
-		typedef S signal_type;
-	private:
-		std::atomic<value_type> value;
-		std::atomic<bool> ready;
-		std::atomic<signal_type> front, back;
-		bool is_new;
-		
-	public:
-		Link() : Link(value_type()) {} //needs value_type to be default-constructible
-		Link(const value_type& v) : value(v), front(), back(), is_new(true) {}
-		
-		value_type get_value() const { return value.load(std::memory_order_consume); }
-		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
-		void flush() { 
-			front.store(Frame<signal_type>(), std::memory_order_release); 
-			back.store(Frame<signal_type>(), std::memory_order_release); 
-		}
-		bool push(const signal_type& signal) { 
-			//check if 
-			//write signal to back and read previous value simultaneously
-			//move previous value of back to front
-			//flag link as ready to read and return true
-			if(ready.load(std::memory_order_acquire)) return false;
-			else {
-			
-			}
-			/*auto temp = back.exchange(signal, std::memory_order_acq_rel);
-			front.store(temp, std::memory_order_release);
-			ready.store(!is_new, std::memory_order_release); 
-			is_new = false; //overhead to compensate for init period
-			return true;*/
-		}
-		signal_type pull() { 
-			if( ready.exchange(false, std::memory_order_acq_rel) ) 
-				return front.load(std::memory_order_consume);
-			else return signal_type();
-		}
-	};
-	
-	//think about Links as either push-controlled or pull-controlled
 	
 } //namespace ben
 

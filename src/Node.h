@@ -55,15 +55,14 @@ namespace ben {
 		Each Node will have a mutex member when multithreading is implemented.
 	*/
 	
-	template<typename V, typename S, unsigned int B>
+	template<typename L, unsigned int B>
 	class Node {
 	public:
 		typedef unsigned int 	id_type;
-		typedef V 		value_type;
-		typedef S		signal_type;
-		typedef B		buffer_size;
+		typedef L::value_type 	value_type;
+		typedef L::signal_type	signal_type;
 		typedef Index<Node> 	index_type;
-		typedef Link<V,S,B>	link_type; 
+		typedef L		link_type; 
 		typedef std::vector< InPort<link_type> >::iterator  input_iterator;
 		typedef std::vector< OutPort<link_type> >::iterator output_iterator;
 	private:		

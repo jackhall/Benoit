@@ -22,29 +22,34 @@
 */
 
 #include <atomic>
+#include "Link.h"
 
 namespace ben {
 	
 	/*
-		Rewrite overview!
+		PushLink models a fixed_size buffer that is causally oriented
+		around push() calls. Pulling a signal marks it as read, but the 
+		signal is still accessible until the next push. In fact, any push 
+		to a full buffer will knock the front element off (even if it hasn't 
+		been read). All operations are atomic or otherwise protected and 
+		safe for use between two threads (producer-consumer relationship). 
+		
+		temporary note: PushLink<2> specialization is not yet thread-safe. 
 	*/	
 	
 	template<typename V, typename S, unsigned short B> 
-	class PushLink {
+	class PushLink : public Link<V,S> {
 	/*
-		Use 
+		The general form of PullLink, implementing a circular buffer. The
+		read and write operations use the same index that is only moved
+		by push commands. Unfortunately, there was no way to get push-oriented
+		semantics without a mutex. The data could be protected, but the read/
+		unread state could not be defined for certain operations. Push and pull 
+		operations are done in constant time. 
 	*/
-	public:
-		typedef V value_type;
-		typedef S signal_type;
 	private:
-		//for convenience/readability
-		typedef std::memory_order_consume consume;
-		typedef std::memory_order_acquire acquire;
-		typedef std::memory_order_release release;
-		typedef std::memory_order_acq_rel acq_rel;
+		typedef std::memory_order_acq_rel acq_rel; //for convenience/readability
 		
-		std::atomic<value_type> value;
 		std::array<signal_type, B> buffer;
 		unsigned short index;
 		std::atomic<bool> ready;
@@ -53,14 +58,12 @@ namespace ben {
 	public:
 		PushLink() : PushLink(value_type()) {} //needs signal_type to be default-constructible
 		explicit PushLink(const value_type& v) 
-			: value(v), buffer(), ready(false), read_index(0), write_index(0) {}
+			: Link(v), buffer(), ready(false), index(0), link_mutex() {}
 		PushLink(const PushLink& rhs) = delete; //no reason to have this
 		PushLink& operator=(const PushLink& rhs) = delete; //would leave hanging pointers
 		PushLink& operator=(PushLink&& rhs) = delete;
 		~PushLink() = default;
 		
-		value_type get_value() const { return value.load(consume); }
-		void set_value(const value_type& v) { value.store(v, release); }
 		void flush() { 
 			ready.store(false, release);
 			read_index.store(0, release); write_index = 0;
@@ -89,88 +92,71 @@ namespace ben {
 	
 	
 	template<typename V, typename S>
-	class PushLink<V,S,0> { //use this for non-message-passing links later?
+	class PushLink<V,S,0> : public Link<V,S> { //use this for non-message-passing links later?
 		PushLink() = delete; //prevent instantiation
 	};
 	
 	
 	template<typename V, typename S>
-	class PushLink<V,S,1> {
+	class PushLink<V,S,1> : public Link<V,S> {
 	/*
-		Use 
+		This specialization saves memory and computation time since no
+		states or logic are needed to handle a multi-element buffer. 
 	*/
-	public:
-		typedef V value_type;
-		typedef S signal_type;
 	private:
-		std::atomic<value_type> value;
 		std::atomic<bool> ready;
 		std::atomic<signal_type> front;
 		
 	public:
 		PushLink() : PushLink(value_type()) {} //needs value_type to be default-constructible
-		PushLink(const value_type& v) : value(v), front() {}
+		PushLink(const value_type& v) : Link(v), ready(false), front() {}
 		
-		value_type get_value() const { return value.load(std::memory_order_consume); }
-		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
 		void flush() { 
-			ready.store(false, std::memory_order_release);
-			front.store(signal_type(), std::memory_order_release); 
-			ready.store(false, std::memory_order_release); //to be safe
+			ready.store(false, release);
+			front.store(signal_type(), release); 
+			ready.store(false, release); //to be safe
 		}
-		bool is_ready() const { return ready.load(std::memory_consume); }
+		bool is_ready() const { return ready.load(consume); }
 		bool push(const signal_type& signal) { 
-			front.store(signal, std::memory_order_release); 
-			ready.store(true, std::memory_order_release);
+			front.store(signal, release); 
+			ready.store(true, release);
 			return true;
 		}
 		signal_type pull() { 
-			ready.store(false, std::memory_order_acq_rel);
-			return front.load(std::memory_order_consume); 
+			ready.store(false, release);
+			return front.load(consume); 
 		}
 	};
 	
 	
 	template<typename V, typename S>
-	class PushLink<V,S,2> {
+	class PushLink<V,S,2> : public Link<V,S> {
 	/*
-		Use 
+		Not yet thread-safe.
 	*/
-	public:
-		typedef V value_type;
-		typedef S signal_type;
 	private:
-		//for convenience/readability
-		typedef std::memory_order_consume consume;
-		typedef std::memory_order_acquire acquire;
-		typedef std::memory_order_release release;
-		typedef std::memory_order_acq_rel acq_rel;
-		
+		typedef std::memory_order_acq_rel acq_rel; //for convenience/readability
+	
 		enum class State {
 			full_unread,
 			full_read,
-			half_full_unread,
-			half_full_read,
+			half_full,
 			empty
 		};
-		std::atomic<value_type> value;
+		
 		std::atomic<State> state;
 		std::atomic<signal_type> front, back;
 		
 	public:
 		PushLink() : PushLink(value_type()) {} //needs value_type to be default-constructible
-		PushLink(const value_type& v) : value(v), state(empty), front(), back() {}
+		PushLink(const value_type& v) : Link(v), state(empty), front(), back() {}
 		
-		value_type get_value() const { return value.load(consume); }
-		void set_value(const value_type& v) { value.store(v, release); }
 		void flush() { 
 			state.store(empty, release);
 			front.store(signal_type(), release); 
 			back.store(signal_type(), release); 
 		}
-		bool is_ready() const { 
-			return state.load(consume) == full_unread; 
-		}
+		bool is_ready() const { return state.load(consume) == full_unread; }
 		bool push(const signal_type& signal) { 
 			auto temp_state = state.load(acquire);
 			switch(temp_state) { 
@@ -178,23 +164,19 @@ namespace ben {
 					front.load(consume);
 					state.store(full_read, release);
 					break;
-				case half_full_read:
-					back.store(signal, release);
-					state.store(half_full_unread, release);
-					break;
 				case full_read:
 					auto temp_item = back.exchange(signal, acq_rel);
 					front.store(temp_item, release);
+					//if pull happens here, state will be incorrect
 					state.store(full_unread, release);
 					break;
-				case half_full_unread: //tricky, need a mutex?
-					state.store(full_unread, release);
+				case half_full: 
 					back.store(signal, release);
+					state.store(full_unread, release);
 					break;
 				default: //empty
 					front.store(signal, release);
-					back.store(signal, release);
-					state.store(half_full_unread, release);
+					state.store(half_full, release);
 			}
 			return true;
 		}
@@ -204,13 +186,9 @@ namespace ben {
 			switch(temp_state) {
 				case full_read:
 				case full_unread:
+					//if push happens here, it will load the wrong signal
 					result = front.load(consume);
 					state.store(full_read, release);
-					break;
-				case half_full_read:
-				case half_full_unread:
-					result = back.load(consume);
-					state.store(half_full_read, release);
 					break;
 				default:
 			}

@@ -22,58 +22,47 @@
 */
 
 #include <atomic>
+#include "Link.h"
 
 namespace ben {
 	
 	/*
-		Rewrite overview!
+		PullLink models a fixed-size buffer that is causally oriented
+		around pull() calls. Pulling a signal pops it from the buffer, so
+		each pull will either return a new element or a blank element (if
+		the buffer is empty). If the buffer is full, push() fails and 
+		returns false. All operations are atomic and safe for use between
+		two threads (producer-consumer relationship). 
 	*/
-	template<typename V, typename S, unsigned short B> 
-	class PullLink {
-	/*
-		Use 
-	*/
-	public:
-		typedef V value_type;
-		typedef S signal_type;
-	private:
-		struct Frame {
-			bool ready; 
-			signal_type data;
 	
-			Frame() : ready(false), data() {} //needs signal_type to be default-constructible
-			Frame(const Frame&& rhs) : ready(rhs.ready), 
-						   data( std::move(rhs.data) ) {}
-			Frame& operator=(const Frame&& rhs) {
-				if(this != &rhs) {
-					ready = rhs.ready;
-					data = std::move( rhs.data );
-				}
-			}
-		};
-		
-		//for convenience/readability
-		typedef std::memory_order_consume consume;
-		typedef std::memory_order_acquire acquire;
-		typedef std::memory_order_release release;
-		
-		std::atomic<value_type> value;
-		std::array<std::atomic<Frame>, B> buffer;
+	template<typename V, typename S, unsigned short B> 
+	class PullLink : public Link<V,S> {
+	/*
+		The general form of PullLink, implementing a circular buffer. The
+		read and write operations (and the indicies for each) are isolated
+		from each other. Each signal is atomized with a bool that indicates
+		whether that signal has been read. Since this logical information is
+		loaded simultaneously with the signal data, there can be no destructive 
+		overlap problems between thread logics. Value semantics are inherited 
+		from Link. Push and pull operations are done in constant time. 
+	*/
+	private:		
+		std::array<std::atomic<frame_type>, B> buffer;
 		unsigned short read_index, write_index;
 		
 	public:
-		PullLink() : value() {} //needs signal_type to be default-constructible
-		explicit PullLink(const value_type& v) : value(v), buffer() {}
+		PullLink() : PullLink(value_type()) {} //needs signal_type to be default-constructible
+		explicit PullLink(const value_type& v) 
+			: Link(v), buffer(), read_index(0), write_index(0) {}
 		PullLink(const PullLink& rhs) = delete; //no reason to have this
 		PullLink& operator=(const PullLink& rhs) = delete; //would leave hanging pointers
 		PullLink& operator=(PullLink&& rhs) = delete;
 		~PullLink() = default;
 		
-		value_type get_value() const { return value.load(consume); }
-		void set_value(const value_type& v) { value.store(v, release); }
 		void flush() { 
-			for(std::atomic<Frame> item : buffer)
+			for(std::atomic<frame_type>& item : buffer)
 				item.store(Frame(), release);
+			read_index = 0; write_index = 0;
 		}
 		bool is_ready() const { return buffer[read_index].load(consume).ready; }
 		bool push(const signal_type& signal) { 
@@ -83,7 +72,7 @@ namespace ben {
 			auto item_temp = buffer[write_index].load(acquire);
 			if(!temp.ready) return false; //reading has overtaken writing
 			else {
-				buffer[write_index].store(Frame{true,signal}, release);
+				buffer[write_index].store(frame_type{true, signal}, release);
 				if(write_index >= (B-1)) write_index = 0;
 				else ++write_index;
 				return true;
@@ -109,120 +98,105 @@ namespace ben {
 	
 	
 	template<typename V, typename S>
-	class PullLink<V,S,0> { //use this for non-message-passing links later?
+	class PullLink<V,S,0> : public Link<V,S> { //use this for non-message-passing links later?
 		PullLink() = delete; //prevent instantiation
 	};
 	
 	
 	template<typename V, typename S>
-	class PullLink<V,S,1> {
+	class PullLink<V,S,1> : public Link<V,S> {
 	/*
-		Use 
+		This specialization saves memory and computation time since no
+		states or logic are needed to handle a multi-element buffer. 
 	*/
-	public:
-		typedef V value_type;
-		typedef S signal_type;
-	private:
-		std::atomic<value_type> value;
-		std::atomic<bool> ready;
-		std::atomic<signal_type> front;
+	private:		
+		std::atomic<frame_type> front;
 		
 	public:
 		PullLink() : PullLink(value_type()) {} //needs value_type to be default-constructible
-		PullLink(const value_type& v) : value(v), ready(false), front() {}
+		explicit PullLink(const value_type& v) : Link(v), front() {}
 		
-		value_type get_value() const { return value.load(std::memory_order_consume); }
-		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
-		void flush() { 
-			ready.store(false, std::memory_order_release);
-			front.store(signal_type(), std::memory_order_release); 
-		}
-		bool is_ready() const { return ready.load(std::memory_consume); }
+		void flush() { front.store(frame_type(), release); }
+		bool is_ready() const { return front.load(consume).ready; }
 		bool push(const signal_type& signal) { 
-			front.store(signal, std::memory_order_release); 
-			return true;
+			if(!front.load(acquire).ready) {
+				front.store(frame_type{true, signal}, release); 
+				return true;
+			else return false;
 		}
 		signal_type pull() { 
-			if(ready.exchange(false, std::memory_order_acq_rel)
-				return front.load(std::memory_order_consume); 
-			else return signal_type();
+			temp_item = front.load(acquire);
+			if(temp_item.ready) {
+				temp_item.ready = false;
+				front.store(temp_item, release);
+				return temp_item.data; 
+			} else return signal_type();
 		}
 	};
 	
 	
 	template<typename V, typename S>
-	class PullLink<V,S,2> {
+	class PullLink<V,S,2> : Link<V,S> {
 	/*
-		Use 
+		This specialization uses marginally less storage and computation by
+		using individual variables for the buffer slots and bools for the read
+		and write indicies. 
 	*/
-	public:
-		typedef V value_type;
-		typedef S signal_type;
 	private:
-		enum class State {
-			empty,
-			read0_write0_full,
-			read1_write1_full,
-			read0_write1,
-			read1_write0
-		};
-		std::atomic<value_type> value;
-		std::atomic<State> state; 
-		std::atomic<signal_type> zeroth, first;
+		bool read_index, write_index; 
+		std::atomic<frame_type> zeroth, first; 
 		
 	public:
 		PullLink() : PullLink(value_type()) {} //needs value_type to be default-constructible
-		PullLink(const value_type& v) : value(v), front(), back(), state(empty) {}
+		PullLink(const value_type& v) 
+			: Link(v), zeroth(), first(), read_index(false), write_index(false) {}
 		
-		value_type get_value() const { return value.load(std::memory_order_consume); }
-		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
 		void flush() { 
-			state.store(empty, std::memory_order_release);
-			front.store(signal_type(), std::memory_order_release); 
-			back.store(signal_type(), std::memory_order_release); 
+			zeroth.store(frame_type(), release);
+			first.store(frame_type(), release); 
+			read_index.store(false, release); 
+			write_index.store(false, release); 
 		}
-		bool is_ready() const { return state.load(std::memory_order_acquire) != empty; }
+		bool is_ready() const { 
+			if(read_index) 	return first.load(consume).ready; 
+			else 		return zeroth.load(consume).ready;
+		}
 		bool push(const signal_type& signal) { 
-			auto temp_state = state.load(std::memory_order_acquire);
-			switch(temp_state) {
-				case read0_write1:
-					first.store(signal, std::memory_order_release);
-					state.store(read0_write0_full, std::memory_order_release);
+			if(write_index) {
+				auto item_temp = first.load(acquire);
+				if(!temp_item.ready) { 
+					first.store(frame_type{true, signal}, release);
+					write_index = false;
 					return true;
-				case read1_write0:
-					zeroth.store(signal, std::memory_order_release);
-					state.store(read1_write1_full, std::memory_order_release);
+				} else return false;
+			} else { 
+				auto item_temp = zeroth.load(acquire);
+				if(!temp_item.ready) { 
+					zeroth.store(frame_type{true, signal}, release);
+					write_index = true;
 					return true;
-				case empty:
-					zeroth.store(signal, std::memory_order_release);
-					state.store(read0_write1, std::memory_order_release);
-					return true;
-				default:
-					return false;
-			} 
+				} else return false;
+			}
 		}
 		signal_type pull() { 
 			signal_type result();
-			auto temp_state = state.load(std::memory_order_acquire);
-			switch(temp_state) {
-				case read0_write0_full:
-					result = zeroth.load(std::memory_order_consume);
-					state.store(read1_write0, std::memory_order_release);
-					break;
-				case read1_write1_full:
-					result = first.load(std::memory_order_consume);
-					state.store(read0_write1, std::memory_order_release);
-					break;
-				case read0_write1:
-					result = zeroth.load(std::memory_order_consume);
-					state.store(empty, std::memory_order_release);
-					break;
-				case read1_write0:
-					result = first.load(std::memory_order_consume);
-					state.store(empty, std::memory_order_release);
-					break;
-				default:
-			} 
+			if(read_index) {
+				auto item_temp = first.load(acquire);
+				if(temp_item.ready) {
+					temp_item.ready = false;
+					first.store(temp_item, release);
+					result = temp_item.data;
+					read_index = false;
+				}
+			} else 	{
+				auto item_temp = zeroth.load(acquire);
+				if(temp_item.ready) {
+					temp_item.ready = false;
+					zeroth.store(temp_item, release);
+					result = temp_item.data;
+					read_index = false;
+				}
+			}
 			return result;
 		}
 	};

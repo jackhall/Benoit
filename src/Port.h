@@ -26,7 +26,26 @@
 namespace ben {
 	
 	/*
-		Write overview!
+		Wraps and manages a link. Port cannot be instantiated, but each
+		InPort and Output should be instantiated as a pair with a port of
+		the complementary type. 
+		
+		For interoperability with the rest of Benoit, every Port type should 
+		provide:
+			link_type, value_type, signal_type, and id_type typedefs
+			get_value, set_value and is_ready() methods
+			construction from a link_type pointer and an integer
+			move constructor and assignment operator
+			input port:
+				source() and pull() methods
+			output port:
+				target() and push() methods
+			operator< to sort by ID
+			
+		The default implementations of the Port classes provide simple pass-throughs
+		for Link method calls. More complex implementations could be written to store
+		extra data, check validity of pull operations or deal with custom Link classes
+		in a special way. 
 	*/
 	
 	template<typename L, typename I>
@@ -35,7 +54,7 @@ namespace ben {
 		typedef L 			link_type;
 		typedef typename L::value_type 	value_type;
 		typedef typename L::signal_type signal_type;
-		typedef typename I 		id_type;
+		typedef I 			id_type;
 	protected:
 		std::shared_ptr<link_type> link_ptr;
 		Port(link_type* ptr) : link_ptr(ptr) {}
@@ -53,8 +72,9 @@ namespace ben {
 		
 		inline value_type& get_value() const { return link_ptr->get_value(); }
 		inline void set_value(const value_type& v) const { link_ptr->set_value(v); }
-		inline bool ready() const { return link_ptr->ready(); }
-	};
+		inline bool is_ready() const { return link_ptr->is_ready(); }
+	}; //class Port
+	
 
 	template<typename L>
 	struct InPort : public Port<L> {
@@ -73,7 +93,8 @@ namespace ben {
 		
 		inline id_type source() const { return source; }
 		inline S pull() const { return link_ptr->pull(); }
-	};
+	}; //struct InPort
+	
 	
 	template<typename L>
 	struct OutPort : public Port<L> {
@@ -92,7 +113,7 @@ namespace ben {
 		
 		inline id_type target() const { return link_ptr->target; }
 		inline bool push(const S& signal) { return link_ptr->push(signal); }
-	};
+	}; //struct OutPort
 
 } //namespace ben
 
