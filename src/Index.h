@@ -37,6 +37,26 @@ namespace ben {
 		Each Index will have both a read and a write mutex when multithreading is implemented.
 	*/
 	
+	class CommonsLock {
+	/*
+		Implements write once, read many semantics. 
+	*/
+	private:
+		std::atomic<unsigned short> num_reads;
+		std::atomic<bool> write;
+		
+	public:
+		void read_lock();
+		bool try_read_lock();
+		void read_unlock();
+		
+		void write_lock();
+		bool try_write_lock();
+		void write_unlock();
+		
+	}; //class CommonsLock
+	
+	
 	template<typename N> 
 	class Index {
 	public:
@@ -46,11 +66,10 @@ namespace ben {
 		typedef size_t	size_type;
 		typedef typename N::id_type id_type;
 	private:
-		//std::mutex readLock, writeLock;
-		//set up muticies so that a write lock is exclusive, but a read lock is not. A read lock
-		//only prevents writing. 
-		
 		std::map<id_type, pointer> IDMap; 
+		std::recursive_mutex read_mutex;
+		std::mutex write_mutex;
+		
 		void update_all();
 		
 	public:

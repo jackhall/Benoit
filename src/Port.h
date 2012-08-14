@@ -48,7 +48,7 @@ namespace ben {
 		in a special way. 
 	*/
 	
-	template<typename L, typename I>
+	template<typename L, typename I=unsigned int>
 	class Port {
 	public:
 		typedef L 			link_type;

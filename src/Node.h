@@ -26,6 +26,8 @@
 #include <vector>
 #include <atomic>
 #include <mutex>
+#include "PullLink.h"
+#include "Port.h"
 
 namespace ben {	
 	/*
@@ -55,24 +57,31 @@ namespace ben {
 		Each Node will have a mutex member when multithreading is implemented.
 	*/
 	
-	template<typename L, unsigned int B>
+	template<typename I, typename O>
 	class Node {
 	public:
-		typedef unsigned int 	id_type;
-		typedef L::value_type 	value_type;
-		typedef L::signal_type	signal_type;
-		typedef Index<Node> 	index_type;
-		typedef L		link_type; 
-		typedef std::vector< InPort<link_type> >::iterator  input_iterator;
-		typedef std::vector< OutPort<link_type> >::iterator output_iterator;
+		static_assert(std::is_same<I::link_type, O::link_type>::value);
+		static_assert(std::is_same<I::value_type, O::value_type>::value);
+		static_assert(std::is_same<I::signal_type, O::signal_type>::value);
+		static_assert(std::is_same<I::id_type, O::id_type>::value);
+		
+		typedef I input_port_type;
+		typedef O output_port_type;
+		typedef typename I::id_type	id_type;
+		typedef typename I::value_type 	value_type;
+		typedef typename I::signal_type	signal_type;
+		typedef typename I::link_type	link_type; 
+		typedef Index<Node> 		index_type;
+		typedef std::vector<I>::iterator input_iterator;
+		typedef std::vector<O>::iterator output_iterator;
 	private:		
 		static std::atomic<id_type> IDCOUNT;  
 		inline static id_type get_new_ID() 
 			{ return IDCOUNT.fetch_add(1, std::memory_order_relaxed); }
 	
 		std::atomic<id_type> nodeID;
-		std::vector< InPort<link_type> > inputs; //maintain as heaps?
-		std::vector< OutPort<link_type> > outputs;
+		std::vector<input_port_type> inputs; //maintain as heaps?
+		std::vector<output_port_type> outputs;
 		index_type* index; 
 		std::mutex node_mutex;
 		
@@ -84,7 +93,7 @@ namespace ben {
 		Node(const Node& rhs);
 		Node(const Node& rhs, const id_type nID);
 		Node(Node&& rhs); 
-		Node& operator=(const Node& rhs); //duplicates Node, including Links
+		Node& operator=(const Node& rhs); //duplicates Node, including Links but not ID
 		Node& operator=(Node&& rhs);
 		~Node(); 
 		
@@ -114,35 +123,73 @@ namespace ben {
 	}; //Node
 
 	//initialize static members
-	template<typename V, typename S, unsigned int B>
-	Node<V,S,B>::id_type Node<V,S,B>::IDCOUNT = 100000;
+	template<typename I, typename O>
+	Node<I,O>::id_type Node<I,O>::IDCOUNT = 100000;
 	
-	template<typename V, typename S, unsigned int B> Index<Node<V,S,B>> Node<V,S,B>::INDEX;
+	template<typename I, typename O>
+	Index<Node<I,O>> Node<I,O>::INDEX;
 	
-	//typedefs to eliminate third template parameter
+	//typedef to hide default Port and Link choices
 	template<typename V, typename S>
-	using SyncNode = Node<V,S,2>;
+	using stdNode = Node< InPort< PullLink<V,S,2> >, OutPort< PullLink<V,S,2> > >;
 	
-	template<typename V, typename S>
-	using AsyncNode = Node<V,S,1>;
-	
-	//methods
-	template<typename V, typename S, unsigned int B>
-	Node<V,S,B>::Node(const id_type nID) : Node(INDEX, nID) {}
-	
-	template<typename V, typename S, unsigned int B>
-	Node<V,S,B>::Node(index_type& cIndex, const id_type nID) 
+	//methods - constructors
+	template<typename I, typename O>
+	Node<I,O>::Node(index_type& cIndex, const id_type nID) 
 		: nodeID(nID), index(&cIndex) {
 		if( !index->add(*this) ) throw;	//if index already has a node with that ID
 	}
 	
-	template<typename V, typename S, unsigned int B
-	Node<V,S,B>::Node(const Node& rhs) : Node(rhs, get_new_ID()) {}
+	template<typename I, typename O>
+	Node<I,O>::Node(const id_type nID) : Node(Node::INDEX, nID) {}
 	
-	template<typename V, typename S, unsigned int B>
-	Node<V,S,B>::Node(const Node& rhs, const id_type nID) 
+	template<typename I, typename O>
+	Node<I,O>::Node(const Node& rhs) : Node(rhs, get_new_ID()) {}
+	
+	template<typename I, typename O>
+	Node<I,O>::Node(const Node& rhs, const id_type nID) 
 		: Node(*rhs.index, nID) {
 		//make new copies of links	
+	}
+	
+	template<typename I, typename O>
+	Node<I,O>::Node(Node&& rhs) 
+		: nodeID(rhs.nodeID), index(rhs.index), //can't delgate; need Index::update, not Index::add
+		  inputs( std::move(rhs.inputs) ), outputs( std::move(rhs.outputs) ) { 
+		//call Index::update_node
+	}
+	
+	//methods - assignment
+	template<typename I, typename O>
+	Node<I,O>&  Node<I,O>::operator=(const Node& rhs) { //duplicates Node, including Links but not ID
+		node_mutex.lock();
+		if(this != &rhs) {
+			//call Index::move_to
+			nodeID = rhs.nodeID; //call before or after move_to?
+			inputs = std::move( rhs.inputs );
+			outputs = std::move( rhs.outputs );
+		}
+		node_mutex.unlock();
+	}
+	
+	template<typename I, typename O>
+	Node<I,O>&  Node<I,O>::operator=(Node&& rhs) {
+		node_mutex.lock();
+		if(this != &rhs) {
+			//call Index::move_to
+			nodeID = rhs.nodeID;
+			index = rhs.index;
+			//make new copies of links
+		}
+		node_mutex.unlock();
+	}
+	
+	//methods - destructor
+	template<typename I, typename O>
+	~Node<I,O>::Node() {
+		//remove from index
+		//clean up Links
+		//should the node be locked during destruction?
 	}
 	
 } //namespace ben
