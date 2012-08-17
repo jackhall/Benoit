@@ -72,8 +72,8 @@ namespace ben {
 		typedef typename I::signal_type	signal_type;
 		typedef typename I::link_type	link_type; 
 		typedef Index<Node> 		index_type;
-		typedef std::vector<I>::iterator input_iterator;
-		typedef std::vector<O>::iterator output_iterator;
+		typedef typename std::vector<I>::iterator input_iterator;
+		typedef typename std::vector<O>::iterator output_iterator;
 	private:		
 		static std::atomic<id_type> IDCOUNT;  
 		inline static id_type get_new_ID() 
@@ -99,21 +99,29 @@ namespace ben {
 		
 		id_type ID() const { return nodeID.load(std::memory_order_consume); }
 		
+		void lock() { node_mutex.lock(); }
+		bool try_lock() { return node_mutex.try_lock(); }
+		void unlock() { node_mutex.unlock(); }
+		
 		input_iterator  find_input(const id_type address);
 		output_iterator find_output(const id_type address);
 		
-		void add_input(const id_type address, const value_type& value = V());
-		void add_output(const id_type address, const value_type& value = V());
+		bool add_input(const id_type address, const value_type& value = V());
+		bool add_output(const id_type address, const value_type& value = V());
 		
-		void remove_input(const id_type address);
 		void remove_input(const input_iterator iter);
-		void remove_output(const id_type address);
+		void remove_input(const id_type address)
+			{ remove_input( find_input(address) ); }
 		void remove_output(const output_iterator iter);
+		void remove_output(const id_type address);
+			{ remove_output( find_output(address) ); }
 		
 		void clear_inputs(); //should these clean up other nodes?
 		void clear_outputs();
 		
-		//other std::vector methods - assign, swap, size
+		id_type size_inputs() const { return inputs.size(); }
+		id_type size_outputs() const { return outputs.size(); }
+		//other std::vector methods - assign, swap
 		
 		input_iterator  input_begin() 	{ return inputs.begin(); }
 		input_iterator  input_end() 	{ return inputs.end(); }
@@ -162,35 +170,55 @@ namespace ben {
 	//methods - assignment
 	template<typename I, typename O>
 	Node<I,O>&  Node<I,O>::operator=(const Node& rhs) { //duplicates Node, including Links but not ID
-		node_mutex.lock();
 		if(this != &rhs) {
 			//call Index::move_to
 			nodeID = rhs.nodeID; //call before or after move_to?
 			inputs = std::move( rhs.inputs );
 			outputs = std::move( rhs.outputs );
 		}
-		node_mutex.unlock();
 	}
 	
 	template<typename I, typename O>
 	Node<I,O>&  Node<I,O>::operator=(Node&& rhs) {
-		node_mutex.lock();
 		if(this != &rhs) {
 			//call Index::move_to
 			nodeID = rhs.nodeID;
 			index = rhs.index;
 			//make new copies of links
 		}
-		node_mutex.unlock();
 	}
 	
 	//methods - destructor
 	template<typename I, typename O>
-	~Node<I,O>::Node() {
+	Node<I,O>::~Node() {
 		//remove from index
 		//clean up Links
-		//should the node be locked during destruction?
+		//should the node be locked during destruction? maybe use lock_guard?
 	}
+	
+	template<typename I, typename O>
+	input_iterator Node<I,O>::find_input(const id_type address) {}
+	
+	template<typename I, typename O>
+	output_iterator Node<I,O>::find_output(const id_type address) {}
+	
+	template<typename I, typename O>
+	bool Node<I,O>::add_input(const id_type address, const value_type& value = V()) {}
+	
+	template<typename I, typename O>
+	bool Node<I,O>::add_output(const id_type address, const value_type& value = V()) {}
+	
+	template<typename I, typename O>
+	void Node<I,O>::remove_input(const input_iterator iter) {}
+	
+	template<typename I, typename O>
+	void Node<I,O>::remove_output(const output_iterator iter) {}
+	
+	template<typename I, typename O>
+	void Node<I,O>::clear_inputs() {}
+	
+	template<typename I, typename O>
+	void Node<I,O>::clear_outputs() {}
 	
 } //namespace ben
 

@@ -46,18 +46,20 @@ namespace ben {
 		typedef size_t	size_type;
 		typedef typename N::id_type id_type;
 	private:
-		std::map<id_type, pointer> IDMap; 
-		Commons lock; 
+		std::map<id_type, pointer> IDMap;
 		
 		void update_all();
 		
 	public:
+		Commons lock; 
+	
 		Index()=default;
-		~Index(); //transfers all Nodes to that class's static Index
 		Index(const Index& rhs) = delete;
 		Index(Index&& rhs); //use move semantics to transfer all Nodes
 		Index& operator=(const Index& rhs) = delete; //make unique copy of all Nodes? no
 		Index& operator=(Index&& rhs);
+		~Index(); //transfers all Nodes to that class's static Index
+		
 		reference find(const id_type address) const;
 		bool contains(const id_type address) const;
 		
@@ -70,24 +72,20 @@ namespace ben {
 		void swap_with(Index& other); //all Nodes
 		void merge_into(Index& other); 
 		
-		//Can an iterator be thread-safe? It doesn't seem like it. 
 		class iterator : public std::iterator<std::bidirectional_iterator_tag, node_type> {
 		private:
 			typename std::map<id_type, pointer>::iterator current;
-			//ScopedReadLock scoped_lock; //to keep map from being changed during iteration
-							//but can't use iterator to write Index, because
-							//the write lock can't be acquired! Better: make
-							//Index lock public and trust client code to 
-							//acquire it
 			friend class Index;
 			iterator(const typename std::map<id_type, pointer>::iterator iNode);
-		public:
 			
+		public:
 			iterator() = default;
+			iterator(const iterator& rhs) = default;
+			iterator& operator=(const iterator& rhs) = default;
+			~iterator() = default;
 			
 			reference operator*() const { return *(current->second); } 
 			pointer operator->() const { return current->second; }
-			id_type address() { return current->first; } //is this accessible from python?
 			
 			iterator& operator++();
 			iterator  operator++(int);
@@ -103,6 +101,33 @@ namespace ben {
 		iterator begin() { return iterator( IDMap.begin() ); }
 		iterator end()   { return iterator( IDMap.end() ); }
 	}; //class Index
+	
+	template<typename N> 
+	void Index<N>::update_all();
+	
+	template<typename N> 
+	reference Index<N>::find(const id_type address) const;
+	
+	template<typename N> 
+	bool Index<N>::contains(const id_type address) const;
+	
+	template<typename N> 
+	bool Index<N>::add(node_type& node); 
+	
+	template<typename N> 
+	void Index<N>::remove(const id_type address);  
+	
+	template<typename N> 
+	bool Index<N>::update_node(node_type& node); 
+	
+	template<typename N> 
+	void Index<N>::move_to(Index& destination, const id_type address); 
+	
+	template<typename N> 
+	void Index<N>::swap_with(Index& other); 
+	
+	template<typename N> 
+	void Index<N>::merge_into(Index& other); 
 	
 } //namespace ben
 
