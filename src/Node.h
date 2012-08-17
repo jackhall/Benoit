@@ -74,7 +74,7 @@ namespace ben {
 		typedef Index<Node> 		index_type;
 		typedef typename std::vector<I>::iterator input_iterator;
 		typedef typename std::vector<O>::iterator output_iterator;
-	private:		
+	private:
 		static std::atomic<id_type> IDCOUNT;  
 		inline static id_type get_new_ID() 
 			{ return IDCOUNT.fetch_add(1, std::memory_order_relaxed); }
@@ -84,6 +84,8 @@ namespace ben {
 		std::vector<output_port_type> outputs;
 		index_type* index; 
 		std::mutex node_mutex;
+		
+		friend class Index<Node>;
 		
 	public:
 		static index_type INDEX;
@@ -98,6 +100,7 @@ namespace ben {
 		~Node(); 
 		
 		id_type ID() const { return nodeID.load(std::memory_order_consume); }
+		index_type& get_index() { return *index; }
 		
 		void lock() { node_mutex.lock(); }
 		bool try_lock() { return node_mutex.try_lock(); }
