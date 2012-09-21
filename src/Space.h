@@ -29,7 +29,7 @@
 #include "Commons.h"
 #include "ContinuousPoint.h"
 
-namespace eiffel {
+namespace ben {
 
 	template<unsigned short N>
 	class ContinuousSpace : public wayne::Commons {
@@ -355,7 +355,7 @@ namespace eiffel {
 		}
 		return output;
 	}
-} //namespace eiffel
+} //namespace ben
 
 #endif
 

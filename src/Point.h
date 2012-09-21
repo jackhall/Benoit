@@ -24,9 +24,9 @@
 #include <array>
 #include <atomic>
 #include <initializer_list>
-#include "Point.h"
+#include "Point.h" 
 
-namespace eiffel {
+namespace ben {
 	
 	template<unsigned short N>
 	class IDPoint : public wayne::Point<double,N> {
@@ -181,7 +181,7 @@ namespace eiffel {
 	
 	template<unsigned short N> ContinuousSpace<N> ContinuousPoint<N>::SPACE;
 	
-} //namespace eiffel
+} //namespace ben
 
 #endif
 
