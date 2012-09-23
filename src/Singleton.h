@@ -23,11 +23,12 @@
 
 namespace ben {
 	
+	template<typename I>
 	class Singleton {
 	public:
-		typedef Singleton self_type;
-		typedef Index<self_type> index_type;
-		typedef unsigned int id_type;
+		typedef Singleton 	self_type;
+		typedef I 		index_type;
+		typedef unsigned int 	id_type;
 	private:
 		static std::atomic<id_type> IDCOUNT;  
 		inline static id_type get_new_ID() { return IDCOUNT.fetch_add(1); }
@@ -35,6 +36,7 @@ namespace ben {
 	protected:
 		id_type uniqueID;
 		index_type* index;
+		//std::mutex?
 		
 		void update_index(index_type* ptr) { index = ptr; }
 		
@@ -60,6 +62,7 @@ namespace ben {
 		}
 		virtual ~Singleton() { if(managed()) index->remove(uniqueID); }
 		
+		bool operator<(const self_type& rhs) { return uniqueID < rhs.uniqueID; }
 		bool managed() const { return index != nullptr; }
 		const index_type& get_index() const { 
 			if(index != nullptr) return *index;

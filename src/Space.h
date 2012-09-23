@@ -1,5 +1,5 @@
-#ifndef ContinuousSpace_h
-#define ContinuousSpace_h
+#ifndef BenoitSpace_h
+#define BenoitSpace_h
 
 /*
 	Eiffel: the simulation of a self-organizing network of trusses

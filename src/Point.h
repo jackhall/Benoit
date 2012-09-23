@@ -1,5 +1,5 @@
-#ifndef ContinuousPoint_h
-#define ContinuousPoint_h
+#ifndef BenoitPoint_h
+#define BenoitPoint_h
 
 /*
 	Eiffel: the simulation of a self-organizing network of trusses
@@ -27,9 +27,9 @@
 #include "Point.h" 
 
 namespace ben {
-	
+	/*
 	template<unsigned short N>
-	class IDPoint : public wayne::Point<double,N> {
+	class PointAlias : public wayne::Point<double,N> {
 	public:
 		typedef unsigned int id_type;
 		typedef double coordinate_type;	
@@ -37,7 +37,7 @@ namespace ben {
 	
 	private:
 		template<unsigned short M=0, typename dummy=void> struct compareLT {
-			static bool call(const IDPoint& one, const IDPoint& two) {
+			static bool call(const PointAlias& one, const PointAlias& two) {
 				if( one.template elem<M>() < two.template elem<M>() ) {
 					return true;
 				} else if( one.template elem<M>() > two.template elem<M>() ) {
@@ -47,7 +47,7 @@ namespace ben {
 		};
 		
 		template<typename dummy> struct compareLT<N-1,dummy> {
-			static bool call(const IDPoint& one, const IDPoint& two) {
+			static bool call(const PointAlias& one, const PointAlias& two) {
 				if( one.template elem<N-1>() < two.template elem<N-1>() ) {
 					return true;
 				} else if( one.template elem<N-1>() > two.template elem<N-1>() ) {
@@ -60,13 +60,13 @@ namespace ben {
 		id_type pointID;
 		
 	public:
-		IDPoint() : base_type(), pointID(0) {}
-		explicit IDPoint(const id_type nID) : base_type(), pointID(nID) {} //empty set
-		IDPoint(std::initializer_list<coordinate_type> coords, const id_type nID)
+		PointAlias() : base_type(), pointID(0) {}
+		explicit PointAlias(const id_type nID) : base_type(), pointID(nID) {} //empty set
+		PointAlias(std::initializer_list<coordinate_type> coords, const id_type nID)
 			: base_type(coords), pointID(nID) {}
-		IDPoint(const IDPoint& rhs) : base_type(rhs), pointID(rhs.pointID) {}
-		IDPoint& operator=(const IDPoint& rhs) = default;
-		virtual ~IDPoint() noexcept = default;
+		PointAlias(const PointAlias& rhs) : base_type(rhs), pointID(rhs.pointID) {}
+		PointAlias& operator=(const PointAlias& rhs) = default;
+		virtual ~PointAlias() noexcept = default;
 		
 		bool operator<(const id_type& id) const { //can this be used by stl containers?
 			return pointID < id;
@@ -76,31 +76,22 @@ namespace ben {
 			return base_type::operator[](0) < x;
 		}
 		
-		bool operator<(const IDPoint& rhs) const {
+		bool operator<(const PointAlias& rhs) const {
 			return compareLT<>::call(*this, rhs);
 		}
 		
 		id_type ID() const { return pointID; }
 	}; 
-	
-	
-	template<unsigned short N> class ContinuousSpace; //need inheritance for forward declaration?
+	*/
 	
 	template<unsigned short N>
-	class ContinuousPoint : public IDPoint<N> {
+	class Point : public wayne::Point<double,N>, public Singleton<Space<Point>> {
 	public:
 		typedef ContinuousSpace<N> space_type;
-		typedef IDPoint<N> base_type;
+		typedef PointAlias<N> base_type;
 		typedef typename base_type::id_type id_type;
 		typedef typename base_type::coordinate_type coordinate_type;
 	private:
-		static std::atomic<id_type> IDCOUNT;  
-		inline static id_type get_new_ID() 
-			{ return IDCOUNT.fetch_add(1, std::memory_order_relaxed); }
-	
-		space_type* space;
-		std::mutex point_mutex;
-		
 		void add_to_space() {
 			//space.write_lock(); should client code be responsible for this?
 			if( !(space->add_point(this)) ) space = nullptr;

@@ -58,53 +58,44 @@ namespace ben {
 	*/
 	
 	template<typename I, typename O>
-	class Node {
+	class Node : public Singleton<Graph<Node>> {
 	public:
 		static_assert(std::is_same<I::link_type, O::link_type>::value);
 		static_assert(std::is_same<I::value_type, O::value_type>::value);
 		static_assert(std::is_same<I::signal_type, O::signal_type>::value);
 		static_assert(std::is_same<I::id_type, O::id_type>::value);
 		
+		typedef Node self_type;
 		typedef I input_port_type;
 		typedef O output_port_type;
 		typedef typename I::id_type	id_type;
 		typedef typename I::value_type 	value_type;
 		typedef typename I::signal_type	signal_type;
 		typedef typename I::link_type	link_type; 
-		typedef Index<Node> 		index_type;
+		typedef Graph<Node> 		index_type;
 		typedef typename std::vector<I>::iterator input_iterator;
 		typedef typename std::vector<O>::iterator output_iterator;
-	private:
-		static std::atomic<id_type> IDCOUNT;  
-		inline static id_type get_new_ID() 
-			{ return IDCOUNT.fetch_add(1, std::memory_order_relaxed); }
-	
-		std::atomic<id_type> nodeID;
+		
+	private:	
 		std::vector<input_port_type> inputs; //maintain as heaps?
 		std::vector<output_port_type> outputs;
-		index_type* index; 
-		std::mutex node_mutex;
-		
-		friend class Index<Node>;
+		//std::mutex node_mutex;
 		
 	public:
 		static index_type INDEX;
 		
 		explicit Node(const id_type nID=get_new_ID())
 		explicit Node(index_type& cIndex, const id_type nID = get_new_ID());
-		Node(const Node& rhs);
-		Node(const Node& rhs, const id_type nID);
-		Node(Node&& rhs); 
-		Node& operator=(const Node& rhs); //duplicates Node, including Links but not ID
-		Node& operator=(Node&& rhs);
+		Node(const self_type& rhs);
+		Node(const self_type& rhs, const id_type nID);
+		Node(self_type&& rhs); 
+		Node& operator=(const self_type& rhs); //duplicates Node, including Links but not ID
+		Node& operator=(self_type&& rhs);
 		~Node(); 
 		
-		id_type ID() const { return nodeID.load(std::memory_order_consume); }
-		index_type& get_index() { return *index; }
-		
-		void lock() { node_mutex.lock(); }
-		bool try_lock() { return node_mutex.try_lock(); }
-		void unlock() { node_mutex.unlock(); }
+		//void lock() { node_mutex.lock(); }
+		//bool try_lock() { return node_mutex.try_lock(); }
+		//void unlock() { node_mutex.unlock(); }
 		
 		input_iterator  find_input(const id_type address);
 		output_iterator find_output(const id_type address);
