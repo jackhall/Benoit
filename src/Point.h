@@ -27,12 +27,12 @@
 #include "Point.h" 
 
 namespace ben {
-	/*
-	template<unsigned short N>
+	
+	template<typename T, unsigned short N>
 	class PointAlias : public wayne::Point<double,N> {
 	public:
 		typedef unsigned int id_type;
-		typedef double coordinate_type;	
+		typedef T coordinate_type;	
 		typedef wayne::Point<double,N> base_type;
 	
 	private:
@@ -68,77 +68,37 @@ namespace ben {
 		PointAlias& operator=(const PointAlias& rhs) = default;
 		virtual ~PointAlias() noexcept = default;
 		
-		bool operator<(const id_type& id) const { //can this be used by stl containers?
-			return pointID < id;
-		}
-		
-		bool operator<(const coordinate_type& x) const { //can this be used by stl containers?
-			return base_type::operator[](0) < x;
-		}
-		
 		bool operator<(const PointAlias& rhs) const {
 			return compareLT<>::call(*this, rhs);
 		}
-		
-		id_type ID() const { return pointID; }
 	}; 
-	*/
 	
-	template<unsigned short N>
-	class Point : public wayne::Point<double,N>, public Singleton<Space<Point>> {
-	public:
-		typedef ContinuousSpace<N> space_type;
-		typedef PointAlias<N> base_type;
-		typedef typename base_type::id_type id_type;
-		typedef typename base_type::coordinate_type coordinate_type;
-	private:
-		void add_to_space() {
-			//space.write_lock(); should client code be responsible for this?
-			if( !(space->add_point(this)) ) space = nullptr;
-			//space.write_unlock();
-		}
-		
-		void update_space(space_type* new_space) {
-			//point_mutex.lock();
-			space = new_space;
-			//point_mutex.unlock();
-		}
-		
-		friend class ContinuousSpace<N>;
-		
-	public:
-		static space_type SPACE;
-		
-		explicit ContinuousPoint(const id_type nID=get_new_ID())
-			: space(&ContinuousPoint::SPACE), base_type(nID) {
-			add_to_space();
-		} 
-		explicit ContinuousPoint(std::initializer_list<coordinate_type> coords, 
-					 const id_type nID=get_new_ID())
-			: ContinuousPoint(ContinuousPoint::SPACE, coords, nID) {}
-		explicit ContinuousPoint(space_type& cSpace, 
-					 const id_type nID=get_new_ID())
-			: space(&cSpace), base_type(nID) {
-			add_to_space();
-		} 
-		ContinuousPoint(space_type& cSpace, 
-				std::initializer_list<coordinate_type> coords, 
-				const id_type nID=get_new_ID()) 
-			: base_type(coords, nID), space(&cSpace) {
-			add_to_space();
-		}
-		ContinuousPoint(const ContinuousPoint& rhs)
-			: ContinuousPoint(rhs, get_new_ID()) {}
-		ContinuousPoint(const ContinuousPoint& rhs, const id_type nID)
-			: base_type(rhs), space(rhs.space) {
-			base_type::pointID = nID;
-			add_to_space();
-		}
-		ContinuousPoint(const base_type& rhs) 
-			: base_type(rhs), space(&SPACE) {
-			add_to_space();
-		}
-		ContinuousPoint& operator=(const ContinuousPoint& rhs) {
+	
+	template<typename T, unsigned short N>
+	struct Point : public wayne::Point<T,N>, public Singleton<Space<Point>> {
+	
+		typedef wayne::Point<T,N> point_type;
+		typedef Singleton<Space<Point>> singleton_type;
+		typedef typename singleton_type::id_type id_type;
+		typedef T coordinate_type;
+
+		explicit Point(index_type& space) 
+			: singleton_type(space), point_type() {}
+		Point(index_type& space, const id_type id)
+			: singleton_type(space, id), point_type() {} 
+		Point(index_type& space, std::initializer_list<coordinate_type> coords)
+			: singleton_type(space), point_type(coords) {}
+		Point(index_type& space, std::initializer_list<coordinate_type> coords, const id_type id) 
+			: singleton_type(space, id), point_type(coords) {}
+		Point(const Point& rhs)
+			: singleton_type(*rhs.index), point_type(rhs) {}
+		Point(const Point& rhs, const id_type id)
+			: singleton_type(*rhs.index, id), point_type(rhs) {}
+		Point(index_type& space, const PointAlias& alias) 
+			: singleton_type(space), point_type(alias) {}
+		Point(index_type& space, const PointAlias& alias, const id_Type id) 
+			: singleton_type(space, id), point_type(alias) {}
+		Point& operator=(const Point& rhs) {
 			if(this != &rhs) {
 				id_type old_id = base_type::ID();
 				base_type::operator=(rhs);
@@ -148,29 +108,19 @@ namespace ben {
 			}
 			return *this;
 		}
-		ContinuousPoint& operator=(const base_type& rhs) {
+		Point& operator=(const base_type& rhs) {
 			if(this != &rhs) { 
 				base_type::operator=(rhs);
 			}
 			return *this;
 		}
-		virtual ~ContinuousPoint() noexcept {
-			if(space != nullptr) space->remove_point(base_type::pointID);
-		}
+		virtual ~Point() = default;
 		
-		space_type& get_space() { return *space; } 
+		//void lock() { point_mutex.lock(); }
+		//bool try_lock() { return point_mutex.try_lock(); }
+		//void unlock() { point_mutex.unlock(); }
 		
-		void lock() { point_mutex.lock(); }
-		bool try_lock() { return point_mutex.try_lock(); }
-		void unlock() { point_mutex.unlock(); }
-		
-	}; //class ContinuousPoint
-	
-	//initialize static members
-	template<unsigned short N>
-	std::atomic<typename ContinuousPoint<N>::id_type> ContinuousPoint<N>::IDCOUNT(100000);
-	
-	template<unsigned short N> ContinuousSpace<N> ContinuousPoint<N>::SPACE;
+	}; //class Point
 	
 } //namespace ben
 

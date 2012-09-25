@@ -1,0 +1,3 @@
+[submodule "Wayne"]
+	path = Wayne
+	url = git@github.com:jackhall/Wayne.git

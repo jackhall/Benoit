@@ -82,9 +82,6 @@ namespace ben {
 		//std::mutex node_mutex;
 		
 	public:
-		static index_type INDEX;
-		
-		explicit Node(const id_type nID=get_new_ID())
 		explicit Node(index_type& cIndex, const id_type nID = get_new_ID());
 		Node(const self_type& rhs);
 		Node(const self_type& rhs, const id_type nID);
@@ -123,10 +120,6 @@ namespace ben {
 		output_iterator output_end() 	{ return outputs.end(); }
 		
 	}; //Node
-
-	//initialize static members
-	template<typename I, typename O>
-	Node<I,O>::id_type Node<I,O>::IDCOUNT = 100000;
 	
 	template<typename I, typename O>
 	Index<Node<I,O>> Node<I,O>::INDEX;

@@ -31,18 +31,17 @@
 
 namespace ben {
 
-	template<unsigned short N>
-	class ContinuousSpace : public wayne::Commons {
+	template<typename T, unsigned short N>
+	class Space : public Index<Point<T,N>> {
 	public:
-		typedef unsigned int id_type;
-		typedef double coordinate_type;
-		typedef ContinuousPoint<N> local_type;
-		typedef IDPoint<N> point_type;
+		typedef T coordinate_type;
+		typedef Point<T,N> local_type;
+		typedef PointAlias<T,N> point_type;
 		typedef wayne::Point<double,N> raw_point_type;
 		typedef typename std::set<point_type>::iterator iterator;
 		static const unsigned short dimensions = N;
 	private:
-		typedef ContinuousSpace self_type;
+		typedef Space self_type;
 		
 		//TMP tricks - these are kind of awkward for weird compilation reasons,
 		//but they remove increment and comparison computions from loops
@@ -124,10 +123,10 @@ namespace ben {
 		void update_all_points();
 		
 	public:
-		ContinuousSpace() = default;
-		~ContinuousSpace();
-		ContinuousSpace(const self_type& rhs) = delete;
-		ContinuousSpace(self_type&& rhs);
+		Space() = default;
+		~Space();
+		Space(const self_type& rhs) = delete;
+		Space(self_type&& rhs);
 		self_type& operator=(const self_type& rhs) = delete;
 		self_type& operator=(self_type&& rhs);
 		
@@ -159,17 +158,17 @@ namespace ben {
 		iterator begin() { return points.begin(); }
 		iterator end()   { return points.end(); }
 		//need closest point for search? might have to do voronoi partitions
-	}; //class ContinuousSpace
+	}; //class Space
 
 	
 	template<unsigned short N>
-	ContinuousSpace<N>::ContinuousSpace(ContinuousSpace&& rhs)
+	Space<N>::Space(Space&& rhs)
 		: points( std::move(rhs.points) ), index( std::move(rhs.index) ) {
 		update_all_points();
 	}
 	
 	template<unsigned short N>
-	ContinuousSpace<N>& ContinuousSpace<N>::operator=(ContinuousSpace&& rhs) {
+	Space<N>& Space<N>::operator=(Space&& rhs) {
 		if(this != &rhs && this != &local_type::SPACE) {
 			merge_into(local_type::SPACE);
 			points = std::move(rhs.points);
@@ -179,12 +178,12 @@ namespace ben {
 	}
 	
 	template<unsigned short N>
-	ContinuousSpace<N>::~ContinuousSpace() {
+	Space<N>::~Space() {
 		if(this != &local_type::SPACE) merge_into(local_type::SPACE); 
 	}
 	
 	template<unsigned short N>
-	void ContinuousSpace<N>::update_all_points() {
+	void Space<N>::update_all_points() {
 		auto it = index.begin();
 		auto ite = index.end();
 		while(it != ite) {
@@ -194,7 +193,7 @@ namespace ben {
 	}
 
 	template<unsigned short N>
-	void ContinuousSpace<N>::update_data() {
+	void Space<N>::update_data() {
 		points.clear();
 	
 		auto it = index.begin();
@@ -206,7 +205,7 @@ namespace ben {
 	}
 	
 	template<unsigned short N>
-	typename ContinuousSpace<N>::iterator ContinuousSpace<N>::find(const id_type address) {
+	typename Space<N>::iterator Space<N>::find(const id_type address) {
 		auto it = points.begin();
 		auto ite = points.end();
 		while(it != ite) {
@@ -216,7 +215,7 @@ namespace ben {
 	}
 	
 	template<unsigned short N>
-	bool ContinuousSpace<N>::add_point(local_type* point_ptr) {
+	bool Space<N>::add_point(local_type* point_ptr) {
 		id_type id = point_ptr->ID();
 		if(index.find(id) == index.end()) { //check if that ID already appears
 			points.insert(*point_ptr);
@@ -226,8 +225,8 @@ namespace ben {
 	}
 	
 	template<unsigned short N>
-	bool ContinuousSpace<N>::update_point(const id_type address, local_type* point_ptr) {
-		auto it = index.find(address);
+	bool Space<N>::update_point(const id_type address, local_type* point_ptr) {
+		auto it = index.find(address);Space
 		if(it != index.end()) {
 			it->second = point_ptr;
 			return true;
@@ -235,7 +234,7 @@ namespace ben {
 	}
 	
 	template<unsigned short N>
-	bool ContinuousSpace<N>::remove_point(const id_type address) {
+	bool Space<N>::remove_point(const id_type address) {
 		auto it = index.find(address);
 		if(it != index.end()) {
 			auto point_ptr = it->second;
@@ -248,7 +247,7 @@ namespace ben {
 	}
 	
 	template<unsigned short N>
-	bool ContinuousSpace<N>::move_to(ContinuousSpace& destination, const id_type address) {
+	bool Space<N>::move_to(Space& destination, const id_type address) {
 		auto it = index.find(address);
 		if(it != index.end()) {
 			if(destination.add_point(it->second)) {
@@ -259,7 +258,7 @@ namespace ben {
 	}
 	
 	template<unsigned short N>
-	void ContinuousSpace<N>::swap_with(ContinuousSpace& other) {
+	void Space<N>::swap_with(Space& other) {
 		auto temp_index = std::move(index);
 		auto temp_points = std::move(points);
 		
@@ -274,7 +273,7 @@ namespace ben {
 	}
 	
 	template<unsigned short N>
-	bool ContinuousSpace<N>::merge_into(ContinuousSpace& other) {
+	bool Space<N>::merge_into(Space& other) {
 		auto it = points.begin();
 		auto ite = points.end();
 		typename std::map<id_type, local_type*>::iterator index_iter;
@@ -289,7 +288,7 @@ namespace ben {
 	}
 	
 	template<unsigned short N>
-	void ContinuousSpace<N>::clear() {
+	void Space<N>::clear() {
 		auto it = index.begin();
 		auto ite = index.end();
 		while(it != ite) {
@@ -301,8 +300,8 @@ namespace ben {
 	}
 	
 	template<unsigned short N>
-	std::set<typename ContinuousSpace<N>::point_type> 
-		ContinuousSpace<N>::in_region(const wayne::Region<double,N> region) const {
+	std::set<typename Space<N>::point_type> 
+		Space<N>::in_region(const wayne::Region<double,N> region) const {
 		
 		point_type lower_point, upper_point;
 		get_low_point<N>::call(region, lower_point);
@@ -311,17 +310,17 @@ namespace ben {
 		auto lower_iter = points.lower_bound(lower_point);
 		auto upper_iter = points.upper_bound(upper_point);
 		
-		std::set<ContinuousSpace::point_type> output;
+		std::set<Space::point_type> output;
 		while(lower_iter != upper_iter) {
 			if( region.inside(*lower_iter) ) output.insert(*lower_iter); 
-			++lower_iter;
+			++lower_iter;Space
 		}
 		return output;
 	}
 	
 	template<unsigned short N>
-	std::set<typename ContinuousSpace<N>::point_type> 
-		ContinuousSpace<N>::within(const raw_point_type pt, 
+	std::set<typename Space<N>::point_type> 
+		Space<N>::within(const raw_point_type pt, 
 					   const double radius) const {
 		wayne::Region<double,N> region;
 		get_region_around<N>(pt, radius, region);
@@ -337,8 +336,8 @@ namespace ben {
 	}
 	
 	template<unsigned short N>
-	typename ContinuousSpace<N>::point_type 
-		ContinuousSpace<N>::closest_to(const raw_point_type pt) const {
+	typename Space<N>::point_type 
+		Space<N>::closest_to(const raw_point_type pt) const {
 		//should probably do voronoi partitions
 		//but for now just search linearly
 		auto it = points.begin();

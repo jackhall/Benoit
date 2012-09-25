@@ -30,6 +30,7 @@ namespace ben {
 	
 	template<typename W, typename S>
 	Index<W,S>& Index<W,S>::operator=(Index&& rhs) {
+		//what if this is Node<W,S>::INDEX?
 		merge_into(Node<W,S>::INDEX); //keeps old network valid
 		IDMap = std::move(rhs.IDMap);
 		update_all();

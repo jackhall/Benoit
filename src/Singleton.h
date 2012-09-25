@@ -62,14 +62,14 @@ namespace ben {
 		}
 		virtual ~Singleton() { if(managed()) index->remove(uniqueID); }
 		
-		bool operator<(const self_type& rhs) { return uniqueID < rhs.uniqueID; }
+		virtual bool operator<(const self_type& rhs) { return uniqueID < rhs.uniqueID; }
 		bool managed() const { return index != nullptr; }
 		const index_type& get_index() const { 
 			if(index != nullptr) return *index;
 			else throw; //define a custom exception for this? 
 		}
 		id_type ID() const { return uniqueID; }
-		//resetID method?
+		//resetID method? not for now
 	}; //class Singleton
 	
 } //namespace ben
