@@ -39,6 +39,17 @@ namespace ben {
 		//std::mutex?
 		
 		void update_index(index_type* ptr) { index = ptr; }
+		bool switch_index(index_type* ptr) {
+			if( !(ptr->contains(uniqueID)) )
+				if(index != nullptr) 
+					if( !(index->remove(uniqueID)) ) throw; //index did not manage this
+				index = ptr;
+				index->add(uniqueID);
+				return true;
+			} else return false;
+		}
+		
+		friend class Index<Singleton>; //probably circular with similar statement in Index
 		
 	public:
 		Singleton(const id_type nID=get_new_ID())
@@ -54,7 +65,10 @@ namespace ben {
 		}
 		self_type& operator=(self_type&& rhs) {
 			if(this != &rhs) {
+				if(index != nullptr) 
+					if( !(index->remove(uniqueID)) ) throw;
 				uniqueID = rhs.uniqueID;
+				index = rhs.index;
 				if( !update_singleton(this) ) throw; //define a custom exception?
 				rhs.index = nullptr;
 			} 

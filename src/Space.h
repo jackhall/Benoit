@@ -118,7 +118,6 @@ namespace ben {
 		
 		
 		std::set<point_type> points;
-		std::map<id_type, local_type*> index;
 		
 		void update_all_points();
 		

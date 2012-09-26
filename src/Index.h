@@ -48,9 +48,11 @@ namespace ben {
 	protected:
 		std::map<id_type, pointer> index;
 		
-		virtual bool update_singleton(pointer x); //makes sure if Node is listed and has an up-to-date pointer
+		virtual bool update_singleton(pointer x); //makes sure *x is listed and has an up-to-date pointer
 		void update_all() 
 			{ std::for_each(begin(), end(), [](reference x) { x.update_index(this); }); }
+		
+		friend class Singleton<Index>;
 		
 	public:	
 		Index()=default;

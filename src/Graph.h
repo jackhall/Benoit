@@ -38,7 +38,7 @@ namespace ben {
 	*/
 	
 	template<typename N> 
-	class Graph : public Graph<N> {
+	class Graph : public Index<N> {
 	public:
 		typedef N 	node_type;
 		typedef N* 	pointer;

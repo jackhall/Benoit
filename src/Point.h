@@ -82,6 +82,7 @@ namespace ben {
 		typedef typename singleton_type::id_type id_type;
 		typedef T coordinate_type;
 
+		Point() = default;
 		explicit Point(index_type& space) 
 			: singleton_type(space), point_type() {}
 		Point(index_type& space, const id_type id)
@@ -100,17 +101,14 @@ namespace ben {
 			: singleton_type(space, id), point_type(alias) {}
 		Point& operator=(const Point& rhs) {
 			if(this != &rhs) {
-				id_type old_id = base_type::ID();
-				base_type::operator=(rhs);
-				if(space==nullptr) base_type::pointID = get_new_ID();
-				else base_type::pointID = old_id; //keep old_id if it was valid before
-				space->move_to(*rhs.space, this->ID());
+				if( switch_index(rhs.index) ) point_type::operator=(rhs);
+				//else reset id?
 			}
 			return *this;
 		}
-		Point& operator=(const base_type& rhs) {
+		Point& operator=(const point_type& rhs) {
 			if(this != &rhs) { 
-				base_type::operator=(rhs);
+				point_type::operator=(rhs);
 			}
 			return *this;
 		}

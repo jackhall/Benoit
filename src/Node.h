@@ -58,21 +58,22 @@ namespace ben {
 	*/
 	
 	template<typename I, typename O>
-	class Node : public Singleton<Graph<Node>> {
+	class Node : public Singleton<Graph<Node>> { //is this use of templates circular/illegal?
 	public:
 		static_assert(std::is_same<I::link_type, O::link_type>::value);
 		static_assert(std::is_same<I::value_type, O::value_type>::value);
 		static_assert(std::is_same<I::signal_type, O::signal_type>::value);
 		static_assert(std::is_same<I::id_type, O::id_type>::value);
 		
-		typedef Node self_type;
-		typedef I input_port_type;
-		typedef O output_port_type;
+		typedef Node 			self_type;
+		typedef Graph<Node> 		index_type;
+		typedef Singleton<index_type> 	base_type;
+		typedef I 			input_port_type;
+		typedef O 			output_port_type;
 		typedef typename I::id_type	id_type;
 		typedef typename I::value_type 	value_type;
 		typedef typename I::signal_type	signal_type;
 		typedef typename I::link_type	link_type; 
-		typedef Graph<Node> 		index_type;
 		typedef typename std::vector<I>::iterator input_iterator;
 		typedef typename std::vector<O>::iterator output_iterator;
 		
@@ -81,10 +82,15 @@ namespace ben {
 		std::vector<output_port_type> outputs;
 		//std::mutex node_mutex;
 		
+		bool clone_links(const self_type& other);
+		
 	public:
-		explicit Node(index_type& cIndex, const id_type nID = get_new_ID());
-		Node(const self_type& rhs);
-		Node(const self_type& rhs, const id_type nID);
+		Node() = default;
+		explicit Node(const id_type id) : base_type(id) {}
+		explicit Node(index_type& graph) : base_type(graph) {}
+		Node(index_type& graph, const id_type id) : base_type(graph, id) {}
+		Node(const self_type& rhs); //copyable?
+		Node(const self_type& rhs, const id_type id);
 		Node(self_type&& rhs); 
 		Node& operator=(const self_type& rhs); //duplicates Node, including Links but not ID
 		Node& operator=(self_type&& rhs);
@@ -109,6 +115,7 @@ namespace ben {
 		
 		void clear_inputs(); //should these clean up other nodes?
 		void clear_outputs();
+		void clear() { clear_inputs(); clear_outputs(); }
 		
 		id_type size_inputs() const { return inputs.size(); }
 		id_type size_outputs() const { return outputs.size(); }
@@ -121,66 +128,54 @@ namespace ben {
 		
 	}; //Node
 	
-	template<typename I, typename O>
-	Index<Node<I,O>> Node<I,O>::INDEX;
-	
 	//typedef to hide default Port and Link choices
 	template<typename V, typename S>
 	using stdNode = Node< InPort< PullLink<V,S,2> >, OutPort< PullLink<V,S,2> > >;
 	
 	//methods - constructors
 	template<typename I, typename O>
-	Node<I,O>::Node(index_type& cIndex, const id_type nID) 
-		: nodeID(nID), index(&cIndex) {
-		if( !index->add(*this) ) throw;	//if index already has a node with that ID
+	Node<I,O>::Node(const Node& rhs) : base_type(*rhs.index) {
+		if( !clone_links(rhs) ) clear(); //should never happen
 	}
 	
 	template<typename I, typename O>
-	Node<I,O>::Node(const id_type nID) : Node(Node::INDEX, nID) {}
-	
-	template<typename I, typename O>
-	Node<I,O>::Node(const Node& rhs) : Node(rhs, get_new_ID()) {}
-	
-	template<typename I, typename O>
-	Node<I,O>::Node(const Node& rhs, const id_type nID) 
-		: Node(*rhs.index, nID) {
-		//make new copies of links	
+	Node<I,O>::Node(const Node& rhs, const id_type nID) : base_type(*rhs.index, nID) {
+		if( !clone_links(rhs) ) clear(); //should never happen
 	}
 	
 	template<typename I, typename O>
 	Node<I,O>::Node(Node&& rhs) 
 		: nodeID(rhs.nodeID), index(rhs.index), //can't delgate; need Index::update, not Index::add
 		  inputs( std::move(rhs.inputs) ), outputs( std::move(rhs.outputs) ) { 
-		//call Index::update_node
+		update_singleton(this);
 	}
 	
 	//methods - assignment
 	template<typename I, typename O>
 	Node<I,O>&  Node<I,O>::operator=(const Node& rhs) { //duplicates Node, including Links but not ID
 		if(this != &rhs) {
-			//call Index::move_to
-			nodeID = rhs.nodeID; //call before or after move_to?
-			inputs = std::move( rhs.inputs );
-			outputs = std::move( rhs.outputs );
+			clear();
+			switch_index(rhs.index);
+			if( !clone_links(rhs) ) clear(); //should never happen
 		}
 	}
 	
 	template<typename I, typename O>
 	Node<I,O>&  Node<I,O>::operator=(Node&& rhs) {
 		if(this != &rhs) {
-			//call Index::move_to
-			nodeID = rhs.nodeID;
-			index = rhs.index;
-			//make new copies of links
+			base_type::operator=( std::move(rhs) );
+			inputs = std::move(rhs.inputs);
+			outputs = std::move(rhs.outputs);
 		}
 	}
 	
 	//methods - destructor
 	template<typename I, typename O>
-	Node<I,O>::~Node() {
-		//remove from index
-		//clean up Links
-		//should the node be locked during destruction? maybe use lock_guard?
+	Node<I,O>::~Node() {} //might want to lock the node while deleting links
+	
+	template<typename I, typename O>
+	bool clone_links(const self_type& other) {
+		
 	}
 	
 	template<typename I, typename O>
