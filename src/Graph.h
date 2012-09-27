@@ -45,88 +45,51 @@ namespace ben {
 		typedef N&	reference;
 		typedef size_t	size_type;
 		typedef typename N::id_type id_type;
-		
-	private:
-		std::map<id_type, pointer> IDMap;
-		
-		void update_all();
-		
-	public:
+		typedef Index<N> base_type;
+		//typedef typename base_type::iterator iterator; //necessary?
+
 		Graph()=default;
 		Graph(const Graph& rhs) = delete;
-		Graph(Graph&& rhs); //use move semantics to transfer all Nodes
-		Graph& operator=(const Graph& rhs) = delete; //make unique copy of all Nodes? no
-		Graph& operator=(Graph&& rhs);
-		~Graph(); //transfers all Nodes to that class's static Graph
+		Graph(Graph&& rhs) : base_type(rhs) {}
+		Graph& operator=(const Graph& rhs) = delete; 
+		Graph& operator=(Graph&& rhs) { base_type::operator=(rhs); }
+		virtual ~Graph() = default;
 		
-		reference find(const id_type address) const;
-		bool contains(const id_type address) const;
-		
-		bool add(node_type& node); //only called by Node constructor
-		void remove(const id_type address);  //does not remove Node's Graph pointer (for now)
-		bool update_node(node_type& node); //makes sure if Node is listed and has an up-to-date pointer
-		size_type size() { return IDMap.size(); }
-		
-		void move_to(Graph& destination, const id_type address); //move individual Node
-		void swap_with(Graph& other); //all Nodes
-		void merge_into(Graph& other); 
-		
-		class iterator : public std::iterator<std::bidirectional_iterator_tag, node_type> {
-		private:
-			typename std::map<id_type, pointer>::iterator current;
-			friend class Graph;
-			iterator(const typename std::map<id_type, pointer>::iterator iNode);
-			
-		public:
-			iterator() = default;
-			iterator(const iterator& rhs) = default;
-			iterator& operator=(const iterator& rhs) = default;
-			~iterator() = default;
-			
-			reference operator*() const { return *(current->second); } 
-			pointer operator->() const { return current->second; }
-			
-			iterator& operator++();
-			iterator  operator++(int);
-			iterator& operator--();
-			iterator  operator--(int);
-			
-			bool operator==(const iterator& rhs) const //compare iterator locations
-				{ return current==rhs.current; }
-			bool operator!=(const iterator& rhs) const
-				{ return current!=rhs.current; }
-		}; //class iterator
-			
-		iterator begin() { return iterator( IDMap.begin() ); }
-		iterator end()   { return iterator( IDMap.end() ); }
+		virtual bool remove(const id_type address);  
+		virtual bool move_to(Graph& other, const id_type address); //move individual Node
+		virtual bool merge_into(Graph& other); 
 	}; //class Graph
 	
 	template<typename N> 
-	void Graph<N>::update_all();
+	bool Graph<N>::remove(const id_type address) {
+		auto iter = index.find(address);
+		if( iter != index.end() ) { 
+			iter->second->clear(); //this is the only difference from Index version
+			if(iter->second->managed_by(*this)) iter->second->update_index(nullptr); 
+			index.erase(iter);
+			return true;
+		} else return false;
+	}
 	
 	template<typename N> 
-	reference Graph<N>::find(const id_type address) const;
+	bool Graph<N>::move_to(Graph& other, const id_type address) {
+		auto iter = index.find(address);
+		if(iter != index.end()) {
+			iter->second->clear(); //this is the only difference from Index version
+			if( other.add(*(iter->second)) ) {
+				index.erase(iter);
+				return true;
+			} else return false; //redundant ID in destination
+		} else return false; //no element with that ID here
+	}
 	
 	template<typename N> 
-	bool Graph<N>::contains(const id_type address) const;
-	
-	template<typename N> 
-	bool Graph<N>::add(node_type& node); 
-	
-	template<typename N> 
-	void Graph<N>::remove(const id_type address);  
-	
-	template<typename N> 
-	bool Graph<N>::update_node(node_type& node); 
-	
-	template<typename N> 
-	void Graph<N>::move_to(Graph& destination, const id_type address); 
-	
-	template<typename N> 
-	void Graph<N>::swap_with(Graph& other); 
-	
-	template<typename N> 
-	void Graph<N>::merge_into(Graph& other); 
+	bool Graph<N>::merge_into(Graph& other){
+		for(auto it=index.begin(), auto ite=index.end(); it!=ite; ++it) 
+			if( other.contains(it->first) ) return false;
+		
+		return base_type::merge_into(other);
+	}
 	
 } //namespace ben
 

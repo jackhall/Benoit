@@ -77,7 +77,7 @@ namespace ben {
 		}
 		size_type size() { return index.size(); }
 		
-		virtual bool move_to(Index& destination, const id_type address); //move individual Singleton
+		virtual bool move_to(Index& other, const id_type address); //move individual Singleton
 		virtual void swap_with(Index& other) { std::swap(index, other.index); }
 		virtual bool merge_into(Index& other); 
 		
@@ -146,19 +146,19 @@ namespace ben {
 	bool Index<S>::remove(const id_type address) { 
 		auto iter = index.find(address);
 		if( iter != index.end() ) { 
-			iter->second->update_index(nullptr); 
+			if(iter->second->managed_by(*this)) iter->second->update_index(nullptr); 
 			index.erase(iter);
 			return true;
 		} else return false;
 	}	
 	
 	template<typename S> 
-	bool Index<S>::move_to(Index& destination, const id_type address) {
+	bool Index<S>::move_to(Index& other, const id_type address) {
 		auto iter = index.find(address);
 		if(iter != index.end()) {
-			if( destination.add(*(iter->second)) ) {
-				it->second->update_index(&destination);
-				return remove(address);
+			if( other.add(*(iter->second)) ) {
+				index.erase(iter);
+				return true;
 			} else return false; //redundant ID in destination
 		} else return false; //no element with that ID here
 	}
@@ -167,12 +167,9 @@ namespace ben {
 	bool Index<S>::merge_into(Index& other) {
 		//returns true if all singletons were transferred
 		//returns false if any had redundant IDs in other (reassign ID?)
-		auto it = index.begin();
-		auto ite = index.end();
-		while(it != ite) {
-			if( other.add(*(it->second)) ) index.erase(it++); 
-			else ++it;
-		}
+		for(auto it=index.begin(), auto ite=index.end(); it!=ite; ++it) 
+			if( other.add(*(it->second)) ) index.erase(it);
+			
 		return index.empty();
 	}
 	

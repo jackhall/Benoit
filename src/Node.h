@@ -174,33 +174,80 @@ namespace ben {
 	Node<I,O>::~Node() {} //might want to lock the node while deleting links
 	
 	template<typename I, typename O>
-	bool clone_links(const self_type& other) {
+	void clone_links(const self_type& other) {
+		id_type currentID;
+		for(auto it=other.begin_inputs(), 
+		    auto ite=other.end_inputs(); it!=ite; ++it) {
+		    	currentID = it->source();
+			if(currentID != uniqueID) add_input(currentID, it->get_value());
+		}
 		
+		for(auto it=other.begin_outputs(), 
+		    auto ite=other.end_outputs(); it!=ite; ++it) {
+		    	currentID = it->target();
+			if(currentID != uniqueID) add_input(currentID, it->get_value());
+		}
 	}
 	
 	template<typename I, typename O>
-	input_iterator Node<I,O>::find_input(const id_type address) {}
+	input_iterator Node<I,O>::find_input(const id_type address) {
+		auto it = input_begin();
+		for(auto ite=input_end(); it!=ite; ++it) {
+			if(it->source() == address) break;
+		} 
+		return it;
+	}
 	
 	template<typename I, typename O>
-	output_iterator Node<I,O>::find_output(const id_type address) {}
+	output_iterator Node<I,O>::find_output(const id_type address) {
+		auto it = output_begin();
+		for(auto ite=output_end(); it!=ite; ++it) {
+			if(it->target() == address) break;
+		} 
+		return it;
+	}
 	
 	template<typename I, typename O>
-	bool Node<I,O>::add_input(const id_type address, const value_type& value = V()) {}
+	bool Node<I,O>::add_input(const id_type address, const value_type& value = V()) {
+		if( get_index().contains(address) ) {
+			inputs.push_back( InPort(new link_type(value), address) );
+			get_index().find(address).outputs.push_back( OutPort(inputs.back(), ID()) );
+			return true;
+		} else return false;
+	}
 	
 	template<typename I, typename O>
-	bool Node<I,O>::add_output(const id_type address, const value_type& value = V()) {}
+	bool Node<I,O>::add_output(const id_type address, const value_type& value = V()) {
+		if( get_index().contains(address) ) {
+			outputs.push_back( OutPort(new link_type(value), address) );
+			get_index().find(address).inputs.push_back( InPort(outputs.back(), ID()) );
+			return true;
+		} else return false;
+	}
 	
 	template<typename I, typename O>
-	void Node<I,O>::remove_input(const input_iterator iter) {}
+	void Node<I,O>::remove_input(const input_iterator iter) {
+		//should this method clean up the other node?
+	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::remove_output(const output_iterator iter) {}
 	
 	template<typename I, typename O>
-	void Node<I,O>::clear_inputs() {}
+	void Node<I,O>::clear_inputs() {
+		for(auto it=inputs.begin(), 
+		    auto ite=inputs.end(); it!=ite; ++it) {
+			
+		}
+	}
 	
 	template<typename I, typename O>
-	void Node<I,O>::clear_outputs() {}
+	void Node<I,O>::clear_outputs() {
+		for(auto it=outputs.begin(), 
+		    auto ite=outputs.end(); it!=ite; ++it) {
+			
+		}
+	}
 	
 } //namespace ben
 

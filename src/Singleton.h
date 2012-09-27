@@ -52,10 +52,10 @@ namespace ben {
 		friend class Index<Singleton>; //probably circular with similar statement in Index
 		
 	public:
-		Singleton(const id_type nID=get_new_ID())
-			: uniqueID(nID), index(nullptr) {}
-		Singleton(index_type& x, const id_type nID=get_new_ID()) 
-			: uniqueID(nID), index(&x) { if( !x.add(*this) ) throw; } //define a custom exception?
+		Singleton(const id_type id=get_new_ID())
+			: uniqueID(id), index(nullptr) {}
+		Singleton(index_type& x, const id_type id=get_new_ID()) 
+			: uniqueID(id), index(&x) { if( !x.add(*this) ) throw; } //define a custom exception?
 
 		//copyable?
 		Singleton(self_type&& rhs) 
@@ -78,6 +78,7 @@ namespace ben {
 		
 		virtual bool operator<(const self_type& rhs) { return uniqueID < rhs.uniqueID; }
 		bool managed() const { return index != nullptr; }
+		bool managed_by(const index_type& x) const { return index == &x; }
 		const index_type& get_index() const { 
 			if(index != nullptr) return *index;
 			else throw; //define a custom exception for this? 

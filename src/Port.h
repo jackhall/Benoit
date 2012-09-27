@@ -61,8 +61,15 @@ namespace ben {
 		
 	public:
 		Port() = delete;
-		Port(const Port&& rhs) : link_ptr( std::move(rhs) ) {}
-		Port& operator=(const Port&& rhs) { 
+		Port(const Port& rhs) : link_ptr(rhs.link_ptr) {}
+		Port(Port&& rhs) : link_ptr( std::move(rhs.link_ptr) ) {}
+		Port& operator=(const Port& rhs) {
+			//check for sameness would be redundant because Port
+			//assignment is only called by InPort or OutPort assignment
+			link_ptr = rhs.link_ptr;
+			return *this;
+		}
+		Port& operator=(Port&& rhs) { 
 			//check for sameness would be redundant because Port
 			//assignment is only called by InPort or OutPort assignment
 			link_ptr = std::move( rhs.link_ptr );
@@ -70,7 +77,7 @@ namespace ben {
 		}
 		virtual ~Port() = default;
 		
-		inline value_type& get_value() const { return link_ptr->get_value(); }
+		inline const value_type& get_value() const { return link_ptr->get_value(); }
 		inline void set_value(const value_type& v) const { link_ptr->set_value(v); }
 		inline bool is_ready() const { return link_ptr->is_ready(); }
 	}; //class Port
@@ -81,9 +88,18 @@ namespace ben {
 		id_type sourceID;
 	
 		InPort(link_type* ptr, id_type nSource) : Port(ptr), sourceID(nSource) {}
-		InPort(const InPort&& rhs) : Port( std::move(rhs) ), sourceID(rhs.sourceID) {}
-		InPort& operator=(const InPort&& rhs) {
-			if(&rhs != this) {
+		Inport(const OutPort<L>& other, id_type nSource) : Port(rhs), sourceID(nSource) {}
+		InPort(const InPort& rhs) : Port(rhs), sourceID(rhs.sourceID) {}
+		InPort(InPort&& rhs) : Port( std::move(rhs) ), sourceID(rhs.sourceID) {}
+		InPort& operator=(const InPort& rhs) {
+			if(this != &rhs) {
+				Port::operator=(rhs);
+				sourceID = rhs.sourceID;
+			}
+			return *this;
+		}
+		InPort& operator=(InPort&& rhs) {
+			if(this != &rhs) {
 				Port::operator=( std::move(rhs) );
 				sourceID = rhs.sourceID;
 			}
@@ -101,11 +117,20 @@ namespace ben {
 		id_type targetID;
 	
 		OutPort(L* ptr, id_type nTarget) : Port(ptr), target(nTarget) {}
-		OutPort(const OutPort&& rhs) : Port( std::move(rhs) ), target(rhs.target) {}
-		OutPort& operator=(const OutPort&& rhs) {
-			if(&rhs != this) {
+		Outport(const InPort<L>& other, id_type nTarget) : Port(rhs), targetID(nTarget) {}
+		OutPort(const OutPort& rhs) : Port(rhs), targetID(rhs.targetID) {}
+		OutPort(OutPort&& rhs) : Port( std::move(rhs) ), target(rhs.target) {}
+		OutPort& operator=(const OutPort& rhs) {
+			if(this != &rhs) {
+				Port::operator=(rhs);
+				targetID = rhs.targetID;
+			}
+			return *this;
+		}
+		OutPort& operator=(OutPort&& rhs) {
+			if(this != &rhs) {
 				Port::operator=( std::move(rhs) );
-				sourceID = rhs.sourceID;
+				targetID = rhs.targetID;
 			}
 			return *this;
 		}
