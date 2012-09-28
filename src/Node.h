@@ -179,37 +179,17 @@ namespace ben {
 	Node<I,O>::~Node() {} //might want to lock the node while deleting links
 	
 	template<typename I, typename O>
-	input_iterator Node<I,O>::find_input(const id_type address) {
-		for(auto it=inputs.begin(),
-		    auto ite=inputs.end(); it!=ite; ++it) 
-			if(it->source() == address) return it;
-		
-		return it;
-	}
-	
-	template<typename I, typename O>
-	output_iterator Node<I,O>::find_output(const id_type address) {
-		for(auto it=outputs.begin(),
-		    auto ite=outputs.end(); it!=ite; ++it) 
-			if(it->target() == address) return it;
-			
-		return it;
-	}
-	
-	template<typename I, typename O>
 	void Node<I,O>::clone_links(const self_type& other) {
 		clear();
 		id_type currentID;
-		for(auto it=other.begin_inputs(), 
-		    auto ite=other.end_inputs(); it!=ite; ++it) {
-		    	currentID = it->source();
-			if(currentID != uniqueID) add_input(currentID, it->get_value());
+		for(auto x& : other.inputs) {
+			currentID = x.source();
+			if(currentID != ID()) add_input(currentID, x.get_value());
 		}
 		
-		for(auto it=other.begin_outputs(), 
-		    auto ite=other.end_outputs(); it!=ite; ++it) {
-		    	currentID = it->target();
-			if(currentID != uniqueID) add_input(currentID, it->get_value());
+		for(auto x& : other.outputs) {
+			currentID = x.source();
+			if(currentID != ID()) add_output(currentID, x.get_value());
 		}
 	}
 	
@@ -240,18 +220,18 @@ namespace ben {
 	template<typename I, typename O>
 	input_iterator Node<I,O>::find_input(const id_type address) {
 		auto it = input_begin();
-		for(auto ite=input_end(); it!=ite; ++it) {
+		for(auto ite=input_end(); it!=ite; ++it) 
 			if(it->source() == address) break;
-		} 
+
 		return it;
 	}
 	
 	template<typename I, typename O>
 	output_iterator Node<I,O>::find_output(const id_type address) {
 		auto it = output_begin();
-		for(auto ite=output_end(); it!=ite; ++it) {
+		for(auto ite=output_end(); it!=ite; ++it) 
 			if(it->target() == address) break;
-		} 
+		
 		return it;
 	}
 	
@@ -289,19 +269,13 @@ namespace ben {
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_inputs() {
-		for(auto it=inputs.begin(), 
-		    auto ite=inputs.end(); it!=ite; ++it) {
-			get_index().find(it->source()).clean_up_output(ID());
-		}
+		for(auto x& : inputs) get_index().find(x.source()).clean_up_output(ID());
 		inputs.clear();
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_outputs() {
-		for(auto it=outputs.begin(), 
-		    auto ite=outputs.end(); it!=ite; ++it) {
-			get_index().find(it->target()).clean_up_input(ID());
-		}
+		for(auto x& : outputs) get_index().find(x.target()).clean_up_input(ID());
 		outputs.clear();
 	}
 	

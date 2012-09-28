@@ -85,9 +85,7 @@ namespace ben {
 	
 	template<typename N> 
 	bool Graph<N>::merge_into(Graph& other){
-		for(auto it=index.begin(), auto ite=index.end(); it!=ite; ++it) 
-			if( other.contains(it->first) ) return false;
-		
+		for(auto x& : index) if( other.contains(x.first) ) return false;
 		return base_type::merge_into(other);
 	}
 	

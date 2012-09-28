@@ -28,11 +28,14 @@
 
 namespace ben {
 	
+	template<typename T, unsigned short N> class PointAlias;
+	
 	template<typename T, unsigned short N>
 	struct Point : public wayne::Point<T,N>, public Singleton<Space<Point>> {
 	
-		typedef wayne::Point<T,N> point_type;
+		typedef wayne::Point<T,N> 	point_type;
 		typedef Singleton<Space<Point>> singleton_type;
+		typedef PointAlias<T,N> 	alias_type;
 		typedef typename singleton_type::id_type id_type;
 		typedef T coordinate_type;
 
@@ -49,9 +52,9 @@ namespace ben {
 			: singleton_type(*rhs.index), point_type(rhs) {}
 		Point(const Point& rhs, const id_type id)
 			: singleton_type(*rhs.index, id), point_type(rhs) {}
-		Point(index_type& space, const PointAlias& alias) 
+		Point(index_type& space, const alias_type& alias) 
 			: singleton_type(space), point_type(alias) {}
-		Point(index_type& space, const PointAlias& alias, const id_Type id) 
+		Point(index_type& space, const alias_type& alias, const id_Type id) 
 			: singleton_type(space, id), point_type(alias) {}
 		Point& operator=(const Point& rhs) {
 			if(this != &rhs) {
@@ -102,8 +105,7 @@ namespace ben {
 				} else return one.pointID < two.pointID; //points are otherwise equal
 			}
 		};
-	
-	protected:
+
 		id_type pointID;
 		
 	public:

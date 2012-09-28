@@ -36,10 +36,9 @@ namespace ben {
 	public:
 		typedef Index<Point<T,N>> base_type;
 		typedef T coordinate_type;
-		typedef Point<T,N> point_type;
 		typedef PointAlias<T,N> alias_type;
-		typedef wayne::Point<double,N> raw_point_type;
-		typedef typename std::set<point_type>::iterator iterator;
+		typedef wayne::Point<T,N> raw_point_type;
+		typedef typename std::set<singleton_type>::iterator iterator;
 		static const unsigned short dimensions = N;
 	private:
 		typedef Space self_type;
@@ -47,7 +46,7 @@ namespace ben {
 		//TMP tricks - these are kind of awkward for weird compilation reasons,
 		//but they remove increment and comparison computions from loops
 		template<unsigned short M=0, typename dummy=void> struct get_low_point {
-			static void call(const wayne::Region<double,N>& region, 
+			static void call(const wayne::Region<T,N>& region, 
 					 raw_point_type& point) {
 				point.template elem<M>() = region.template elem<M>().lower;
 				get_low_point<M+1>::call(region, point);
@@ -55,14 +54,14 @@ namespace ben {
 		};
 		
 		template<typename dummy> struct get_low_point<N-1,dummy> {
-			static void call(const wayne::Region<double,N>& region, 
+			static void call(const wayne::Region<T,N>& region, 
 					 raw_point_type& point) {
 				point.template elem<N-1>() = region.template elem<N-1>().lower;
 			}
 		};
 		//-----
 		template<unsigned short M=0, typename dummy=void> struct get_high_point {
-			static void call(const wayne::Region<double,N>& region,
+			static void call(const wayne::Region<T,N>& region,
 					 raw_point_type& point) {
 				point.template elem<M>() = region.template elem<M>().upper;
 				get_high_point<M+1>::call(region, point);
@@ -70,7 +69,7 @@ namespace ben {
 		};
 	
 		template<typename dummy> struct get_high_point<N-1,dummy> {
-			static void call(const wayne::Region<double,N>& region,
+			static void call(const wayne::Region<T,N>& region,
 					 raw_point_type& point) {
 				point.template elem<N-1>() = region.template elem<N-1>().upper;
 			}
@@ -79,7 +78,7 @@ namespace ben {
 		template<unsigned short M=0, typename dummy=void> struct get_region_around{
 			static void call(const raw_point_type& point, 
 					 const double radius, 
-					 wayne::Region<double,N>& region) {
+					 wayne::Region<T,N>& region) {
 				region.template elem<M>().lower = point.template elem<M>() - radius;
 				region.template elem<M>().upper = point.template elem<M>() + radius;
 				get_region_around<M+1>::call(point, radius, region);
@@ -87,36 +86,13 @@ namespace ben {
 		};
 	
 		template<typename dummy> struct get_region_around<N-1,dummy> {
-			static void call(const wayne::Point<double,N>& point, 
+			static void call(const raw_point_type& point, 
 					 const double radius, 
-					 wayne::Region<double,N>& region) {
+					 wayne::Region<T,N>& region) {
 				region.template elem<N-1>().lower = point.template elem<N-1>() - radius;
 				region.template elem<N-1>().upper = point.template elem<N-1>() + radius;
 			}
-		};
-		//-----
-		template<unsigned short M=0, typename dummy=void> struct unwind_distance {
-			static double call(const raw_point_type& one, 
-			  		   const raw_point_type& two) {
-				auto difference = two.template elem<M>() - one.template elem<M>();
-				return difference*difference + unwind_distance<M+1>::call(one,two);		
-			}
-		};
-	
-		template<typename dummy> struct unwind_distance<N-1,dummy> {
-			static double call(const raw_point_type& one, 
-			   		   const raw_point_type& two) {
-				auto difference = two.template elem<N-1>() - one.template elem<N-1>();
-				return difference*difference;	   		
-			}
-		};
-		//-----
-		bool within(const raw_point_type& one, 
-			    const raw_point_type& two,
-			    const double radius) {
-			return unwind_distance<>::call(one,two) < (radius*radius);
-		}
-		
+		};	
 		
 		std::set<alias_type> points;
 		
@@ -131,26 +107,19 @@ namespace ben {
 		void update_data();
 		
 		alias_type get_alias(const id_type address);
-		bool check(const id_type address, const point_type* local_ptr) const 
-			{ return index.find(address)->second == local_ptr; }
-		bool contains(const id_type address) const { return index.count(address) > 0; }
-		bool empty() const { return index.empty(); }
 		
-		bool add_point(point_type* point_ptr);
-		bool update_point(const id_type address, point_type* point_ptr);
-		bool remove_point(const id_type address);
+		virtual bool add(reference& x);
+		virtual bool remove(const id_type address);
+		virtual void clear() { base_type::clear(); points.clear(); }
 		
-		unsigned int size() { return points.size(); }
+		virtual bool move_to(self_type& destination, const id_type address); //move single point
+		virtual void swap_with(self_type& other); //all Nodes
+		virtual bool merge_into(self_type& other); 
 		
-		bool move_to(self_type& destination, const id_type address); //move single point
-		void swap_with(self_type& other); //all Nodes
-		bool merge_into(self_type& other); 
-		void clear();
-		
-		std::set<point_type> in_region(const wayne::Region<double,N> region) const;
-		std::set<point_type> within(const raw_point_type pt, 
+		std::set<singleton_type> in_region(const wayne::Region<double,N> region) const;
+		std::set<singleton_type> within(const raw_point_type pt, 
 					    const double radius) const;
-		point_type closest_to(const raw_point_type pt) const;
+		singleton_type closest_to(const raw_point_type pt) const;
 						    
 		iterator begin() { return points.begin(); }
 		iterator end()   { return points.end(); }
@@ -158,14 +127,14 @@ namespace ben {
 	}; //class Space
 
 	
-	template<unsigned short N>
-	Space<N>::Space(Space&& rhs)
+	template<typename T, unsigned short N>
+	Space<T,N>::Space(Space&& rhs)
 		: base_type(rhs), points( std::move(rhs.points) ) {
 		update_all_points();
 	}
 	
-	template<unsigned short N>
-	Space<N>& Space<N>::operator=(Space&& rhs) {
+	template<typename T, unsigned short N>
+	Space<T,N>& Space<T,N>::operator=(Space&& rhs) {
 		if(this != &rhs) {
 			clear();
 			points = std::move(rhs.points);
@@ -174,61 +143,39 @@ namespace ben {
 		}
 	}
 
-	template<unsigned short N>
-	void Space<N>::update_data() {
+	template<typename T, unsigned short N>
+	void Space<T,N>::update_data() {
 		points.clear();
-	
-		auto it = index.begin();
-		auto ite = index.end();
-		while(it != ite) {
-			points.insert( *(it->second) );
-			++it;
-		}
+		for(auto x& : index) points.insert( *(x.second) );
 	}
 	
-	template<unsigned short N>
-	typename Space<N>::iterator Space<N>::find(const id_type address) {
-		auto it = points.begin();
-		auto ite = points.end();
-		while(it != ite) {
+	template<typename T, unsigned short N>
+	typename Space<T,N>::iterator Space<T,N>::find(const id_type address) { //not redundant; rename?
+		auto it=points.begin()
+		for(auto ite=points.end(); it!=ite; ++it)
 			if(it->ID() == address) return it;
-			++it;
-		} return ite;
+		return it;
 	}
 	
-	template<unsigned short N>
-	bool Space<N>::add_point(local_type* point_ptr) {
-		id_type id = point_ptr->ID();
-		if(index.find(id) == index.end()) { //check if that ID already appears
+	template<typename T, unsigned short N>
+	bool Space<T,N>::add(singleton_type& x) {
+		if( base_type::add(x) ) { 
 			points.insert(*point_ptr);
-			index.insert( std::make_pair(id, point_ptr) );
 			return true;
 		} else  return false; //shouldn't be trying to add duplicate element
 	}
 	
-	template<unsigned short N>
-	bool Space<N>::update_point(const id_type address, local_type* point_ptr) {
-		auto it = index.find(address);Space
-		if(it != index.end()) {
-			it->second = point_ptr;
-			return true;
-		} else 	return false;
-	}
-	
-	template<unsigned short N>
-	bool Space<N>::remove_point(const id_type address) {
-		auto it = index.find(address);
-		if(it != index.end()) {
-			auto point_ptr = it->second;
-			points.erase( find(address) ); //Point and PointAlias aren't related anymore!
-			point_ptr.update_index(nullptr);
-			index.erase(it);
+	template<typename T, unsigned short N>
+	bool Space<T,N>::remove(const id_type address) {
+		auto alias = get_alias(address);
+		if( base_type::remove(address) ) {
+			points.erase(alias); 
 			return true;
 		} else  return false;
 	}
 	
-	template<unsigned short N>
-	bool Space<N>::move_to(Space& destination, const id_type address) {
+	template<typename T, unsigned short N>
+	bool Space<T,N>::move_to(Space& destination, const id_type address) {
 		auto it = index.find(address);
 		if(it != index.end()) {
 			if(destination.add_point(it->second)) {
@@ -238,8 +185,8 @@ namespace ben {
 		} else return false;
 	}
 	
-	template<unsigned short N>
-	void Space<N>::swap_with(Space& other) {
+	template<typename T, unsigned short N>
+	void Space<T,N>::swap_with(Space& other) {
 		auto temp_index = std::move(index);
 		auto temp_points = std::move(points);
 		
@@ -253,8 +200,8 @@ namespace ben {
 		other.update_all_points();
 	}
 	
-	template<unsigned short N>
-	bool Space<N>::merge_into(Space& other) {
+	template<typename T, unsigned short N>
+	bool Space<T,N>::merge_into(Space& other) {
 		auto it = points.begin();
 		auto ite = points.end();
 		typename std::map<id_type, local_type*>::iterator index_iter;
@@ -268,70 +215,53 @@ namespace ben {
 		return points.size() == 0;
 	}
 	
-	template<unsigned short N>
-	void Space<N>::clear() {
-		auto it = index.begin();
-		auto ite = index.end();
-		while(it != ite) {
-			it->second->update_index(nullptr);
-			++it;
-		}
-		index.clear();
-		points.clear();
-	}
-	
-	template<unsigned short N>
-	std::set<typename Space<N>::point_type> 
-		Space<N>::in_region(const wayne::Region<double,N> region) const {
+	template<typename T, unsigned short N>
+	std::set<typename Space<T,N>::singleton_type> 
+	    Space<T,N>::in_region(const wayne::Region<double,N> region) const {
 		
-		point_type lower_point, upper_point;
+		singleton_type lower_point, upper_point;
 		get_low_point<N>::call(region, lower_point);
 		get_high_point<N>(region, upper_point);
 		
 		auto lower_iter = points.lower_bound(lower_point);
 		auto upper_iter = points.upper_bound(upper_point);
 		
-		std::set<Space::point_type> output;
+		std::set<Space::singleton_type> output;
 		while(lower_iter != upper_iter) {
 			if( region.inside(*lower_iter) ) output.insert(*lower_iter); 
-			++lower_iter;Space
+			++lower_iter;
 		}
 		return output;
 	}
 	
-	template<unsigned short N>
-	std::set<typename Space<N>::point_type> 
-		Space<N>::within(const raw_point_type pt, 
-					   const double radius) const {
+	template<typename T, unsigned short N>
+	std::set<typename Space<T,N>::singleton_type> 
+	    Space<T,N>::within(const raw_point_type pt, const double radius) const {
 		wayne::Region<double,N> region;
 		get_region_around<N>(pt, radius, region);
 		auto output = in_region(region);
 		
-		auto it = output.begin();
-		auto ite = output.end();
-		while(it != ite) {
-			if(!within<N>(pt, *it, radius)) output.erase(it++);
-			else ++it;
-		}
+		for(auto it=output.begin(), auto it=output.end(); it!=ite; ++it)
+			if(!within<N>(pt, *it, radius)) output.erase(it);
+		
 		return output;
 	}
 	
-	template<unsigned short N>
-	typename Space<N>::point_type 
-		Space<N>::closest_to(const raw_point_type pt) const {
-		//should probably do voronoi partitions
-		//but for now just search linearly
-		auto it = points.begin();
-		auto ite = points.end();
-		point_type output = *it;
-		double distance, best_distance=unwind_distance<N>(pt, output); //no need for sqrt
-		while(it != ite) {
-			distance = unwind_distance<N>(pt, *it);
+	template<typename T, unsigned short N>
+	typename Space<T,N>::singleton_type 
+	    Space<T,N>::closest_to(const raw_point_type pt) const {
+		//for now just search linearly
+		//other options:
+		//	delaunay tesselation
+		//	iterative neighborhood search 
+		singleton_type output = *(points.begin());
+		double distance, best_distance = unwind_distance<N>(pt, output); //no need for sqrt
+		for(auto x& : points) { 
+			distance = unwind_distance<N>(pt, x);
 			if(distance < best_distance) {
-				output = *it;
+				output = x;
 				best_distance = distance;
 			}
-			++it;
 		}
 		return output;
 	}

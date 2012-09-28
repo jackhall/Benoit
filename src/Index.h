@@ -64,6 +64,9 @@ namespace ben {
 		
 		reference find(const id_type address) const { return *(index.find(address)->second); }
 		bool contains(const id_type address) const { return index.count(address) == 1; }
+		bool check(const id_type address, const point_type* local_ptr) const 
+			{ return index.find(address)->second == local_ptr; }
+		bool empty() const { return index.empty(); }
 		
 		virtual bool add(reference x) { 
 			if( index.insert(std::make_pair(x.ID(), &x))->second ) {
