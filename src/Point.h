@@ -29,52 +29,6 @@
 namespace ben {
 	
 	template<typename T, unsigned short N>
-	class PointAlias : public wayne::Point<double,N> {
-	public:
-		typedef unsigned int id_type;
-		typedef T coordinate_type;	
-		typedef wayne::Point<double,N> base_type;
-	
-	private:
-		template<unsigned short M=0, typename dummy=void> struct compareLT {
-			static bool call(const PointAlias& one, const PointAlias& two) {
-				if( one.template elem<M>() < two.template elem<M>() ) {
-					return true;
-				} else if( one.template elem<M>() > two.template elem<M>() ) {
-					return false;
-				} else return compareLT<M+1>::call(one, two);
-			}
-		};
-		
-		template<typename dummy> struct compareLT<N-1,dummy> {
-			static bool call(const PointAlias& one, const PointAlias& two) {
-				if( one.template elem<N-1>() < two.template elem<N-1>() ) {
-					return true;
-				} else if( one.template elem<N-1>() > two.template elem<N-1>() ) {
-					return false;
-				} else return one.pointID < two.pointID; //points are otherwise equal
-			}
-		};
-	
-	protected:
-		id_type pointID;
-		
-	public:
-		PointAlias() : base_type(), pointID(0) {}
-		explicit PointAlias(const id_type nID) : base_type(), pointID(nID) {} //empty set
-		PointAlias(std::initializer_list<coordinate_type> coords, const id_type nID)
-			: base_type(coords), pointID(nID) {}
-		PointAlias(const PointAlias& rhs) : base_type(rhs), pointID(rhs.pointID) {}
-		PointAlias& operator=(const PointAlias& rhs) = default;
-		virtual ~PointAlias() noexcept = default;
-		
-		bool operator<(const PointAlias& rhs) const {
-			return compareLT<>::call(*this, rhs);
-		}
-	}; 
-	
-	
-	template<typename T, unsigned short N>
 	struct Point : public wayne::Point<T,N>, public Singleton<Space<Point>> {
 	
 		typedef wayne::Point<T,N> point_type;
@@ -119,6 +73,53 @@ namespace ben {
 		//void unlock() { point_mutex.unlock(); }
 		
 	}; //class Point
+	
+	
+	template<typename T, unsigned short N>
+	class PointAlias : public wayne::Point<double,N> {
+	public:
+		typedef unsigned int id_type;
+		typedef T coordinate_type;	
+		typedef wayne::Point<double,N> base_type;
+	
+	private:
+		template<unsigned short M=0, typename dummy=void> struct compareLT {
+			static bool call(const PointAlias& one, const PointAlias& two) {
+				if( one.template elem<M>() < two.template elem<M>() ) {
+					return true;
+				} else if( one.template elem<M>() > two.template elem<M>() ) {
+					return false;
+				} else return compareLT<M+1>::call(one, two);
+			}
+		};
+		
+		template<typename dummy> struct compareLT<N-1,dummy> {
+			static bool call(const PointAlias& one, const PointAlias& two) {
+				if( one.template elem<N-1>() < two.template elem<N-1>() ) {
+					return true;
+				} else if( one.template elem<N-1>() > two.template elem<N-1>() ) {
+					return false;
+				} else return one.pointID < two.pointID; //points are otherwise equal
+			}
+		};
+	
+	protected:
+		id_type pointID;
+		
+	public:
+		PointAlias() : base_type(), pointID(0) {}
+		explicit PointAlias(const id_type nID) : base_type(), pointID(nID) {} //empty set
+		PointAlias(std::initializer_list<coordinate_type> coords, const id_type nID)
+			: base_type(coords), pointID(nID) {}
+		PointAlias(const Point<T,N>* rhs) : base_type(rhs), pointID(rhs.ID()) {}
+		PointAlias(const PointAlias& rhs) : base_type(rhs), pointID(rhs.pointID) {}
+		PointAlias& operator=(const PointAlias& rhs) = default;
+		virtual ~PointAlias() noexcept = default;
+		
+		bool operator<(const PointAlias& rhs) const {
+			return compareLT<>::call(*this, rhs);
+		}
+	}; 
 	
 } //namespace ben
 

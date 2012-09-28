@@ -34,9 +34,10 @@ namespace ben {
 	template<typename T, unsigned short N>
 	class Space : public Index<Point<T,N>> {
 	public:
+		typedef Index<Point<T,N>> base_type;
 		typedef T coordinate_type;
-		typedef Point<T,N> local_type;
-		typedef PointAlias<T,N> point_type;
+		typedef Point<T,N> point_type;
+		typedef PointAlias<T,N> alias_type;
 		typedef wayne::Point<double,N> raw_point_type;
 		typedef typename std::set<point_type>::iterator iterator;
 		static const unsigned short dimensions = N;
@@ -117,29 +118,26 @@ namespace ben {
 		}
 		
 		
-		std::set<point_type> points;
-		
-		void update_all_points();
+		std::set<alias_type> points;
 		
 	public:
 		Space() = default;
-		~Space();
 		Space(const self_type& rhs) = delete;
 		Space(self_type&& rhs);
 		self_type& operator=(const self_type& rhs) = delete;
 		self_type& operator=(self_type&& rhs);
-		
+		virtual ~Space() { clear(); }
 		
 		void update_data();
 		
-		iterator find(const id_type address);
-		bool check(const id_type address, const local_type* local_ptr) const 
+		alias_type get_alias(const id_type address);
+		bool check(const id_type address, const point_type* local_ptr) const 
 			{ return index.find(address)->second == local_ptr; }
 		bool contains(const id_type address) const { return index.count(address) > 0; }
 		bool empty() const { return index.empty(); }
 		
-		bool add_point(local_type* point_ptr);
-		bool update_point(const id_type address, local_type* point_ptr);
+		bool add_point(point_type* point_ptr);
+		bool update_point(const id_type address, point_type* point_ptr);
 		bool remove_point(const id_type address);
 		
 		unsigned int size() { return points.size(); }
@@ -162,32 +160,17 @@ namespace ben {
 	
 	template<unsigned short N>
 	Space<N>::Space(Space&& rhs)
-		: points( std::move(rhs.points) ), index( std::move(rhs.index) ) {
+		: base_type(rhs), points( std::move(rhs.points) ) {
 		update_all_points();
 	}
 	
 	template<unsigned short N>
 	Space<N>& Space<N>::operator=(Space&& rhs) {
-		if(this != &rhs && this != &local_type::SPACE) {
-			merge_into(local_type::SPACE);
+		if(this != &rhs) {
+			clear();
 			points = std::move(rhs.points);
-			index = std::move(rhs.index);
+			base_type::operator=(rhs);
 			update_all_points();
-		}
-	}
-	
-	template<unsigned short N>
-	Space<N>::~Space() {
-		if(this != &local_type::SPACE) merge_into(local_type::SPACE); 
-	}
-	
-	template<unsigned short N>
-	void Space<N>::update_all_points() {
-		auto it = index.begin();
-		auto ite = index.end();
-		while(it != ite) {
-			it->second->update_space(this);
-			++it;
 		}
 	}
 
@@ -237,10 +220,9 @@ namespace ben {
 		auto it = index.find(address);
 		if(it != index.end()) {
 			auto point_ptr = it->second;
-			points.erase( find(address) ); 
+			points.erase( find(address) ); //Point and PointAlias aren't related anymore!
+			point_ptr.update_index(nullptr);
 			index.erase(it);
-			//transfer to static space? this would screw up move_point
-			//maybe have a private overload taking an iterator?
 			return true;
 		} else  return false;
 	}
@@ -291,7 +273,7 @@ namespace ben {
 		auto it = index.begin();
 		auto ite = index.end();
 		while(it != ite) {
-			it->second->space = nullptr;
+			it->second->update_index(nullptr);
 			++it;
 		}
 		index.clear();

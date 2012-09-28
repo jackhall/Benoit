@@ -83,6 +83,8 @@ namespace ben {
 		//std::mutex node_mutex;
 		
 		bool clone_links(const self_type& other);
+		bool clean_up_input(const id_type address);
+		bool clean_up_output(const id_type address);
 		
 	public:
 		Node() = default;
@@ -119,6 +121,9 @@ namespace ben {
 		
 		id_type size_inputs() const { return inputs.size(); }
 		id_type size_outputs() const { return outputs.size(); }
+		
+		bool contains_input(const id_type address) const { inputs.end() == find_input(address); }
+		bool contains_output(const id_type address) const { outputs.end() == find_output(address); }
 		//other std::vector methods - assign, swap
 		
 		input_iterator  input_begin() 	{ return inputs.begin(); }
@@ -174,7 +179,26 @@ namespace ben {
 	Node<I,O>::~Node() {} //might want to lock the node while deleting links
 	
 	template<typename I, typename O>
-	void clone_links(const self_type& other) {
+	input_iterator Node<I,O>::find_input(const id_type address) {
+		for(auto it=inputs.begin(),
+		    auto ite=inputs.end(); it!=ite; ++it) 
+			if(it->source() == address) return it;
+		
+		return it;
+	}
+	
+	template<typename I, typename O>
+	output_iterator Node<I,O>::find_output(const id_type address) {
+		for(auto it=outputs.begin(),
+		    auto ite=outputs.end(); it!=ite; ++it) 
+			if(it->target() == address) return it;
+			
+		return it;
+	}
+	
+	template<typename I, typename O>
+	void Node<I,O>::clone_links(const self_type& other) {
+		clear();
 		id_type currentID;
 		for(auto it=other.begin_inputs(), 
 		    auto ite=other.end_inputs(); it!=ite; ++it) {
@@ -187,6 +211,30 @@ namespace ben {
 		    	currentID = it->target();
 			if(currentID != uniqueID) add_input(currentID, it->get_value());
 		}
+	}
+	
+	template<typename I, typename O>
+	bool Node<I,O>::clean_up_input(const id_type address) {
+		for(auto it=inputs.begin(),
+		    auto ite=inputs.end(); it!=ite; ++it) {
+			if(it->source() == address) {
+				inputs.erase(it);
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	template<typename I, typename O>
+	bool Node<I,O>::clean_up_output(const id_type address) {
+		for(auto it=outputs.begin(),
+		    auto ite=outputs.end(); it!=ite; ++it) {
+			if(it->target() == address) {
+				outputs.erase(it);
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	template<typename I, typename O>
@@ -210,6 +258,7 @@ namespace ben {
 	template<typename I, typename O>
 	bool Node<I,O>::add_input(const id_type address, const value_type& value = V()) {
 		if( get_index().contains(address) ) {
+			if( contains_input(address) ) return false;
 			inputs.push_back( InPort(new link_type(value), address) );
 			get_index().find(address).outputs.push_back( OutPort(inputs.back(), ID()) );
 			return true;
@@ -219,6 +268,7 @@ namespace ben {
 	template<typename I, typename O>
 	bool Node<I,O>::add_output(const id_type address, const value_type& value = V()) {
 		if( get_index().contains(address) ) {
+			if( contains_output(address) ) return false;
 			outputs.push_back( OutPort(new link_type(value), address) );
 			get_index().find(address).inputs.push_back( InPort(outputs.back(), ID()) );
 			return true;
@@ -227,26 +277,32 @@ namespace ben {
 	
 	template<typename I, typename O>
 	void Node<I,O>::remove_input(const input_iterator iter) {
-		//should this method clean up the other node?
+		get_index().find(iter->source()).clean_up_output(ID());
+		inputs.erase(iter);
 	}
 	
 	template<typename I, typename O>
-	void Node<I,O>::remove_output(const output_iterator iter) {}
+	void Node<I,O>::remove_output(const output_iterator iter) {
+		get_index().find(iter->target()).clean_up_input(ID());
+		outputs.erase(iter);
+	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_inputs() {
 		for(auto it=inputs.begin(), 
 		    auto ite=inputs.end(); it!=ite; ++it) {
-			
+			get_index().find(it->source()).clean_up_output(ID());
 		}
+		inputs.clear();
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_outputs() {
 		for(auto it=outputs.begin(), 
 		    auto ite=outputs.end(); it!=ite; ++it) {
-			
+			get_index().find(it->target()).clean_up_input(ID());
 		}
+		outputs.clear();
 	}
 	
 } //namespace ben
