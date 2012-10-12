@@ -114,7 +114,6 @@ namespace ben {
 		void flush() { 
 			ready.store(false, release);
 			front.store(signal_type(), release); 
-			ready.store(false, release); //to be safe
 		}
 		bool is_ready() const { return ready.load(consume); }
 		bool push(const signal_type& signal) { 
@@ -125,74 +124,6 @@ namespace ben {
 		signal_type pull() { 
 			ready.store(false, release);
 			return front.load(consume); 
-		}
-	};
-	
-	
-	template<typename V, typename S>
-	class PushLink<V,S,2> : public Link<V,S> {
-	/*
-		Not yet thread-safe.
-	*/
-	private:
-		typedef std::memory_order_acq_rel acq_rel; //for convenience/readability
-	
-		enum class State {
-			full_unread,
-			full_read,
-			half_full,
-			empty
-		};
-		
-		std::atomic<State> state;
-		std::atomic<signal_type> front, back;
-		
-	public:
-		PushLink() : PushLink(value_type()) {} //needs value_type to be default-constructible
-		PushLink(const value_type& v) : Link(v), state(empty), front(), back() {}
-		
-		void flush() { 
-			state.store(empty, release);
-			front.store(signal_type(), release); 
-			back.store(signal_type(), release); 
-		}
-		bool is_ready() const { return state.load(consume) == full_unread; }
-		bool push(const signal_type& signal) { 
-			auto temp_state = state.load(acquire);
-			switch(temp_state) { 
-				case full_unread:
-					front.load(consume);
-					state.store(full_read, release);
-					break;
-				case full_read:
-					auto temp_item = back.exchange(signal, acq_rel);
-					front.store(temp_item, release);
-					//if pull happens here, state will be incorrect
-					state.store(full_unread, release);
-					break;
-				case half_full: 
-					back.store(signal, release);
-					state.store(full_unread, release);
-					break;
-				default: //empty
-					front.store(signal, release);
-					state.store(half_full, release);
-			}
-			return true;
-		}
-		signal_type pull() { 
-			signal_type result();
-			auto temp_state = state.load(acquire);
-			switch(temp_state) {
-				case full_read:
-				case full_unread:
-					//if push happens here, it will load the wrong signal
-					result = front.load(consume);
-					state.store(full_read, release);
-					break;
-				default:
-			}
-			return result; 
 		}
 	};
 	
