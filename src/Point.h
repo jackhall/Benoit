@@ -24,14 +24,14 @@
 #include <array>
 #include <atomic>
 #include <initializer_list>
-#include "Point.h" 
+#include "src/Point.h" 
 
 namespace ben {
 	
 	template<typename T, unsigned short N> class PointAlias;
 	
 	template<typename T, unsigned short N>
-	struct Point : public wayne::Point<T,N>, public Singleton<Space<Point>> {
+	struct Point : public wayne::Point<T,N>, public Singleton<Space<T,N>> {
 	
 		typedef wayne::Point<T,N> 	point_type;
 		typedef Singleton<Space<Point>> singleton_type;

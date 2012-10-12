@@ -19,146 +19,30 @@
 */
 
 //to test Eiffel, run the following from the test directory:
-//	g++ -std=c++11 -g -I../src -I../Wayne/src -lgtest -lpthread test_eiffel.cpp -o test_eiffel
-//	./test_eiffel
+//	g++ -std=c++11 -g -I../src -I../Wayne -lgtest -lpthread test_benoitv2.cpp -o test_benoit
+//	./test_benoit
 
 #include "gtest/gtest.h"
-#include "ContinuousSpace.h"
-#include "ContinuousPoint.h"
+#include "Space.h"
+#include "Point.h"
 #include <iostream>
 
 namespace {
-
-	TEST(Construction, Points) {
-		using namespace eiffel;
-		
-		//IDPoint
-		IDPoint<3>* raw_pt1_ptr = new IDPoint<3>();
-		for(int i=2; i>=0; --i) EXPECT_EQ(0.0, (*raw_pt1_ptr)[i]);
-		EXPECT_EQ(0, raw_pt1_ptr->ID());
-		
-		IDPoint<3>* raw_pt2_ptr = new IDPoint<3>(1); 
-		for(int i=2; i>=0; --i) EXPECT_EQ(0.0, (*raw_pt2_ptr)[i]);
-		EXPECT_EQ(1, raw_pt2_ptr->ID());
-
-		IDPoint<3>* raw_pt3_ptr = new IDPoint<3>({-1.234, 5.678, -9.0}, 2); //not initializing
-		EXPECT_EQ(-1.234, (*raw_pt3_ptr)[0]);
-		EXPECT_EQ(5.678, (*raw_pt3_ptr)[1]);
-		EXPECT_EQ(-9.0, (*raw_pt3_ptr)[2]);
-		EXPECT_EQ(2, raw_pt3_ptr->ID());
-
-		IDPoint<3>* raw_pt4_ptr = new IDPoint<3>(*raw_pt3_ptr);
-		EXPECT_EQ(-1.234, (*raw_pt4_ptr)[0]);
-		EXPECT_EQ(5.678, (*raw_pt4_ptr)[1]);
-		EXPECT_EQ(-9.0, (*raw_pt4_ptr)[2]);
-		EXPECT_EQ(2, raw_pt4_ptr->ID());
-		EXPECT_EQ(*raw_pt3_ptr, *raw_pt4_ptr);
-
-		*raw_pt2_ptr = *raw_pt4_ptr;
-		EXPECT_EQ(-1.234, (*raw_pt2_ptr)[0]);
-		EXPECT_EQ(5.678, (*raw_pt2_ptr)[1]);
-		EXPECT_EQ(-9.0, (*raw_pt2_ptr)[2]);
-		EXPECT_EQ(2, raw_pt2_ptr->ID());
-
-		//ContinuousPoint
-		//std::cout << "1 ";
-		
-		ContinuousPoint<3>* pt1_ptr = new ContinuousPoint<3>(); 
-		for(int i=2; i>=0; --i) EXPECT_EQ(0.0, (*pt1_ptr)[i]);
-		EXPECT_EQ(100000, pt1_ptr->ID());
-		EXPECT_TRUE(ContinuousPoint<3>::SPACE.check(100000, pt1_ptr));
-		EXPECT_EQ(&ContinuousPoint<3>::SPACE, &(pt1_ptr->get_space()));
-		
-		ContinuousPoint<3>* pt2_ptr = new ContinuousPoint<3>(100000); //initial value of id generator
-		for(int i=2; i>=0; --i) EXPECT_EQ(0.0, (*pt2_ptr)[i]);
-		EXPECT_EQ(100000, pt2_ptr->ID());
-		EXPECT_EQ(nullptr, &(pt2_ptr->get_space()));
-		EXPECT_FALSE(ContinuousPoint<3>::SPACE.check(100000, pt2_ptr));
-		*pt2_ptr = *raw_pt3_ptr;
-		EXPECT_EQ(-1.234, (*pt2_ptr)[0]);
-		EXPECT_EQ(5.678, (*pt2_ptr)[1]);
-		EXPECT_EQ(-9.0, (*pt2_ptr)[2]);
-		EXPECT_NE(*ContinuousPoint<3>::SPACE.find(100000), *pt2_ptr);
-		
-		ContinuousPoint<3>* pt3_ptr = new ContinuousPoint<3>({2.6, 5.1, -0.56});
-		EXPECT_EQ(2.6, (*pt3_ptr)[0]);
-		EXPECT_EQ(5.1, (*pt3_ptr)[1]);
-		EXPECT_EQ(-.56, (*pt3_ptr)[2]);
-		EXPECT_EQ(100001, pt3_ptr->ID());
-		EXPECT_TRUE(ContinuousPoint<3>::SPACE.check(100001, pt3_ptr));
-		EXPECT_EQ(*ContinuousPoint<3>::SPACE.find(100001), *pt3_ptr);
-		EXPECT_EQ(&ContinuousPoint<3>::SPACE, &(pt3_ptr->get_space())); 
-		
-		ContinuousPoint<3>* pt4_ptr = new ContinuousPoint<3>({3.14, -2.7, 6.22}, 3);
-		EXPECT_EQ(3.14, (*pt4_ptr)[0]);
-		EXPECT_EQ(-2.7, (*pt4_ptr)[1]);
-		EXPECT_EQ(6.22, (*pt4_ptr)[2]);
-		EXPECT_EQ(3, pt4_ptr->ID());
-		EXPECT_EQ(*ContinuousPoint<3>::SPACE.find(3), *pt4_ptr);
-		EXPECT_EQ(&ContinuousPoint<3>::SPACE, &(pt4_ptr->get_space()));
-		EXPECT_TRUE(ContinuousPoint<3>::SPACE.check(3, pt4_ptr));
-		
-		ContinuousPoint<3>* pt5_ptr = new ContinuousPoint<3>(*pt4_ptr);
-		EXPECT_EQ(3.14, (*pt5_ptr)[0]);
-		EXPECT_EQ(-2.7, (*pt5_ptr)[1]);
-		EXPECT_EQ(6.22, (*pt5_ptr)[2]);
-		EXPECT_EQ(100002, pt5_ptr->ID()); 
-		EXPECT_TRUE(ContinuousPoint<3>::SPACE.check(100002, pt5_ptr));
-		EXPECT_EQ(*ContinuousPoint<3>::SPACE.find(100002), *pt5_ptr);
-		EXPECT_EQ(&ContinuousPoint<3>::SPACE, &(pt5_ptr->get_space()));
-		
-		ContinuousPoint<3>* pt6_ptr = new ContinuousPoint<3>(*pt4_ptr, 4);
-		EXPECT_EQ(3.14, (*pt6_ptr)[0]);
-		EXPECT_EQ(-2.7, (*pt6_ptr)[1]);
-		EXPECT_EQ(6.22, (*pt6_ptr)[2]);
-		EXPECT_EQ(4, pt6_ptr->ID());
-		EXPECT_TRUE(ContinuousPoint<3>::SPACE.check(4, pt6_ptr));
-		EXPECT_EQ(*ContinuousPoint<3>::SPACE.find(4), *pt6_ptr);
-		EXPECT_EQ(&ContinuousPoint<3>::SPACE, &(pt6_ptr->get_space()));
-		
-		ContinuousPoint<3>* pt7_ptr = new ContinuousPoint<3>(*raw_pt3_ptr);
-		EXPECT_EQ(-1.234, (*pt7_ptr)[0]);
-		EXPECT_EQ(5.678, (*pt7_ptr)[1]);
-		EXPECT_EQ(-9.0, (*pt7_ptr)[2]);
-		EXPECT_EQ(2, pt7_ptr->ID());
-		EXPECT_EQ(*raw_pt3_ptr, *pt7_ptr);
-		EXPECT_TRUE(ContinuousPoint<3>::SPACE.check(2, pt7_ptr));
-		EXPECT_EQ(*ContinuousPoint<3>::SPACE.find(2), *pt7_ptr);
-		EXPECT_EQ(&ContinuousPoint<3>::SPACE, &(pt7_ptr->get_space()));
-		
-		*pt1_ptr = *pt7_ptr;
-		EXPECT_EQ(-1.234, (*pt1_ptr)[0]);
-		EXPECT_EQ(5.678, (*pt1_ptr)[1]);
-		EXPECT_EQ(-9.0, (*pt1_ptr)[2]);
-		EXPECT_EQ(100000, pt1_ptr->ID());
-		EXPECT_EQ(*pt1_ptr, *pt7_ptr); //should call wayne::Point::operator==
-		EXPECT_TRUE(ContinuousPoint<3>::SPACE.check(100000, pt1_ptr));
-		EXPECT_NE(*ContinuousPoint<3>::SPACE.find(100000), *pt7_ptr); //space hasn't been updated
-		EXPECT_EQ(&ContinuousPoint<3>::SPACE, &(pt1_ptr->get_space()));
-		
-		//ContinuousPoint<3>::SPACE.clear(); //this should not be necessary, but it is
-		
-		delete raw_pt1_ptr, raw_pt2_ptr, raw_pt3_ptr, raw_pt4_ptr;
-		delete pt1_ptr, pt2_ptr, pt3_ptr, pt4_ptr, pt5_ptr, pt6_ptr, pt7_ptr; 
-		
-		EXPECT_TRUE(ContinuousPoint<3>::SPACE.empty());
-		//test stack construction too?
-	}
 	
 	TEST(Construction, Spaces) {
 		using namespace eiffel;
-		ContinuousSpace<3>* space1_ptr = new ContinuousSpace<3>();
+		Space<double,3>* space1_ptr = new Space<double,3>();
 		EXPECT_TRUE(space1_ptr->empty());
 		
-		ContinuousSpace<3> space2; 
-		ContinuousPoint<3> point1(space2), 
+		Space<double,3> space2; 
+		Point<double,3> point1(space2), 
 				   point2(space2, {-1.1, 2.2, 3.3}), 
 				   point3(space2, {9.3, -8.4, -7.5});
 		EXPECT_TRUE(space2.contains( point1.ID() ));
 		EXPECT_TRUE(space2.contains( point2.ID() ));
 		EXPECT_TRUE(space2.contains( point3.ID() ));
 	
-		ContinuousSpace<3>* space3_ptr = new ContinuousSpace<3>( std::move(space2) );
+		Space<double,3>* space3_ptr = new Space<double,3>( std::move(space2) );
 		EXPECT_TRUE(space3_ptr->contains( point1.ID() ));
 		EXPECT_TRUE(space3_ptr->contains( point2.ID() ));
 		EXPECT_TRUE(space3_ptr->contains( point3.ID() ));
@@ -179,10 +63,126 @@ namespace {
 		delete space1_ptr, space3_ptr;
 	}
 
+	TEST(Construction, Points) {
+		using namespace ben;
+		
+		//PointAlias
+		PointAlias<double,3>* raw_pt1_ptr = new PointAlias<double,3>();
+		for(int i=2; i>=0; --i) EXPECT_EQ(0.0, (*raw_pt1_ptr)[i]);
+		EXPECT_EQ(0, raw_pt1_ptr->ID());
+		
+		PointAlias<double,3>* raw_pt2_ptr = new PointAlias<double,3>(1); 
+		for(int i=2; i>=0; --i) EXPECT_EQ(0.0, (*raw_pt2_ptr)[i]);
+		EXPECT_EQ(1, raw_pt2_ptr->ID());
+
+		PointAlias<double,3>* raw_pt3_ptr = new PointAlias<double,3>({-1.234, 5.678, -9.0}, 2); //not initializing
+		EXPECT_EQ(-1.234, (*raw_pt3_ptr)[0]);
+		EXPECT_EQ(5.678, (*raw_pt3_ptr)[1]);
+		EXPECT_EQ(-9.0, (*raw_pt3_ptr)[2]);
+		EXPECT_EQ(2, raw_pt3_ptr->ID());
+
+		PointAlias<double,3>* raw_pt4_ptr = new PointAlias<double,3>(*raw_pt3_ptr);
+		EXPECT_EQ(-1.234, (*raw_pt4_ptr)[0]);
+		EXPECT_EQ(5.678, (*raw_pt4_ptr)[1]);
+		EXPECT_EQ(-9.0, (*raw_pt4_ptr)[2]);
+		EXPECT_EQ(2, raw_pt4_ptr->ID());
+		EXPECT_EQ(*raw_pt3_ptr, *raw_pt4_ptr);
+
+		*raw_pt2_ptr = *raw_pt4_ptr;
+		EXPECT_EQ(-1.234, (*raw_pt2_ptr)[0]);
+		EXPECT_EQ(5.678, (*raw_pt2_ptr)[1]);
+		EXPECT_EQ(-9.0, (*raw_pt2_ptr)[2]);
+		EXPECT_EQ(2, raw_pt2_ptr->ID());
+
+		//Point
+		//std::cout << "1 ";
+		/*
+		Point<double,3>* pt1_ptr = new Point<double,3>(); 
+		for(int i=2; i>=0; --i) EXPECT_EQ(0.0, (*pt1_ptr)[i]);
+		EXPECT_EQ(100000, pt1_ptr->ID());
+		EXPECT_TRUE(Point<double,3>::SPACE.check(100000, pt1_ptr));
+		EXPECT_EQ(&Point<double,3>::SPACE, &(pt1_ptr->get_space()));
+		
+		Point<double,3>* pt2_ptr = new Point<double,3>(100000); //initial value of id generator
+		for(int i=2; i>=0; --i) EXPECT_EQ(0.0, (*pt2_ptr)[i]);
+		EXPECT_EQ(100000, pt2_ptr->ID());
+		EXPECT_EQ(nullptr, &(pt2_ptr->get_space()));
+		EXPECT_FALSE(Point<double,3>::SPACE.check(100000, pt2_ptr));
+		*pt2_ptr = *raw_pt3_ptr;
+		EXPECT_EQ(-1.234, (*pt2_ptr)[0]);
+		EXPECT_EQ(5.678, (*pt2_ptr)[1]);
+		EXPECT_EQ(-9.0, (*pt2_ptr)[2]);
+		EXPECT_NE(*Point<double,3>::SPACE.find(100000), *pt2_ptr);
+		
+		Point<double,3>* pt3_ptr = new Point<double,3>({2.6, 5.1, -0.56});
+		EXPECT_EQ(2.6, (*pt3_ptr)[0]);
+		EXPECT_EQ(5.1, (*pt3_ptr)[1]);
+		EXPECT_EQ(-.56, (*pt3_ptr)[2]);
+		EXPECT_EQ(100001, pt3_ptr->ID());
+		EXPECT_TRUE(Point<double,3>::SPACE.check(100001, pt3_ptr));
+		EXPECT_EQ(*Point<double,3>::SPACE.find(100001), *pt3_ptr);
+		EXPECT_EQ(&Point<double,3>::SPACE, &(pt3_ptr->get_space())); 
+		
+		Point<double,3>* pt4_ptr = new Point<double,3>({3.14, -2.7, 6.22}, 3);
+		EXPECT_EQ(3.14, (*pt4_ptr)[0]);
+		EXPECT_EQ(-2.7, (*pt4_ptr)[1]);
+		EXPECT_EQ(6.22, (*pt4_ptr)[2]);
+		EXPECT_EQ(3, pt4_ptr->ID());
+		EXPECT_EQ(*Point<double,3>::SPACE.find(3), *pt4_ptr);
+		EXPECT_EQ(&Point<double,3>::SPACE, &(pt4_ptr->get_space()));
+		EXPECT_TRUE(Point<double,3>::SPACE.check(3, pt4_ptr));
+		
+		Point<double,3>* pt5_ptr = new Point<double,3>(*pt4_ptr);
+		EXPECT_EQ(3.14, (*pt5_ptr)[0]);
+		EXPECT_EQ(-2.7, (*pt5_ptr)[1]);
+		EXPECT_EQ(6.22, (*pt5_ptr)[2]);
+		EXPECT_EQ(100002, pt5_ptr->ID()); 
+		EXPECT_TRUE(Point<double,3>::SPACE.check(100002, pt5_ptr));
+		EXPECT_EQ(*Point<double,3>::SPACE.find(100002), *pt5_ptr);
+		EXPECT_EQ(&Point<double,3>::SPACE, &(pt5_ptr->get_space()));
+		
+		Point<double,3>* pt6_ptr = new Point<double,3>(*pt4_ptr, 4);
+		EXPECT_EQ(3.14, (*pt6_ptr)[0]);
+		EXPECT_EQ(-2.7, (*pt6_ptr)[1]);
+		EXPECT_EQ(6.22, (*pt6_ptr)[2]);
+		EXPECT_EQ(4, pt6_ptr->ID());
+		EXPECT_TRUE(Point<double,3>::SPACE.check(4, pt6_ptr));
+		EXPECT_EQ(*Point<double,3>::SPACE.find(4), *pt6_ptr);
+		EXPECT_EQ(&Point<double,3>::SPACE, &(pt6_ptr->get_space()));
+		
+		Point<double,3>* pt7_ptr = new Point<double,3>(*raw_pt3_ptr);
+		EXPECT_EQ(-1.234, (*pt7_ptr)[0]);
+		EXPECT_EQ(5.678, (*pt7_ptr)[1]);
+		EXPECT_EQ(-9.0, (*pt7_ptr)[2]);
+		EXPECT_EQ(2, pt7_ptr->ID());
+		EXPECT_EQ(*raw_pt3_ptr, *pt7_ptr);
+		EXPECT_TRUE(Point<double,3>::SPACE.check(2, pt7_ptr));
+		EXPECT_EQ(*Point<double,3>::SPACE.find(2), *pt7_ptr);
+		EXPECT_EQ(&Point<double,3>::SPACE, &(pt7_ptr->get_space()));
+		
+		*pt1_ptr = *pt7_ptr;
+		EXPECT_EQ(-1.234, (*pt1_ptr)[0]);
+		EXPECT_EQ(5.678, (*pt1_ptr)[1]);
+		EXPECT_EQ(-9.0, (*pt1_ptr)[2]);
+		EXPECT_EQ(100000, pt1_ptr->ID());
+		EXPECT_EQ(*pt1_ptr, *pt7_ptr); //should call wayne::Point::operator==
+		EXPECT_TRUE(Point<double,3>::SPACE.check(100000, pt1_ptr));
+		EXPECT_NE(*Point<double,3>::SPACE.find(100000), *pt7_ptr); //space hasn't been updated
+		EXPECT_EQ(&Point<double,3>::SPACE, &(pt1_ptr->get_space()));
+		
+		//Point<double,3>::SPACE.clear(); //this should not be necessary, but it is
+		
+		delete raw_pt1_ptr, raw_pt2_ptr, raw_pt3_ptr, raw_pt4_ptr;
+		delete pt1_ptr, pt2_ptr, pt3_ptr, pt4_ptr, pt5_ptr, pt6_ptr, pt7_ptr; 
+		
+		EXPECT_TRUE(Point<double,3>::SPACE.empty());
+		//test stack construction too? */
+	}
+
 	class PointManagement : public ::testing::Test {
 	protected:
-		eiffel::ContinuousSpace<3> space1, space2;
-		eiffel::ContinuousPoint<3> point1, point2;
+		eiffel::Space<double,3> space1, space2;
+		eiffel::Point<double,3> point1, point2;
 		
 		PointManagement() : space1(), space2(), 
 				    point1(space1, {1.23, -4.56, 7.89}, 1), 
@@ -226,7 +226,7 @@ namespace {
 		EXPECT_TRUE(space1.check(1, &point1));
 		EXPECT_TRUE(space1.check(2, &point2));
 		
-		IDPoint<3> raw_point({1.23, -4.56, 7.89}, 10);
+		PointAlias<double,3> raw_point({1.23, -4.56, 7.89}, 10);
 		auto it = space1.begin();
 		auto ite = space1.end();
 		EXPECT_TRUE(ite != it);
@@ -249,7 +249,7 @@ namespace {
 		EXPECT_FALSE(point1 < point2);
 		EXPECT_TRUE(point2 < point1);
 		
-		IDPoint<3> raw_point({1.23, -5.56, 7.89}, 1);
+		PointAlias<double,3> raw_point({1.23, -5.56, 7.89}, 1);
 		EXPECT_TRUE(raw_point < point1);
 		EXPECT_FALSE(raw_point < point2);
 		
@@ -265,17 +265,17 @@ namespace {
 		space1.update_data();
 		EXPECT_NE(raw_point, *space1.find(1));
 		
-		ContinuousPoint<3> point3({0.12, 3.45, 6.78}, 1);
-		EXPECT_FALSE( ContinuousPoint<3>::SPACE.move_to(space1, 1) ); //move_to calls add_point
-		EXPECT_TRUE( ContinuousPoint<3>::SPACE.check(1, &point3) );
-		EXPECT_EQ(&ContinuousPoint<3>::SPACE, &point3.get_space());
+		Point<double,3> point3({0.12, 3.45, 6.78}, 1);
+		//EXPECT_FALSE( Point<double,3>::SPACE.move_to(space1, 1) ); //move_to calls add_point
+		//EXPECT_TRUE( Point<double,3>::SPACE.check(1, &point3) );
+		//EXPECT_EQ(&Point<double,3>::SPACE, &point3.get_space());
 		EXPECT_NE(&space1, &point3.get_space());
 		EXPECT_FALSE( space1.check(1, &point3) );
 		
-		ContinuousPoint<3> point4(point3, 4);
-		EXPECT_TRUE( ContinuousPoint<3>::SPACE.move_to(space1, 4) );
-		EXPECT_FALSE( ContinuousPoint<3>::SPACE.check(4, &point4) );
-		EXPECT_NE(&ContinuousPoint<3>::SPACE, &point4.get_space());
+		Point<double,3> point4(point3, 4);
+		//EXPECT_TRUE( Point<double,3>::SPACE.move_to(space1, 4) );
+		//EXPECT_FALSE( Point<double,3>::SPACE.check(4, &point4) );
+		//EXPECT_NE(&Point<double,3>::SPACE, &point4.get_space());
 		EXPECT_EQ(&space1, &point4.get_space());
 		EXPECT_TRUE( space1.check(4, &point4) );
 		
@@ -290,3 +290,4 @@ int main(int argc, char **argv) {
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }
+

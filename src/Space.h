@@ -23,11 +23,11 @@
 
 #include <map>
 #include <set>
-#include "Region.h"
+#include "src/Region.h"
+#include "src/Point.h"
+#include "src/Interval.h"
+#include "src/Commons.h"
 #include "Point.h"
-#include "Interval.h"
-#include "Commons.h"
-#include "ContinuousPoint.h"
 
 namespace ben {
 
