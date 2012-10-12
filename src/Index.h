@@ -36,25 +36,27 @@ namespace ben {
 		
 		Each Index will have both a read and a write mutex when multithreading is implemented.
 	*/
-	
-	template<typename S> 
+
+	class Singleton;
+
 	class Index : public wayne::Commons {
 	public:
-		typedef S 	singleton_type;
-		typedef S* 	pointer;
-		typedef S&	reference;
-		typedef size_t	size_type;
 		typedef unsigned int id_type;
+		
+	private:
+		typedef Singleton 	singleton_type;
+		typedef Singleton* 	pointer;
+		typedef Singleton&	reference;
+		typedef size_t	size_type;	
+	
 	protected:
+		friend class Singleton;
+	
 		std::map<id_type, pointer> index;
 		
-		virtual bool update_singleton(pointer x); //makes sure *x is listed and has an up-to-date pointer
-		void update_all() 
-			{ std::for_each(begin(), end(), [](reference x) { x.update_index(this); }); }
+		bool update_singleton(pointer x); //makes sure *x is listed and has an up-to-date pointer
+		void update_all() const;
 		
-		friend class Singleton<Index>;
-		
-	public:	
 		Index()=default;
 		Index(const Index& rhs) = delete;
 		Index(Index&& rhs); //use move semantics to transfer all Nodes
@@ -68,21 +70,14 @@ namespace ben {
 			{ return index.find(address)->second == local_ptr; }
 		bool empty() const { return index.empty(); }
 		
-		virtual bool add(reference x) { 
-			if( index.insert(std::make_pair(x.ID(), &x))->second ) {
-				x.update_index(this); return true;
-			} return false;
-		}
-		virtual bool remove(const id_type address);
-		virtual void clear() { 
-			std::for_each(begin(), end(), [](reference x) { x.update_index(nullptr); }); 
-			index.clear(); 
-		}
+		bool add(reference x);
+		bool remove(const id_type address);
+		void clear();
 		size_type size() { return index.size(); }
 		
-		virtual bool move_to(Index& other, const id_type address); //move individual Singleton
-		virtual void swap_with(Index& other) { std::swap(index, other.index); }
-		virtual bool merge_into(Index& other); 
+		bool move_to(Index& other, const id_type address); //move individual Singleton
+		void swap_with(Index& other) { std::swap(index, other.index); }
+		bool merge_into(Index& other); 
 		
 		class iterator : public std::iterator<std::bidirectional_iterator_tag, node_type> {
 		private:
@@ -122,59 +117,6 @@ namespace ben {
 		iterator begin() { return iterator( IDMap.begin() ); }
 		iterator end()   { return iterator( IDMap.end() ); }
 	}; //class Index
-	
-	template<typename S>
-	Index<S>::Index(Index&& rhs) 
-		: index( std::move(rhs.index) ) { update_all(); }
-	
-	template<typename S>
-	Index<S>& Index<S>::operator=(Index&& rhs) {
-		if(this != &rhs) {
-			clear();
-			index = std::move(rhs.index);
-			update_all();
-		} return *this;
-	}
-	
-	template<typename S> 
-	bool Index<S>::update_singleton(pointer x) {
-		auto iter = index.find(x->ID());
-		if(iter != index.end()) { 
-			iter->second = x;
-			return true;
-		} else return false;
-	}
-	
-	template<typename S>
-	bool Index<S>::remove(const id_type address) { 
-		auto iter = index.find(address);
-		if( iter != index.end() ) { 
-			if(iter->second->managed_by(*this)) iter->second->update_index(nullptr); 
-			index.erase(iter);
-			return true;
-		} else return false;
-	}	
-	
-	template<typename S> 
-	bool Index<S>::move_to(Index& other, const id_type address) {
-		auto iter = index.find(address);
-		if(iter != index.end()) {
-			if( other.add(*(iter->second)) ) {
-				index.erase(iter);
-				return true;
-			} else return false; //redundant ID in destination
-		} else return false; //no element with that ID here
-	}
-	
-	template<typename S> 
-	bool Index<S>::merge_into(Index& other) {
-		//returns true if all singletons were transferred
-		//returns false if any had redundant IDs in other (reassign ID?)
-		for(auto it=index.begin(), auto ite=index.end(); it!=ite; ++it) 
-			if( other.add(*(it->second)) ) index.erase(it);
-			
-		return index.empty();
-	}
 	
 } //namespace ben
 

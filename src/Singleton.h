@@ -23,23 +23,24 @@
 
 namespace ben {
 	
-	template<typename I>
 	class Singleton {
 	public:
-		typedef Singleton 	self_type;
-		typedef I 		index_type;
 		typedef unsigned int 	id_type;
 	private:
+		typedef Singleton 	self_type;
+		typedef Index 		index_type;
 		static std::atomic<id_type> IDCOUNT;  
 		inline static id_type get_new_ID() { return IDCOUNT.fetch_add(1); }
 	
-	protected:
 		id_type uniqueID;
 		index_type* index;
 		//std::mutex?
-		
+	
+	protected:
+		friend class Index; 
+	
 		void update_index(index_type* ptr) { index = ptr; }
-		bool switch_index(index_type* ptr) {
+		bool switch_index(index_type* ptr) { 
 			if( !(ptr->contains(uniqueID)) )
 				if(index != nullptr) 
 					if( !(index->remove(uniqueID)) ) throw; //index did not manage this
@@ -49,9 +50,6 @@ namespace ben {
 			} else return false;
 		}
 		
-		friend class Index<Singleton>; //probably circular with similar statement in Index
-		
-	public:
 		Singleton(const id_type id=get_new_ID())
 			: uniqueID(id), index(nullptr) {}
 		Singleton(index_type& x, const id_type id=get_new_ID()) 
@@ -76,7 +74,6 @@ namespace ben {
 		}
 		virtual ~Singleton() { if(managed()) index->remove(uniqueID); }
 		
-		virtual bool operator<(const self_type& rhs) { return uniqueID < rhs.uniqueID; }
 		bool managed() const { return index != nullptr; }
 		bool managed_by(const index_type& x) const { return index == &x; }
 		const index_type& get_index() const { 
