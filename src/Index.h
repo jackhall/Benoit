@@ -23,7 +23,7 @@
 
 #include <map>
 #include <iostream>
-#include "Lock.h"
+#include "IndexBase.h"
 
 namespace ben {
 	/*
@@ -37,53 +37,57 @@ namespace ben {
 		Each Index will have both a read and a write mutex when multithreading is implemented.
 	*/
 
-	class Singleton;
-
-	class Index : public wayne::Commons {
-	public:
-		typedef unsigned int id_type;
-		
+	template<typename S>
+	class Index : public IndexBase {
 	private:
-		typedef Singleton 	singleton_type;
-		typedef Singleton* 	pointer;
-		typedef Singleton&	reference;
-		typedef size_t	size_type;	
-	
-	protected:
-		friend class Singleton;
-	
-		std::map<id_type, pointer> index;
-		
-		bool update_singleton(pointer x); //makes sure *x is listed and has an up-to-date pointer
-		void update_all() const;
-		
+		typedef S 		singleton_type;
+		typedef IndexBase 	base_type;
+		typedef Index		self_type;
+		typedef size_t		size_type;
+			
+	public:				
 		Index()=default;
-		Index(const Index& rhs) = delete;
-		Index(Index&& rhs); //use move semantics to transfer all Nodes
-		Index& operator=(const Index& rhs) = delete; //make unique copy of all Nodes? no
-		Index& operator=(Index&& rhs);
+		Index(const self_type& rhs) = delete;
+		Index(self_type&& rhs) : base_type( std::move(rhs) ) {} //use move semantics to transfer all Nodes
+		Index& operator=(const self_type& rhs) = delete; //make unique copy of all Nodes? no
+		Index& operator=(self_type&& rhs) { base_type::operator=(rhs); }
 		virtual ~Index() { clear(); }
 		
-		reference find(const id_type address) const { return *(index.find(address)->second); }
-		bool contains(const id_type address) const { return index.count(address) == 1; }
-		bool check(const id_type address, const point_type* local_ptr) const 
-			{ return index.find(address)->second == local_ptr; }
+		reference find(const id_type address) const 
+			{ return *static_cast<singleton_type*>(index.find(address)->second); }
+		bool check(const id_type address, const singleton_type* local_ptr) const 
+			{ return base_type::check(address, local_ptr); }
 		bool empty() const { return index.empty(); }
 		
-		bool add(reference x);
-		bool remove(const id_type address);
-		void clear();
+		virtual bool add(singleton_type& x) { return base_type::add(x); }
 		size_type size() { return index.size(); }
 		
-		bool move_to(Index& other, const id_type address); //move individual Singleton
-		void swap_with(Index& other) { std::swap(index, other.index); }
-		bool merge_into(Index& other); 
+		virtual bool move_to(self_type& other, const id_type address) { //move individual Singleton
+			auto iter = index.find(address);
+			if(iter != index.end()) {
+				if( other.add(*(iter->second)) ) {
+					index.erase(iter);
+					return true;
+				} else return false; //redundant ID in destination
+			} else return false; //no element with that ID here
+		}
+		
+		virtual void swap_with(self_type& other) { std::swap(index, other.index); }
+		
+		virtual bool merge_into(self_type& other) {
+			//returns true if all singletons were transferred
+			//returns false if any had redundant IDs in other (reassign ID?)
+			for(auto it=index.begin(), auto ite=index.end(); it!=ite; ++it) 
+				if( other.add(*(it->second)) ) index.erase(it);
+			
+			return index.empty();
+		}
 		
 		class iterator : public std::iterator<std::bidirectional_iterator_tag, node_type> {
 		private:
-			typename std::map<id_type, pointer>::iterator current;
+			typename std::map<id_type, Singleton*>::iterator current;
 			friend class Index;
-			iterator(const typename std::map<id_type, pointer>::iterator iter)
+			iterator(const typename std::map<id_type, Singleton*>::iterator iter)
 				: current(iter) {}
 			
 		public:
@@ -92,8 +96,10 @@ namespace ben {
 			iterator& operator=(const iterator& rhs) = default;
 			~iterator() = default;
 			
-			reference operator*() const { return *(current->second); } 
-			pointer operator->() const { return current->second; }
+			reference operator*() const 
+				{ return *static_cast<singleton_type*>(current->second); } 
+			pointer operator->() const 
+				{ return static_cast<singleton_type*>(current->second); }
 			
 			iterator& operator++() { ++current; return *this; }
 			iterator  operator++(int) { 
@@ -114,8 +120,8 @@ namespace ben {
 				{ return current!=rhs.current; }
 		}; //class iterator
 			
-		iterator begin() { return iterator( IDMap.begin() ); }
-		iterator end()   { return iterator( IDMap.end() ); }
+		iterator begin() { return iterator( index.begin() ); }
+		iterator end()   { return iterator( index.end() ); }
 	}; //class Index
 	
 } //namespace ben

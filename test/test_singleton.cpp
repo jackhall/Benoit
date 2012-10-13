@@ -18,46 +18,38 @@
 	The author may be reached at jackhall@utexas.edu.
 */
 
-#include "Index.cpp"
+//to compile and run:
+//	g++ -std=c++11 -g -I../src -I../Wayne/src -lgtest -lpthread test_singleton.cpp -o test_singleton
+//	./test_singleton
+
+#include "Index.h"
+#include "Singleton.h"
 #include "gtest/gtest.h"
 
-struct DerivedIndex : public Index {
+namespace {
 
-};
+	class DerivedSingleton : public Singleton {
+		DerivedSingleton() : Singleton() {}
+		DerivedSingleton(const id_type id) : Singleton(id) {}
+		DerivedSingleton(Index<DerivedSingleton>& x) : Singleton(x) {}
+		DerivedSingleton(Index<DerivedSingleton>& x, const id_type id) : Singleton(x, id) {}
+		DerivedSingleton(const DerivedSingleton& rhs) = delete;
+		DerivedSingleton(DerivedSingleton&& rhs) : Singleton(rhs) {}
+		DerivedSingleton& operator=(const DerivedSingleton& rhs) = delete;
+		DerivedSingleton& operator=(DerivedSingleton&& rhs) { Singleton::operator=(rhs); }
+		~DerivedSingleton() = default;
+	};
 
-struct DerivedSingleton : private Singleton {
-	
-	DerivedSingleton(const id_type id=get_new_ID()) : Singleton(id) {}
-	DerivedSingleton(DerivedIndex& x, const id_type id=get_new_ID()) 
-		: Singleton(x,
-		: uniqueID(id), index(&x) { if( !x.add(*this) ) throw; } //define a custom exception?
-
-	DerivedSingleton(DerivedSingleton&& rhs) 
-		: uniqueID(rhs.uniqueID), index(rhs.index) { 
-		if( !update_singleton(this) ) throw; //define a custom exception?
-		rhs.index = nullptr;
+	TEST(IndexSingleton, Construction) {
+		using namespace ben;
+		Index<DerivedSingleton> index1;
+		//DerivedSingleton(index1);
 	}
-	DerivedSingleton& operator=(DerivedSingleton&& rhs) {
-		if(this != &rhs) {
-			if(index != nullptr) 
-				if( !(index->remove(uniqueID)) ) throw;
-			uniqueID = rhs.uniqueID;
-			index = rhs.index;
-			if( !update_singleton(this) ) throw; //define a custom exception?
-			rhs.index = nullptr;
-		} 
-		return *this;
-	}
-	virtual ~DerivedSingleton() {}
 	
-	bool managed() const { return Singleton::managed(); }
-	bool managed_by(const DerivedIndex& x) const { return &get_index() == &x; }
-	const DerivedIndex& get_index() const { return static_cast<const DerivedIndex&>(Singleton::get_index()); }
-	id_type ID() const { return Singleton::ID(); }
+} //anonymous namespace
 
-	void update_index(Index* ptr) { Singleton::update_index(ptr); }
-	bool switch_index(Index* ptr) { Singleton::switch_index(ptr); }
-	
-};
-
+int main(int argc, char **argv) {
+	::testing::InitGoogleTest(&argc, argv);
+	return RUN_ALL_TESTS();
+}
 

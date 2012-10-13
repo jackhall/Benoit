@@ -21,14 +21,16 @@
     e-mail: jackwhall7@gmail.com
 */
 
+#include "Index.h"
+
 namespace ben {
 	
 	class Singleton {
 	public:
-		typedef unsigned int 	id_type;
+		typedef typename IndexBase::id_type id_type;
 	private:
 		typedef Singleton 	self_type;
-		typedef Index 		index_type;
+		typedef IndexBase 	index_type;
 		static std::atomic<id_type> IDCOUNT;  
 		inline static id_type get_new_ID() { return IDCOUNT.fetch_add(1); }
 	
@@ -37,7 +39,7 @@ namespace ben {
 		//std::mutex?
 	
 	protected:
-		friend class Index; 
+		friend class IndexBase; 
 	
 		void update_index(index_type* ptr) { index = ptr; }
 		bool switch_index(index_type* ptr) { 
@@ -54,13 +56,13 @@ namespace ben {
 			: uniqueID(id), index(nullptr) {}
 		Singleton(index_type& x, const id_type id=get_new_ID()) 
 			: uniqueID(id), index(&x) { if( !x.add(*this) ) throw; } //define a custom exception?
-
-		//copyable?
+		Singleton(const self_type& rhs) = delete;
 		Singleton(self_type&& rhs) 
 			: uniqueID(rhs.uniqueID), index(rhs.index) { 
 			if( !update_singleton(this) ) throw; //define a custom exception?
 			rhs.index = nullptr;
 		}
+		self_type& operator=(const self_type& rhs) = delete;
 		self_type& operator=(self_type&& rhs) {
 			if(this != &rhs) {
 				if(index != nullptr) 
@@ -76,10 +78,6 @@ namespace ben {
 		
 		bool managed() const { return index != nullptr; }
 		bool managed_by(const index_type& x) const { return index == &x; }
-		const index_type& get_index() const { 
-			if(index != nullptr) return *index;
-			else throw; //define a custom exception for this? 
-		}
 		id_type ID() const { return uniqueID; }
 		//resetID method? not for now
 	}; //class Singleton
