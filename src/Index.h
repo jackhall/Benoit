@@ -53,7 +53,7 @@ namespace ben {
 		Index& operator=(self_type&& rhs) { base_type::operator=(rhs); }
 		virtual ~Index() { clear(); }
 		
-		reference find(const id_type address) const 
+		singleton_type& find(const id_type address) const 
 			{ return *static_cast<singleton_type*>(index.find(address)->second); }
 		bool check(const id_type address, const singleton_type* local_ptr) const 
 			{ return base_type::check(address, local_ptr); }
@@ -65,7 +65,7 @@ namespace ben {
 		virtual bool move_to(self_type& other, const id_type address) { //move individual Singleton
 			auto iter = index.find(address);
 			if(iter != index.end()) {
-				if( other.add(*(iter->second)) ) {
+				if( other.add(*static_cast<singleton_type*>(iter->second)) ) {
 					index.erase(iter);
 					return true;
 				} else return false; //redundant ID in destination
@@ -77,13 +77,13 @@ namespace ben {
 		virtual bool merge_into(self_type& other) {
 			//returns true if all singletons were transferred
 			//returns false if any had redundant IDs in other (reassign ID?)
-			for(auto it=index.begin(), auto ite=index.end(); it!=ite; ++it) 
-				if( other.add(*(it->second)) ) index.erase(it);
+			for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
+				if( other.add(*static_cast<singleton_type*>(it->second)) ) index.erase(it);
 			
 			return index.empty();
 		}
 		
-		class iterator : public std::iterator<std::bidirectional_iterator_tag, node_type> {
+		class iterator : public std::iterator<std::bidirectional_iterator_tag, singleton_type> {
 		private:
 			typename std::map<id_type, Singleton*>::iterator current;
 			friend class Index;
@@ -96,9 +96,9 @@ namespace ben {
 			iterator& operator=(const iterator& rhs) = default;
 			~iterator() = default;
 			
-			reference operator*() const 
+			singleton_type& operator*() const 
 				{ return *static_cast<singleton_type*>(current->second); } 
-			pointer operator->() const 
+			singleton_type* operator->() const 
 				{ return static_cast<singleton_type*>(current->second); }
 			
 			iterator& operator++() { ++current; return *this; }

@@ -28,22 +28,22 @@
 
 namespace {
 
-	class DerivedSingleton : public Singleton {
+	struct DerivedSingleton : public ben::Singleton {
 		DerivedSingleton() : Singleton() {}
 		DerivedSingleton(const id_type id) : Singleton(id) {}
-		DerivedSingleton(Index<DerivedSingleton>& x) : Singleton(x) {}
-		DerivedSingleton(Index<DerivedSingleton>& x, const id_type id) : Singleton(x, id) {}
+		DerivedSingleton(ben::Index<DerivedSingleton>& x) : Singleton(x) {}
+		DerivedSingleton(ben::Index<DerivedSingleton>& x, const id_type id) : Singleton(x, id) {}
 		DerivedSingleton(const DerivedSingleton& rhs) = delete;
-		DerivedSingleton(DerivedSingleton&& rhs) : Singleton(rhs) {}
+		DerivedSingleton(DerivedSingleton&& rhs) : Singleton( std::move(rhs) ) {}
 		DerivedSingleton& operator=(const DerivedSingleton& rhs) = delete;
-		DerivedSingleton& operator=(DerivedSingleton&& rhs) { Singleton::operator=(rhs); }
+		DerivedSingleton& operator=(DerivedSingleton&& rhs) { Singleton::operator=( std::move(rhs) ); }
 		~DerivedSingleton() = default;
 	};
 
 	TEST(IndexSingleton, Construction) {
 		using namespace ben;
 		Index<DerivedSingleton> index1;
-		//DerivedSingleton(index1);
+		DerivedSingleton singleton1(index1);
 	}
 	
 } //anonymous namespace

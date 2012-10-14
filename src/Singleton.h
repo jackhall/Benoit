@@ -32,22 +32,23 @@ namespace ben {
 		typedef Singleton 	self_type;
 		typedef IndexBase 	index_type;
 		static std::atomic<id_type> IDCOUNT;  
-		inline static id_type get_new_ID() { return IDCOUNT.fetch_add(1); }
+		static id_type get_new_ID() { return IDCOUNT.fetch_add(1); }
 	
 		id_type uniqueID;
 		index_type* index;
 		//std::mutex?
+		
+		void update_index(index_type* ptr) { index = ptr; }
 	
 	protected:
 		friend class IndexBase; 
 	
-		void update_index(index_type* ptr) { index = ptr; }
 		bool switch_index(index_type* ptr) { 
-			if( !(ptr->contains(uniqueID)) )
+			if( !(ptr->contains(uniqueID)) ) {
 				if(index != nullptr) 
 					if( !(index->remove(uniqueID)) ) throw; //index did not manage this
 				index = ptr;
-				index->add(uniqueID);
+				index->add(*this);
 				return true;
 			} else return false;
 		}
@@ -59,7 +60,7 @@ namespace ben {
 		Singleton(const self_type& rhs) = delete;
 		Singleton(self_type&& rhs) 
 			: uniqueID(rhs.uniqueID), index(rhs.index) { 
-			if( !update_singleton(this) ) throw; //define a custom exception?
+			if( !(index->update_singleton(this)) ) throw; //define a custom exception?
 			rhs.index = nullptr;
 		}
 		self_type& operator=(const self_type& rhs) = delete;
@@ -69,7 +70,7 @@ namespace ben {
 					if( !(index->remove(uniqueID)) ) throw;
 				uniqueID = rhs.uniqueID;
 				index = rhs.index;
-				if( !update_singleton(this) ) throw; //define a custom exception?
+				if( !(index->update_singleton(this)) ) throw; //define a custom exception?
 				rhs.index = nullptr;
 			} 
 			return *this;
@@ -81,6 +82,8 @@ namespace ben {
 		id_type ID() const { return uniqueID; }
 		//resetID method? not for now
 	}; //class Singleton
+	
+	std::atomic<typename Singleton::id_type> Singleton::IDCOUNT(1000);
 	
 } //namespace ben
 

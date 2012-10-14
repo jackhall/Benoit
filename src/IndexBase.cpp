@@ -18,16 +18,26 @@
     e-mail: jackwhall7@gmail.com
 */
 
+#include "IndexBase.h"
+#include "Singleton.h"
+
 namespace ben {
 	
-	void update_all() const { 
-		std::for_each(index.begin(), index.end(), [](std::pair<id_type, Singleton*>& x) { 
-			x->second->update_index(this); 
-		}); 
+	bool IndexBase::update_singleton(Singleton* ptr) {
+		auto iter = index.find(ptr->ID());
+		if(iter != index.end()) { 
+			iter->second = ptr;
+			return true;
+		} else return false;
+	}
+	
+	void IndexBase::update_all() { 
+		for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
+			it->second->update_index(this);
 	}
 	
 	bool IndexBase::add(Singleton& x) {
-		if( index.insert(std::make_pair(x.ID(), &x))->second ) {
+		if( index.insert(std::make_pair(x.ID(), &x)).second ) {
 			x.update_index(this); return true; 
 		} return false;
 	}
@@ -42,9 +52,8 @@ namespace ben {
 	}
 	
 	void IndexBase::clear() {
-		std::for_each(index.begin(), index.end(), [](std::pair<id_type, Singleton*>& x) { 
-			x->second->update_index(nullptr); 
-		}); 
+		for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
+			it->second->update_index(nullptr);
 		index.clear(); 
 	}
 	

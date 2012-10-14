@@ -54,16 +54,8 @@ namespace ben {
 	
 		std::map<id_type, Singleton*> index;
 		
-		bool update_singleton(Singleton* ptr) {
-			auto iter = index.find(ptr->ID());
-			if(iter != index.end()) { 
-				iter->second = ptr;
-				return true;
-			} else return false;
-		}
-		
-		void update_all() const;
-			{ std::for_each(begin(), end(), [](singleton_type& x) { x.update_index(this); }); }
+		bool update_singleton(Singleton* ptr);
+		void update_all();
 		
 		bool check(const id_type address, const Singleton* local_ptr) const
 			{ return index.find(address)->second == local_ptr; }
@@ -76,3 +68,4 @@ namespace ben {
 } //namespace ben
 
 #endif
+
