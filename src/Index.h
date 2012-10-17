@@ -50,10 +50,10 @@ namespace ben {
 		Index(const self_type& rhs) = delete;
 		Index(self_type&& rhs) : base_type( std::move(rhs) ) {} //use move semantics to transfer all Nodes
 		Index& operator=(const self_type& rhs) = delete; //make unique copy of all Nodes? no
-		Index& operator=(self_type&& rhs) { base_type::operator=(rhs); }
+		Index& operator=(self_type&& rhs) { base_type::operator=( std::move(rhs) ); }
 		virtual ~Index() { clear(); }
 		
-		singleton_type& find(const id_type address) const 
+		singleton_type& find(const id_type address) const //throw if address does not exist?
 			{ return *static_cast<singleton_type*>(index.find(address)->second); }
 		bool check(const id_type address, const singleton_type* local_ptr) const 
 			{ return base_type::check(address, local_ptr); }

@@ -60,7 +60,7 @@ namespace ben {
 		Singleton(const self_type& rhs) = delete;
 		Singleton(self_type&& rhs) 
 			: uniqueID(rhs.uniqueID), index(rhs.index) { 
-			if( !(index->update_singleton(this)) ) throw; //define a custom exception?
+			if( managed() && !(index->update_singleton(this)) ) throw; //define a custom exception?
 			rhs.index = nullptr;
 		}
 		self_type& operator=(const self_type& rhs) = delete;
@@ -70,7 +70,7 @@ namespace ben {
 					if( !(index->remove(uniqueID)) ) throw;
 				uniqueID = rhs.uniqueID;
 				index = rhs.index;
-				if( !(index->update_singleton(this)) ) throw; //define a custom exception?
+				if( managed() && !(index->update_singleton(this)) ) throw; //define a custom exception?
 				rhs.index = nullptr;
 			} 
 			return *this;
