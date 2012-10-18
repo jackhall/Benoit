@@ -27,14 +27,15 @@
 
 namespace ben {
 	/*
-		Index is a manager of a distributed directed graph consisting of the Nodes and Links that connect
-		them. It does not own the Nodes (or it would not be a distributed structure), but it stores pointers to them 
-		in an STL map, using the Node ID as the key value. 
+		Index is a layer between IndexBase and any client code that provides a type-safe interface
+		specific to the type of Singleton it tracks. This way IndexBase can be reused without 
+		requiring client code to violate type safety. The interface of Index is designed to look like
+		an STL interface, complete with iterators and add, empty, size and find methods. I use "remove"
+		instead of "erase" because the Singleton's destructor is not called. The swap_with and merge_into
+		methods are not required for completeness, but should be convenient. 
 		
-		Nodes may not be connected between Indicies. When an individual Node is moved, all Links must be cleared from it. 
-		Indicies may be swapped or merged, in which cases the Links between Nodes are preserved.  
-		
-		Each Index will have both a read and a write mutex when multithreading is implemented.
+		Index has access to the machinery of IndexBase, but hides it from any further-derived children
+		to protect the encapsulation of IndexBase. 
 	*/
 
 	template<typename S>
@@ -44,6 +45,10 @@ namespace ben {
 		typedef IndexBase 	base_type;
 		typedef Index		self_type;
 		typedef size_t		size_type;
+		
+		using base_type::update_singleton;
+		using base_type::update_all;
+		using base_type::index; //FIELD
 			
 	public:				
 		class iterator;
@@ -66,7 +71,7 @@ namespace ben {
 		virtual bool add(singleton_type& x) { return base_type::add(x); }
 		size_type size() { return index.size(); }
 		
-		virtual bool move_to(self_type& other, const id_type address) { //move individual Singleton
+		virtual bool move_to(self_type& other, const id_type address) { //move individual Singleton (use add instead)
 			auto iter = index.find(address);
 			if(iter != index.end()) {
 				if( other.add(*static_cast<singleton_type*>(iter->second)) ) {

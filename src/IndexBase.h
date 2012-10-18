@@ -29,6 +29,21 @@ namespace ben {
 	class Singleton;
 
 	class IndexBase : public wayne::Commons {
+	/*
+		IndexBase keeps track of Singleton pointers by the IDs of those Singletons. Most
+		of its members are protected here and then hidden by Index<>. IndexBase is not meant
+		to be instantiated except as a base class of Index<>. 
+		
+		Some of the methods (check, contains) are implemented here because their behavior and 
+		interface would not conceivably change for more specialized Index-Singleton abstractions. 
+		Others (add, remove, clear) are left open for redefinition, but provide default 
+		implementations. In most cases, these default implementations should be called by their
+		replacements, because the Singleton-tracking behavior is meant to be encapsulated by 
+		IndexBase. 
+		
+		As a global data structure that may be accessed in multiple threads, IndexBase inherits
+		from wayne::Commons to provide readers/writer locking. 
+	*/
 	public: 
 		typedef unsigned int id_type;
 		friend class Singleton;
@@ -54,13 +69,14 @@ namespace ben {
 	
 		std::map<id_type, Singleton*> index;
 		
-		bool update_singleton(Singleton* ptr);
+		bool update_singleton(Singleton* ptr); 
 		void update_all();
 		
-		bool check(const id_type address, const Singleton* local_ptr) const
-			{ return index.find(address)->second == local_ptr; }
+		bool check(const id_type address, const Singleton* local_ptr) const 
+		//verifies correct tracking of Singleton
+			{ return index.find(address)->second == local_ptr; } 
 			
-		virtual bool add(Singleton& x);
+		virtual bool add(Singleton& x); 
 		virtual bool remove(const id_type address);
 		virtual void clear();
 	}; //class IndexBase	

@@ -24,6 +24,8 @@
 namespace ben {
 	
 	bool IndexBase::update_singleton(Singleton* ptr) {
+	//updates the tracking for the indicated Singleton
+	//returns false if no Singleton with this ID is currently being tracked, true otherwise
 		auto iter = index.find(ptr->ID());
 		if(iter != index.end()) { 
 			iter->second = ptr;
@@ -32,17 +34,29 @@ namespace ben {
 	}
 	
 	void IndexBase::update_all() { 
+	//iterates through data structure, updating the location of this Index as tracked by 
+	//each Singleton
 		for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
 			it->second->update_index(this);
 	}
 	
 	bool IndexBase::add(Singleton& x) {
+	//begins tracking x, removing it from its existing Index if necessary
+	//returns false if this Index is already tracking a Singleton with x's ID, true otherwise
 		if( index.insert(std::make_pair(x.ID(), &x)).second ) {
-			x.update_index(this); return true; 
+			if(!x.managed()) x.update_index(this);
+			else {
+				x.index->remove(x.ID());
+				x.update_index(this);
+			}	 
+			return true; 
 		} return false;
 	}
 	
 	bool IndexBase::remove(const id_type address) {
+	//stops tracking Singleton with ID=address, leaving it with a nullptr where the Singleton
+	//was pointing to this Index
+	//returns false it this Index is not tracking a Singleton with ID=address, true otherwise
 		auto iter = index.find(address);
 		if( iter != index.end() ) { 
 			if(iter->second->managed_by(*this)) iter->second->update_index(nullptr); 
@@ -52,6 +66,8 @@ namespace ben {
 	}
 	
 	void IndexBase::clear() {
+	//stops tracking all Singletons, leaves Singletons with a nullptr where the Singleton was
+	//pointing to this Index
 		for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
 			it->second->update_index(nullptr);
 		index.clear(); 

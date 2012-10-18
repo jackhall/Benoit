@@ -24,7 +24,19 @@
 #include "Index.h"
 
 namespace ben {
-	
+	/*
+		Singletons are unique local objects that track and are tracked by an Index. Each
+		Singleton should have a unique identifier, and default instantiations use static
+		members to guarantee this. However, since coordination of multiple Singletons may
+		be necessary, client code is allowed to specify an ID at construction or assignment. 
+		These semantics are similar to const, but allow flexibility without breaking the
+		abstraction. 
+		
+		Singletons are designed as a base class, and as such most of the interface is protected.
+		The reason for this is that the type of Index used should be specified for type safety, and
+		circularity prevents the use of an Index<> reference here. Child classes cannot violate 
+		encapsulation, but the protected interface is semantically complete. 
+	*/
 	class Singleton {
 	public:
 		typedef typename IndexBase::id_type id_type;
