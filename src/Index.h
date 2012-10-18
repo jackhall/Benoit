@@ -71,25 +71,19 @@ namespace ben {
 		virtual bool add(singleton_type& x) { return base_type::add(x); }
 		size_type size() { return index.size(); }
 		
-		virtual bool move_to(self_type& other, const id_type address) { //move individual Singleton (use add instead)
-			auto iter = index.find(address);
-			if(iter != index.end()) {
-				if( other.add(*static_cast<singleton_type*>(iter->second)) ) {
-					index.erase(iter);
-					return true;
-				} else return false; //redundant ID in destination
-			} else return false; //no element with that ID here
-		}
-		
 		virtual void swap_with(self_type& other) { std::swap(index, other.index); }
 		
 		virtual bool merge_into(self_type& other) {
-			//returns true if all singletons were transferred
-			//returns false if any had redundant IDs in other (reassign ID?)
+		//transfers management of all Singletons to other, first checking for redundancy
+		//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
+		//either transfers all Singletons or none
+			for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
+				if( other.contains(it->first) ) return false;
+		
 			for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
 				if( other.add(*static_cast<singleton_type*>(it->second)) ) index.erase(it);
-			
-			return index.empty();
+		
+			return true;
 		}
 		
 		iterator begin() { return iterator( index.begin() ); }

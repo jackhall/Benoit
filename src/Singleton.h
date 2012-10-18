@@ -48,27 +48,19 @@ namespace ben {
 	
 		id_type uniqueID;
 		index_type* index;
-		//std::mutex?
+		//std::mutex? maybe later
 		
 		void update_index(index_type* ptr) { index = ptr; }
 	
 	protected:
 		friend class IndexBase; 
 	
-		bool switch_index(index_type* ptr) { //not meant to be exposed
-			if( !(ptr->contains(uniqueID)) ) {
-				if(index != nullptr) 
-					if( !(index->remove(uniqueID)) ) throw; //index did not manage this
-				index = ptr;
-				index->add(*this);
-				return true;
-			} else return false;
-		}
+		bool switch_index(index_type* ptr) { return ptr->add(*this); } //should be hidden by children
 		
 		Singleton(const id_type id=get_new_ID())
 			: uniqueID(id), index(nullptr) {}
 		Singleton(index_type& x, const id_type id=get_new_ID()) 
-			: uniqueID(id), index(&x) { if( !x.add(*this) ) std::cerr << "bad add" << std::endl /*throw*/; } //define a custom exception?
+			: uniqueID(id), index(&x) { if( !x.add(*this) ) throw; } //define a custom exception?
 		Singleton(const self_type& rhs) = delete;
 		Singleton(self_type&& rhs) 
 			: uniqueID(rhs.uniqueID), index(rhs.index) { 
@@ -79,7 +71,7 @@ namespace ben {
 		self_type& operator=(self_type&& rhs) {
 			if(this != &rhs) {
 				if(index != nullptr) 
-					if( !(index->remove(uniqueID)) ) throw;
+					if( !(index->remove(uniqueID)) ) throw; //need to catch this?
 				uniqueID = rhs.uniqueID;
 				index = rhs.index;
 				if( managed() && !(index->update_singleton(this)) ) throw; //define a custom exception?
