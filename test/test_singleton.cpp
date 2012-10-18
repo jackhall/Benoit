@@ -43,6 +43,7 @@ namespace {
 		DerivedSingleton& operator=(DerivedSingleton&& rhs) { Singleton::operator=( std::move(rhs) ); }
 		~DerivedSingleton() = default;
 		
+		bool switch_index(index_type* ptr) { return base_type::switch_index(ptr); }
 		using base_type::managed;
 		bool managed_by(const index_type& x) { return base_type::managed_by(x); }
 		using base_type::ID;
@@ -68,7 +69,7 @@ namespace {
 			//both
 			EXPECT_TRUE( index1_ptr->contains(singleton1.ID()) );
 			EXPECT_TRUE( index1_ptr->check(singleton1.ID(), &singleton1) );
-			EXPECT_EQ( &singleton1, &(index1_ptr->find(singleton1.ID())) );
+			EXPECT_EQ( &singleton1, &(index1_ptr->elem(singleton1.ID())) );
 		
 		//======= Index<> move constructor =========
 		Index<DerivedSingleton> index2( std::move(*index1_ptr) );
@@ -84,11 +85,11 @@ namespace {
 			//singleton+index2
 			EXPECT_TRUE( index2.contains(singleton1.ID()) );
 			EXPECT_TRUE( index2.check(singleton1.ID(), &singleton1) );
-			EXPECT_EQ( &singleton1, &(index2.find(singleton1.ID())) );
+			EXPECT_EQ( &singleton1, &(index2.elem(singleton1.ID())) );
 			//singleton+index1
 			EXPECT_FALSE( index1_ptr->contains(singleton1.ID()) );
 			EXPECT_FALSE( index1_ptr->check(singleton1.ID(), &singleton1) );
-			EXPECT_NE( &singleton1, &(index1_ptr->find(singleton1.ID())) );
+			EXPECT_NE( &singleton1, &(index1_ptr->elem(singleton1.ID())) );
 		
 		//====== Index<> move assignment operator =======
 		*index1_ptr = std::move(index2);
@@ -104,11 +105,11 @@ namespace {
 			//singleton+index1
 			EXPECT_TRUE( index1_ptr->contains(singleton1.ID()) );
 			EXPECT_TRUE( index1_ptr->check(singleton1.ID(), &singleton1) );
-			EXPECT_EQ( &singleton1, &(index1_ptr->find(singleton1.ID())) );
+			EXPECT_EQ( &singleton1, &(index1_ptr->elem(singleton1.ID())) );
 			//singleton+index2
 			EXPECT_FALSE( index2.contains(singleton1.ID()) );
 			EXPECT_FALSE( index2.check(singleton1.ID(), &singleton1) );
-			EXPECT_NE( &singleton1, &(index2.find(singleton1.ID())) );
+			EXPECT_NE( &singleton1, &(index2.elem(singleton1.ID())) );
 		
 		//====== Index<> destructor =========
 		delete index1_ptr;
@@ -128,7 +129,7 @@ namespace {
 			//both
 			EXPECT_TRUE( index2.contains(singleton2_ptr->ID()) );
 			EXPECT_TRUE( index2.check(singleton2_ptr->ID(), singleton2_ptr) );
-			EXPECT_EQ( singleton2_ptr, &(index2.find(singleton2_ptr->ID())) );
+			EXPECT_EQ( singleton2_ptr, &(index2.elem(singleton2_ptr->ID())) );
 		
 		//====== Singleton destructor =======
 		unsigned short id2 = singleton2_ptr->ID();
@@ -161,7 +162,7 @@ namespace {
 			//both
 			EXPECT_TRUE( index2.contains(singleton5.ID()) );
 			EXPECT_TRUE( index2.check(singleton5.ID(), &singleton5) );
-			EXPECT_EQ( &singleton5, &(index2.find(singleton5.ID())) );
+			EXPECT_EQ( &singleton5, &(index2.elem(singleton5.ID())) );
 		
 		//====== Singleton move constructor ======
 		//---- from managed
@@ -180,10 +181,10 @@ namespace {
 			EXPECT_TRUE( index2.contains(singleton6.ID()) );
 			//singleton6+index2 tests
 			EXPECT_TRUE( index2.check(singleton6.ID(), &singleton6) );
-			EXPECT_EQ( &singleton6, &(index2.find(singleton6.ID())) );
+			EXPECT_EQ( &singleton6, &(index2.elem(singleton6.ID())) );
 			//singleton5+index2 tests
 			EXPECT_FALSE( index2.check(singleton5.ID(), &singleton5) );
-			EXPECT_NE( &singleton5, &(index2.find(singleton5.ID())) );
+			EXPECT_NE( &singleton5, &(index2.elem(singleton5.ID())) );
 		
 		//---- from null
 		DerivedSingleton singleton7( std::move(singleton3) ); 
@@ -211,10 +212,10 @@ namespace {
 			EXPECT_TRUE( index2.contains(singleton6.ID()) );
 			//singleton6+index2 tests
 			EXPECT_FALSE( index2.check(singleton6.ID(), &singleton6) );
-			EXPECT_NE( &singleton6, &(index2.find(singleton6.ID())) );
+			EXPECT_NE( &singleton6, &(index2.elem(singleton6.ID())) );
 			//singleton5+index2 tests
 			EXPECT_TRUE( index2.check(singleton5.ID(), &singleton5) );
-			EXPECT_EQ( &singleton5, &(index2.find(singleton5.ID())) );
+			EXPECT_EQ( &singleton5, &(index2.elem(singleton5.ID())) );
 		
 		//---- null -> null
 		singleton3 = std::move(singleton7);
@@ -258,8 +259,8 @@ namespace {
 			EXPECT_TRUE( index2.contains(singleton9.ID()) ); 
 			EXPECT_TRUE( index2.check(singleton8.ID(), &singleton8) ); 
 			EXPECT_TRUE( index2.check(singleton9.ID(), &singleton9) ); 
-			EXPECT_EQ( &singleton8, &(index2.find(singleton8.ID())) ); 
-			EXPECT_EQ( &singleton9, &(index2.find(singleton9.ID())) ); 
+			EXPECT_EQ( &singleton8, &(index2.elem(singleton8.ID())) ); 
+			EXPECT_EQ( &singleton9, &(index2.elem(singleton9.ID())) ); 
 		
 		//actual move
 		singleton9 = std::move(singleton8);
@@ -274,6 +275,52 @@ namespace {
 			EXPECT_FALSE(index2.empty()); 
 			EXPECT_EQ(1, index2.size());
 			EXPECT_TRUE( index2.contains(singleton9.ID()) );
+	}
+	
+	TEST(IndexSingleton, LocalMethods) {
+		using namespace ben;
+	
+		Index<DerivedSingleton> index1, index2;
+		DerivedSingleton singleton1(index1), singleton2(index1, 5000), singleton3(index2, 5000);
+		
+		//test switch_index, valid
+		EXPECT_TRUE( singleton1.switch_index(&index2) );
+			//index2 checks
+			EXPECT_TRUE( index2.contains(singleton1.ID()) );
+			EXPECT_TRUE( index2.check(singleton1.ID(), &singleton1) );
+			//index1 checks
+			EXPECT_FALSE( index1.contains(singleton1.ID()) );
+			//singleton1 checks
+			EXPECT_TRUE( singleton1.managed() );
+			EXPECT_TRUE( singleton1.managed_by(index2) );
+			
+		//test switch_index, invalid
+		EXPECT_FALSE( singleton2.switch_index(&index2) );
+			//index2 checks
+			EXPECT_FALSE( index2.check(singleton2.ID(), &singleton2) );
+			//index1 checks
+			EXPECT_TRUE( index1.contains(singleton2.ID()) );
+			EXPECT_TRUE( index1.check(singleton2.ID(), &singleton2) );
+			//singleton2 checks
+			EXPECT_TRUE( singleton2.managed() );
+			EXPECT_TRUE( singleton2.managed_by(index1) );
+		
+		//final checks
+		EXPECT_EQ(1, index1.size());
+		EXPECT_EQ(2, index2.size());
+		EXPECT_TRUE( index2.contains(singleton3.ID()) );
+		EXPECT_TRUE( index2.check(singleton3.ID(), &singleton3) );
+		EXPECT_TRUE( singleton3.managed_by(index2) );
+	}
+	
+	TEST(IndexSingleton, GlobalMethods) {
+		using namespace ben;
+		
+		Index<DerivedSingleton> index1, index2;
+	}
+	
+	TEST(IndexSingleton, Iterators) {
+	
 	}
 	
 } //anonymous namespace

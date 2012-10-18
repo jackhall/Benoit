@@ -43,7 +43,7 @@ namespace ben {
 	protected:
 		friend class IndexBase; 
 	
-		bool switch_index(index_type* ptr) { 
+		bool switch_index(index_type* ptr) { //not meant to be exposed
 			if( !(ptr->contains(uniqueID)) ) {
 				if(index != nullptr) 
 					if( !(index->remove(uniqueID)) ) throw; //index did not manage this

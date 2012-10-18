@@ -46,6 +46,9 @@ namespace ben {
 		typedef size_t		size_type;
 			
 	public:				
+		class iterator;
+		class const_iterator;
+	
 		Index()=default;
 		Index(const self_type& rhs) = delete;
 		Index(self_type&& rhs) : base_type( std::move(rhs) ) {} //use move semantics to transfer all Nodes
@@ -53,7 +56,8 @@ namespace ben {
 		Index& operator=(self_type&& rhs) { base_type::operator=( std::move(rhs) ); }
 		virtual ~Index() { clear(); }
 		
-		singleton_type& find(const id_type address) const //throw if address does not exist?
+		iterator find(const id_type address) { return iterator( index.find(address) ); }
+		singleton_type& elem(const id_type address) const //throw if address does not exist?
 			{ return *static_cast<singleton_type*>(index.find(address)->second); }
 		bool check(const id_type address, const singleton_type* local_ptr) const 
 			{ return base_type::check(address, local_ptr); }
@@ -83,46 +87,90 @@ namespace ben {
 			return index.empty();
 		}
 		
-		class iterator : public std::iterator<std::bidirectional_iterator_tag, singleton_type> {
-		private:
-			typename std::map<id_type, Singleton*>::iterator current;
-			friend class Index;
-			iterator(const typename std::map<id_type, Singleton*>::iterator iter)
-				: current(iter) {}
-			
-		public:
-			iterator() = default;
-			iterator(const iterator& rhs) = default;
-			iterator& operator=(const iterator& rhs) = default;
-			~iterator() = default;
-			
-			singleton_type& operator*() const 
-				{ return *static_cast<singleton_type*>(current->second); } 
-			singleton_type* operator->() const 
-				{ return static_cast<singleton_type*>(current->second); }
-			
-			iterator& operator++() { ++current; return *this; }
-			iterator  operator++(int) { 
-				auto temp = current;
-				++current;
-				return temp;
-			}
-			iterator& operator--() { --current; return *this; }
-			iterator  operator--(int) {
-				auto temp = current;
-				--current;
-				return temp;
-			}
-			
-			bool operator==(const iterator& rhs) const //compare iterator locations
-				{ return current==rhs.current; }
-			bool operator!=(const iterator& rhs) const
-				{ return current!=rhs.current; }
-		}; //class iterator
-			
 		iterator begin() { return iterator( index.begin() ); }
 		iterator end()   { return iterator( index.end() ); }
+		const_iterator cbegin() { return const_iterator( index.cbegin() ); }
+		const_iterator cend()   { return const_iterator( index.cend() ); }
 	}; //class Index
+	
+	
+	template<typename S>
+	class Index<S>::const_iterator : public std::iterator<std::bidirectional_iterator_tag, singleton_type> {
+	private:
+		typename std::map<id_type, Singleton*>::const_iterator current;
+		friend class Index;
+		const_iterator(const typename std::map<id_type, Singleton*>::const_iterator iter)
+			: current(iter) {}
+		
+	public:
+		const_iterator() = default;
+		const_iterator(const const_iterator& rhs) = default;
+		const_iterator& operator=(const const_iterator& rhs) = default;
+		~const_iterator() = default;
+		
+		const singleton_type& operator*() const 
+			{ return *static_cast<singleton_type*>(current->second); } 
+		const singleton_type* operator->() const 
+			{ return static_cast<singleton_type*>(current->second); }
+		
+		const_iterator& operator++() { ++current; return *this; }
+		const_iterator  operator++(int) { 
+			auto temp = current;
+			++current;
+			return temp;
+		}
+		const_iterator& operator--() { --current; return *this; }
+		const_iterator  operator--(int) {
+			auto temp = current;
+			--current;
+			return temp;
+		}
+		
+		bool operator==(const const_iterator& rhs) const //compare iterator locations
+			{ return current==rhs.current; }
+		bool operator!=(const const_iterator& rhs) const
+			{ return current!=rhs.current; }
+	}; //class const_iterator
+	
+	
+	template<typename S>
+	class Index<S>::iterator : public std::iterator<std::bidirectional_iterator_tag, singleton_type> {
+	private:
+		typename std::map<id_type, Singleton*>::iterator current; //already inheriting pointer?
+		friend class Index;
+		iterator(const typename std::map<id_type, Singleton*>::iterator iter)
+			: current(iter) {}
+		
+	public:	
+		operator const_iterator() const { return const_iterator(current); }
+		iterator() = default;
+		iterator(const iterator& rhs) = default;
+		iterator& operator=(const iterator& rhs) = default;
+		~iterator() = default;
+		
+		singleton_type& operator*() const 
+			{ return *static_cast<singleton_type*>(current->second); } 
+		singleton_type* operator->() const 
+			{ return static_cast<singleton_type*>(current->second); }
+		
+		iterator& operator++() { ++current; return *this; }
+		iterator  operator++(int) { 
+			auto temp = current;
+			++current;
+			return temp;
+		}
+		iterator& operator--() { --current; return *this; }
+		iterator  operator--(int) {
+			auto temp = current;
+			--current;
+			return temp;
+		}
+		
+		bool operator==(const iterator& rhs) const //compare iterator locations
+			{ return current==rhs.current; }
+		bool operator!=(const iterator& rhs) const
+			{ return current!=rhs.current; }
+	}; //class iterator
 	
 } //namespace ben
 
