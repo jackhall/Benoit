@@ -241,34 +241,39 @@ namespace {
 		//---- managed -> managed
 		//prepare new singleton
 		DerivedSingleton singleton8(index2); 
+		DerivedSingleton singleton9(index2);
 			//singleton8 tests
 			EXPECT_EQ(1003, singleton8.ID());
 			EXPECT_TRUE(singleton8.managed());
 			EXPECT_TRUE(singleton8.managed_by(index2));
+			//singleton9 tests
+			EXPECT_EQ(1004, singleton9.ID());
+			EXPECT_TRUE(singleton9.managed());
+			EXPECT_TRUE(singleton9.managed_by(index2));
 			//index2 tests
 			EXPECT_FALSE(index2.empty()); 
-			EXPECT_EQ(2, index2.size()); //fails
+			EXPECT_EQ(2, index2.size()); 
 			//both
 			EXPECT_TRUE( index2.contains(singleton8.ID()) ); 
-			EXPECT_TRUE( index2.contains(singleton5.ID()) ); //fails
+			EXPECT_TRUE( index2.contains(singleton9.ID()) ); 
 			EXPECT_TRUE( index2.check(singleton8.ID(), &singleton8) ); 
-			EXPECT_TRUE( index2.check(singleton5.ID(), &singleton5) ); //fails
+			EXPECT_TRUE( index2.check(singleton9.ID(), &singleton9) ); 
 			EXPECT_EQ( &singleton8, &(index2.find(singleton8.ID())) ); 
-			EXPECT_EQ( &singleton5, &(index2.find(singleton5.ID())) ); //fails
+			EXPECT_EQ( &singleton9, &(index2.find(singleton9.ID())) ); 
 		
 		//actual move
-		singleton5 = std::move(singleton8);
+		singleton9 = std::move(singleton8);
 			//singleton8 tests
 			EXPECT_EQ(1003, singleton8.ID());
 			EXPECT_FALSE(singleton8.managed());
 			//singleton5 tests
-			EXPECT_EQ(1003, singleton5.ID());
-			EXPECT_TRUE(singleton5.managed());
-			EXPECT_TRUE(singleton5.managed_by(index2));
+			EXPECT_EQ(1003, singleton9.ID());
+			EXPECT_TRUE(singleton9.managed());
+			EXPECT_TRUE(singleton9.managed_by(index2));
 			//index2 tests
 			EXPECT_FALSE(index2.empty()); 
 			EXPECT_EQ(1, index2.size());
-			EXPECT_TRUE( index2.contains(singleton5.ID()) );
+			EXPECT_TRUE( index2.contains(singleton9.ID()) );
 	}
 	
 } //anonymous namespace
