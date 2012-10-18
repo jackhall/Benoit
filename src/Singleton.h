@@ -68,7 +68,7 @@ namespace ben {
 		Singleton(const id_type id=get_new_ID())
 			: uniqueID(id), index(nullptr) {}
 		Singleton(index_type& x, const id_type id=get_new_ID()) 
-			: uniqueID(id), index(&x) { if( !x.add(*this) ) throw; } //define a custom exception?
+			: uniqueID(id), index(&x) { if( !x.add(*this) ) std::cerr << "bad add" << std::endl /*throw*/; } //define a custom exception?
 		Singleton(const self_type& rhs) = delete;
 		Singleton(self_type&& rhs) 
 			: uniqueID(rhs.uniqueID), index(rhs.index) { 
