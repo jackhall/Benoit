@@ -67,7 +67,7 @@ namespace ben {
 		}
 		virtual ~IndexBase() { clear(); }
 	
-		std::map<id_type, Singleton*> index;
+		mutable std::map<id_type, Singleton*> index;
 		
 		bool update_singleton(Singleton* ptr); 
 		void update_all();

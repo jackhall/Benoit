@@ -51,8 +51,8 @@ namespace ben {
 		using base_type::index; //FIELD
 			
 	public:				
-		class iterator;
 		class const_iterator;
+		class iterator;
 	
 		Index()=default;
 		Index(const self_type& rhs) = delete;
@@ -62,6 +62,7 @@ namespace ben {
 		virtual ~Index() { clear(); }
 		
 		iterator find(const id_type address) { return iterator( index.find(address) ); }
+		const_iterator find(const id_type address) const { return const_iterator( index.find(address) ); }
 		singleton_type& elem(const id_type address) const //throw if address does not exist?
 			{ return *static_cast<singleton_type*>(index.find(address)->second); }
 		bool check(const id_type address, const singleton_type* local_ptr) const 
@@ -71,12 +72,11 @@ namespace ben {
 		virtual bool add(singleton_type& x) { return base_type::add(x); }
 		size_type size() { return index.size(); }
 		
-		virtual void swap_with(self_type& other) { std::swap(index, other.index); }
-		
 		virtual bool merge_into(self_type& other) {
 		//transfers management of all Singletons to other, first checking for redundancy
 		//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
 		//either transfers all Singletons or none
+			if(this == &other) return false;
 			for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
 				if( other.contains(it->first) ) return false;
 		
@@ -88,29 +88,27 @@ namespace ben {
 		
 		iterator begin() { return iterator( index.begin() ); }
 		iterator end()   { return iterator( index.end() ); }
-		const_iterator cbegin() { return const_iterator( index.cbegin() ); }
-		const_iterator cend()   { return const_iterator( index.cend() ); }
+		const_iterator begin() const { return const_iterator( index.begin() ); }
+		const_iterator end() const   { return const_iterator( index.end() ); }
+		
 	}; //class Index
 	
 	
-	template<typename T>
-	bool operator==(const typename Index<T>::const_iterator& lhs, 
-			const typename Index<T>::const_iterator& rhs);
-	
 	template<typename S>
 	class Index<S>::const_iterator : public std::iterator<std::bidirectional_iterator_tag, singleton_type> {
-	private:
-		typename std::map<id_type, Singleton*>::const_iterator current;
+	protected:
+		typename std::map<id_type, Singleton*>::iterator current;
 		friend class Index;
-		friend bool operator==<S>(const const_iterator& lhs, const const_iterator& rhs);
+		const_iterator(const typename std::map<id_type, Singleton*>::iterator iter)
+			: current(iter) {}
 		const_iterator(const typename std::map<id_type, Singleton*>::const_iterator iter)
 			: current(iter) {}
-		
+			
 	public:
 		const_iterator() = default;
 		const_iterator(const const_iterator& rhs) = default;
 		const_iterator& operator=(const const_iterator& rhs) = default;
-		~const_iterator() = default;
+		virtual ~const_iterator() = default;
 		
 		const singleton_type& operator*() const 
 			{ return *static_cast<singleton_type*>(current->second); } 
@@ -130,66 +128,41 @@ namespace ben {
 			return temp;
 		}
 		
-		/*bool operator==(const const_iterator& rhs) const //compare iterator locations
+		bool operator==(const const_iterator& rhs) const
 			{ return current==rhs.current; }
 		bool operator!=(const const_iterator& rhs) const
-			{ return current!=rhs.current; }*/
+			{ return !( (*this) == rhs ); }
 	}; //class const_iterator
 	
 	
 	template<typename S>
-	class Index<S>::iterator : public std::iterator<std::bidirectional_iterator_tag, singleton_type> {
+	class Index<S>::iterator : public Index<S>::const_iterator {
 	private:
-		typename std::map<id_type, Singleton*>::iterator current; //already inheriting pointer?
+		typedef const_iterator base_type;
+		using base_type::current;
 		friend class Index;
 		iterator(const typename std::map<id_type, Singleton*>::iterator iter)
-			: current(iter) {}
+			: base_type(iter) {}
 		
 	public:	
-		operator const_iterator() const { return const_iterator(current); }
-		iterator() = default;
-		iterator(const iterator& rhs) = default;
-		iterator& operator=(const iterator& rhs) = default;
-		~iterator() = default;
-		
 		singleton_type& operator*() const 
 			{ return *static_cast<singleton_type*>(current->second); } 
 		singleton_type* operator->() const 
 			{ return static_cast<singleton_type*>(current->second); }
 		
-		iterator& operator++() { ++current; return *this; }
+		iterator& operator++() { const_iterator::operator++(); }
 		iterator  operator++(int) { 
 			auto temp = current;
 			++current;
 			return temp;
 		}
-		iterator& operator--() { --current; return *this; }
+		iterator& operator--() { const_iterator::operator--(); }
 		iterator  operator--(int) {
 			auto temp = current;
 			--current;
 			return temp;
 		}
-		
-		/*bool operator==(const iterator& rhs) const //compare iterator locations
-			{ return current==rhs.current; }
-		bool operator==(const const_iterator& rhs) const 
-			{ return 
-		bool operator!=(const iterator& rhs) const
-			{ return current!=rhs.current; }*/
 	}; //class iterator
-	
-	
-	template<typename T>
-	bool operator==(const typename Index<T>::const_iterator& lhs, 
-			const typename Index<T>::const_iterator& rhs) {
-		return lhs.current == rhs.current;
-	}
-	
-	template<typename T>
-	bool operator!=(const typename Index<T>::const_iterator& lhs, 
-			const typename Index<T>::const_iterator& rhs) {
-		return !(lhs == rhs);
-	}
 	
 } //namespace ben
 

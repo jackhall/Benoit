@@ -46,8 +46,10 @@ namespace ben {
 		if( index.insert(std::make_pair(x.ID(), &x)).second ) {
 			if(!x.managed()) x.update_index(this);
 			else {
-				if(!x.managed_by(*this)) x.index->remove(x.ID());
-				x.update_index(this);
+				if(!x.managed_by(*this)) {
+					x.index->remove(x.ID());
+					x.update_index(this);
+				}
 			}	 
 			return true; 
 		} return false;

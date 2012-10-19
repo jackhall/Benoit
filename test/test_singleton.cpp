@@ -313,12 +313,6 @@ namespace {
 		EXPECT_TRUE( singleton3.managed_by(index2) );
 	}
 	
-	TEST(IndexSingleton, GlobalMethods) {
-		using namespace ben;
-		
-		Index<DerivedSingleton> index1, index2;
-	}
-	
 	TEST(IndexSingleton, Iterators) {
 		using namespace ben;
 		
@@ -333,8 +327,10 @@ namespace {
 			++it; ++id;
 		}
 		
-		auto cit = index1.cbegin();
-		auto cite = index1.cend();
+		const Index<DerivedSingleton>& index2 = index1;
+		
+		auto cit = index2.begin();
+		auto cite = index2.end();
 		id = singleton1.ID();
 		while(cit != cite) {
 			EXPECT_EQ(id, cit->ID());
@@ -345,10 +341,71 @@ namespace {
 		it--; cit--;
 		it++; cit++;
 		
-		//EXPECT_TRUE(it == cit);
-		//EXPECT_TRUE(cit == it);
-		//EXPECT_FALSE(it != cit);
-		//EXPECT_FALSE(cit != it);
+		EXPECT_TRUE(it == cit);
+		EXPECT_TRUE(cit == it);
+		EXPECT_FALSE(it != cit);
+		EXPECT_FALSE(cit != it);
+		
+		//test out std::for_each
+	}
+	
+	TEST(IndexSingleton, GlobalMethods) {
+		using namespace ben;
+		
+		Index<DerivedSingleton> index1, index2;
+		DerivedSingleton singleton1(index1), singleton2(index1), singleton3(index1, 5000);
+		DerivedSingleton singleton4(index2), singleton5(index2, 5003), singleton6(index2, 5000);
+		
+		const Index<DerivedSingleton>& index3 = index1;
+		
+		//initial checks
+		EXPECT_EQ(3, index1.size());
+		EXPECT_EQ(3, index2.size());
+		EXPECT_TRUE(singleton1.managed_by(index1));
+		EXPECT_TRUE(singleton2.managed_by(index1));
+		EXPECT_TRUE(singleton3.managed_by(index1));
+		EXPECT_TRUE(singleton4.managed_by(index2));
+		EXPECT_TRUE(singleton5.managed_by(index2));
+		EXPECT_TRUE(singleton6.managed_by(index2));
+		
+		//find tests
+		auto iter1 = index1.end(); 
+		--iter1;
+		EXPECT_TRUE(index1.find(5000) == iter1); //gtest problem with expect_eq
+		EXPECT_TRUE(index1.end() == index1.find(5001));
+		//EXPECT_EQ(index1.find(5000), iter1);
+		//EXPECT_EQ(index1.end(), index1.find(5001));
+		
+		//find const tests
+		auto iter2 = index3.end();
+		--iter2;
+		EXPECT_TRUE(index3.find(5000) == iter2); //gtest problem with expect_eq
+		EXPECT_TRUE(index3.end() == index3.find(5001));
+		//EXPECT_EQ(index3.find(5000), iter2);
+		//EXPECT_EQ(index3.end(), index3.find(5001));
+		
+		//add test
+		DerivedSingleton singleton7(5002);
+		//null -> managed
+		EXPECT_TRUE(index1.add(singleton7));
+		EXPECT_TRUE(index1.check(5002, &singleton7));
+		EXPECT_TRUE(singleton7.managed_by(index1));
+		
+		//managed -> managed redundant
+		EXPECT_FALSE(index1.add(singleton6));
+		EXPECT_FALSE(index1.check(5000, &singleton6));
+		EXPECT_TRUE(index2.check(5000, &singleton6));
+		EXPECT_TRUE(singleton6.managed_by(index2));
+		
+		//managed -> mangaged
+		EXPECT_TRUE(index1.add(singleton5));
+		EXPECT_TRUE(index1.check(5003, &singleton5));
+		EXPECT_FALSE(index2.contains(5003));
+		EXPECT_TRUE(singleton5.managed_by(index1));	
+		
+		//merge_into
+		EXPECT_FALSE(index1.merge_into(index2));
+		//....
 	}
 	
 } //anonymous namespace
