@@ -93,11 +93,16 @@ namespace ben {
 	}; //class Index
 	
 	
+	template<typename T>
+	bool operator==(const typename Index<T>::const_iterator& lhs, 
+			const typename Index<T>::const_iterator& rhs);
+	
 	template<typename S>
 	class Index<S>::const_iterator : public std::iterator<std::bidirectional_iterator_tag, singleton_type> {
 	private:
 		typename std::map<id_type, Singleton*>::const_iterator current;
 		friend class Index;
+		friend bool operator==<S>(const const_iterator& lhs, const const_iterator& rhs);
 		const_iterator(const typename std::map<id_type, Singleton*>::const_iterator iter)
 			: current(iter) {}
 		
@@ -125,10 +130,10 @@ namespace ben {
 			return temp;
 		}
 		
-		bool operator==(const const_iterator& rhs) const //compare iterator locations
+		/*bool operator==(const const_iterator& rhs) const //compare iterator locations
 			{ return current==rhs.current; }
 		bool operator!=(const const_iterator& rhs) const
-			{ return current!=rhs.current; }
+			{ return current!=rhs.current; }*/
 	}; //class const_iterator
 	
 	
@@ -165,11 +170,26 @@ namespace ben {
 			return temp;
 		}
 		
-		bool operator==(const iterator& rhs) const //compare iterator locations
+		/*bool operator==(const iterator& rhs) const //compare iterator locations
 			{ return current==rhs.current; }
+		bool operator==(const const_iterator& rhs) const 
+			{ return 
 		bool operator!=(const iterator& rhs) const
-			{ return current!=rhs.current; }
+			{ return current!=rhs.current; }*/
 	}; //class iterator
+	
+	
+	template<typename T>
+	bool operator==(const typename Index<T>::const_iterator& lhs, 
+			const typename Index<T>::const_iterator& rhs) {
+		return lhs.current == rhs.current;
+	}
+	
+	template<typename T>
+	bool operator!=(const typename Index<T>::const_iterator& lhs, 
+			const typename Index<T>::const_iterator& rhs) {
+		return !(lhs == rhs);
+	}
 	
 } //namespace ben
 

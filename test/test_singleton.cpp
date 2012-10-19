@@ -320,7 +320,35 @@ namespace {
 	}
 	
 	TEST(IndexSingleton, Iterators) {
-	
+		using namespace ben;
+		
+		Index<DerivedSingleton> index1;
+		DerivedSingleton singleton1(index1), singleton2(index1), singleton3(index1);
+		
+		auto it = index1.begin();
+		auto ite = index1.end();
+		unsigned short id = singleton1.ID();
+		while(it != ite) {
+			EXPECT_EQ(id, it->ID());
+			++it; ++id;
+		}
+		
+		auto cit = index1.cbegin();
+		auto cite = index1.cend();
+		id = singleton1.ID();
+		while(cit != cite) {
+			EXPECT_EQ(id, cit->ID());
+			++cit; ++id;
+		}
+		
+		--it; --cit;
+		it--; cit--;
+		it++; cit++;
+		
+		//EXPECT_TRUE(it == cit);
+		//EXPECT_TRUE(cit == it);
+		//EXPECT_FALSE(it != cit);
+		//EXPECT_FALSE(cit != it);
 	}
 	
 } //anonymous namespace

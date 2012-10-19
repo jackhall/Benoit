@@ -73,9 +73,9 @@ namespace ben {
 				if(index != nullptr) 
 					if( !(index->remove(uniqueID)) ) throw; //need to catch this?
 				uniqueID = rhs.uniqueID;
-				index = rhs.index;
+				index = rhs.index; //haven't checked rhs.managed() yet
 				if( managed() && !(index->update_singleton(this)) ) throw; //define a custom exception?
-				rhs.index = nullptr;
+				rhs.index = nullptr; 
 			} 
 			return *this;
 		}
@@ -85,6 +85,7 @@ namespace ben {
 		bool managed_by(const index_type& x) const { return index == &x; }
 		id_type ID() const { return uniqueID; }
 		//resetID method? not for now
+		//get_index method? not for now
 	}; //class Singleton
 	
 	std::atomic<typename Singleton::id_type> Singleton::IDCOUNT(1000);
