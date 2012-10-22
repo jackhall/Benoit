@@ -27,6 +27,7 @@
 #include <atomic>
 #include <mutex>
 #include "PullLink.h"
+#include "PushLink.h"
 #include "Port.h"
 
 namespace ben {	
@@ -58,7 +59,7 @@ namespace ben {
 	*/
 	
 	template<typename I, typename O>
-	class Node : public Singleton<Graph<Node>> { //is this use of templates circular/illegal?
+	class Node : public Singleton { 
 	public:
 		static_assert(std::is_same<I::link_type, O::link_type>::value);
 		static_assert(std::is_same<I::value_type, O::value_type>::value);
@@ -67,7 +68,7 @@ namespace ben {
 		
 		typedef Node 			self_type;
 		typedef Graph<Node> 		index_type;
-		typedef Singleton<index_type> 	base_type;
+		typedef Singleton 		base_type;
 		typedef I 			input_port_type;
 		typedef O 			output_port_type;
 		typedef typename I::id_type	id_type;

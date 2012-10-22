@@ -70,6 +70,8 @@ namespace ben {
 		bool empty() const { return index.empty(); }
 		
 		virtual bool add(singleton_type& x) { return base_type::add(x); }
+		using base_type::remove;
+		using base_type::clear;
 		size_type size() { return index.size(); }
 		
 		virtual bool merge_into(self_type& other) {
@@ -79,9 +81,9 @@ namespace ben {
 			if(this == &other) return false;
 			for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
 				if( other.contains(it->first) ) return false;
-		
-			for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
-				if( other.add(*static_cast<singleton_type*>(it->second)) ) index.erase(it);
+			
+			auto it = index.begin(), ite = index.end();
+			while(it != ite) other.add( *static_cast<singleton_type*>((it++)->second) ); 
 		
 			return true;
 		}

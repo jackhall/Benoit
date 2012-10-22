@@ -23,7 +23,6 @@
 
 #include <map>
 #include <iostream>
-#include "Lock.h"
 
 namespace ben {
 	/*
@@ -55,10 +54,16 @@ namespace ben {
 		Graph& operator=(Graph&& rhs) { base_type::operator=(rhs); }
 		virtual ~Graph() = default;
 		
+		virtual bool add(node_type& x);
 		virtual bool remove(const id_type address);  
-		virtual bool move_to(Graph& other, const id_type address); //move individual Node
 		virtual bool merge_into(Graph& other); 
 	}; //class Graph
+	
+	
+	template<typename N>
+	bool Graph<N>::add(node_type& x) {
+		IndexBase::add(x); 
+	}
 	
 	template<typename N> 
 	bool Graph<N>::remove(const id_type address) {
@@ -72,19 +77,8 @@ namespace ben {
 	}
 	
 	template<typename N> 
-	bool Graph<N>::move_to(Graph& other, const id_type address) {
-		auto iter = index.find(address);
-		if(iter != index.end()) {
-			iter->second->clear(); //this is the only difference from Index version
-			if( other.add(*(iter->second)) ) {
-				index.erase(iter);
-				return true;
-			} else return false; //redundant ID in destination
-		} else return false; //no element with that ID here
-	}
-	
-	template<typename N> 
 	bool Graph<N>::merge_into(Graph& other){
+		//might need to add protected method to Index allowing add without remove
 		for(auto x& : index) if( other.contains(x.first) ) return false;
 		return base_type::merge_into(other);
 	}

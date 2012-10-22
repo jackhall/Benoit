@@ -403,9 +403,61 @@ namespace {
 		EXPECT_FALSE(index2.contains(5003));
 		EXPECT_TRUE(singleton5.managed_by(index1));	
 		
-		//merge_into
+		//merge_into (redundant for id=5000)
 		EXPECT_FALSE(index1.merge_into(index2));
-		//....
+			//index1 tests
+			EXPECT_EQ(5, index1.size());
+			EXPECT_TRUE(index1.check(singleton1.ID(), &singleton1));
+			EXPECT_TRUE(singleton1.managed_by(index1));
+			EXPECT_TRUE(index1.check(singleton2.ID(), &singleton2));
+			EXPECT_TRUE(singleton2.managed_by(index1));
+			EXPECT_TRUE(index1.check(5000, &singleton3));
+			EXPECT_TRUE(singleton3.managed_by(index1));
+			EXPECT_TRUE(index1.check(5003, &singleton5));
+			EXPECT_TRUE(singleton5.managed_by(index1));
+			EXPECT_TRUE(index1.check(5002, &singleton7));
+			EXPECT_TRUE(singleton7.managed_by(index1));
+			//index2 tests
+			EXPECT_EQ(2, index2.size());
+			EXPECT_TRUE(index2.check(singleton4.ID(), &singleton4));
+			EXPECT_TRUE(singleton4.managed_by(index2));
+			EXPECT_TRUE(index2.check(5000, &singleton6));
+			EXPECT_TRUE(singleton6.managed_by(index2));
+		
+		//remove
+		EXPECT_TRUE(index1.remove(5000)); 
+		EXPECT_FALSE(singleton3.managed());
+		EXPECT_FALSE(index1.contains(5000));
+		EXPECT_FALSE(index1.remove(6000));
+		
+		//merge_into (valid)
+		EXPECT_TRUE(index1.merge_into(index2)); //segfaults
+			//index1 tests 
+			EXPECT_EQ(0, index1.size());
+			//index2 tests
+			EXPECT_EQ(6, index2.size());
+			EXPECT_TRUE(index2.check(singleton1.ID(), &singleton1));
+			EXPECT_TRUE(singleton1.managed_by(index2));
+			EXPECT_TRUE(index2.check(singleton2.ID(), &singleton2));
+			EXPECT_TRUE(singleton2.managed_by(index2));
+			EXPECT_TRUE(index2.check(singleton4.ID(), &singleton4));
+			EXPECT_TRUE(singleton4.managed_by(index2));
+			EXPECT_TRUE(index2.check(5003, &singleton5));
+			EXPECT_TRUE(singleton5.managed_by(index2));
+			EXPECT_TRUE(index2.check(5000, &singleton6));
+			EXPECT_TRUE(singleton6.managed_by(index2));
+			EXPECT_TRUE(index2.check(5002, &singleton7));
+			EXPECT_TRUE(singleton7.managed_by(index2));
+			
+		//clear
+		index2.clear();
+		EXPECT_EQ(0, index2.size());
+		EXPECT_FALSE(singleton1.managed());
+		EXPECT_FALSE(singleton2.managed());
+		EXPECT_FALSE(singleton4.managed());
+		EXPECT_FALSE(singleton5.managed());
+		EXPECT_FALSE(singleton6.managed());
+		EXPECT_FALSE(singleton7.managed()); 
 	}
 	
 } //anonymous namespace
