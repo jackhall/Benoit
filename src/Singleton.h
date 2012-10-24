@@ -2,7 +2,7 @@
 #define BenoitSingleton_h
 
 /*
-    Benoit: a flexible framework for distributed graphs
+    Benoit: a flexible framework for distributed graphs and spaces
     Copyright (C) 2011  Jack Hall
 
     This program is free software: you can redistribute it and/or modify
@@ -85,7 +85,7 @@ namespace ben {
 		bool managed_by(const index_type& x) const { return index == &x; }
 		id_type ID() const { return uniqueID; }
 		//resetID method? not for now
-		//get_index method? not for now
+		const index_type& get_index() const { return *index; }
 	}; //class Singleton
 	
 	std::atomic<typename Singleton::id_type> Singleton::IDCOUNT(1000);

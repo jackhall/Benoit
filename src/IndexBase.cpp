@@ -1,5 +1,5 @@
 /*
-    Benoit: a flexible framework for distributed graphs
+    Benoit: a flexible framework for distributed graphs and spaces
     Copyright (C) 2011  Jack Hall
 
     This program is free software: you can redistribute it and/or modify
@@ -40,6 +40,13 @@ namespace ben {
 			it->second->update_index(this);
 	}
 	
+	bool IndexBase::check(const id_type address, const Singleton* local_ptr) const {
+	//verifies correct tracking of Singleton
+		auto iter = index.find(address);
+		if(iter != index.end()) return iter->second == local_ptr;
+		else return false;
+	} 
+	
 	bool IndexBase::add(Singleton& x) {
 	//begins tracking x, removing it from its existing Index if necessary
 	//returns false if this Index is already tracking a Singleton with x's ID, true otherwise
@@ -66,6 +73,25 @@ namespace ben {
 			return true;
 		} else return false;
 	}
+	
+	bool IndexBase::merge_into(IndexBase& other) {
+	//transfers management of all Singletons to other, first checking for redundancy
+	//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
+	//either transfers all Singletons or none
+		if(this == &other) return false; //redundant, but clear
+		for(auto x : index) if( other.contains(x.first) ) return false;
+		
+		auto it = index.begin(), ite = index.end();
+		while(it != ite) {
+			//does not call add or remove!
+			other.index.insert( std::make_pair(it->first, it->second) );
+			it->second->update_index(&other);
+			index.erase(it++);
+		}
+	
+		return true;
+	}
+	
 	
 	void IndexBase::clear() {
 	//stops tracking all Singletons, leaves Singletons with a nullptr where the Singleton was

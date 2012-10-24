@@ -2,7 +2,7 @@
 #define BenoitIndexBase_h
 
 /*
-    Benoit: a flexible framework for distributed graphs
+    Benoit: a flexible framework for distributed graphs and spaces
     Copyright (C) 2011  Jack Hall
 
     This program is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@
     e-mail: jackwhall7@gmail.com
 */
 
-#include <map>
+#include <unordered_map>
 #include "Commons.h"
 
 namespace ben {
@@ -67,17 +67,15 @@ namespace ben {
 		}
 		virtual ~IndexBase() { clear(); }
 	
-		mutable std::map<id_type, Singleton*> index;
+		mutable std::unordered_map<id_type, Singleton*> index;
 		
 		bool update_singleton(Singleton* ptr); 
 		void update_all();
 		
-		bool check(const id_type address, const Singleton* local_ptr) const 
-		//verifies correct tracking of Singleton
-			{ return index.find(address)->second == local_ptr; } 
-			
-		virtual bool add(Singleton& x); 
+		bool check(const id_type address, const Singleton* local_ptr) const;	
+		bool add(Singleton& x); 
 		virtual bool remove(const id_type address);
+		bool merge_into(self_type& other);
 		virtual void clear();
 	}; //class IndexBase	
 

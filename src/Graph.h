@@ -26,19 +26,17 @@
 
 namespace ben {
 	/*
-		Graph is a manager of a distributed directed graph consisting of the Nodes and Links that connect
-		them. It does not own the Nodes (or it would not be a distributed structure), but it stores pointers to them 
-		in an STL map, using the Node ID as the key value. 
+		Graph is the manager of a distributed directed graph consisting of the Nodes and Links that connect
+		them. As an Index, it does not own the Nodes (or it would not be a distributed structure). 
 		
 		Nodes may not be connected between Indicies. When an individual Node is moved, all Links must be cleared from it. 
 		Indicies may be swapped or merged, in which cases the Links between Nodes are preserved.  
 		
-		Each Graph will have both a read and a write mutex when multithreading is implemented.
+		See Index and IndexBase for more information. 
 	*/
 	
 	template<typename N> 
-	class Graph : public Index<N> {
-	public:
+	struct Graph : public Index<N> {
 		typedef N 	node_type;
 		typedef N* 	pointer;
 		typedef N&	reference;
@@ -49,40 +47,29 @@ namespace ben {
 
 		Graph()=default;
 		Graph(const Graph& rhs) = delete;
-		Graph(Graph&& rhs) : base_type(rhs) {}
+		Graph(Graph&& rhs) : base_type( std::move(rhs) ) {}
 		Graph& operator=(const Graph& rhs) = delete; 
-		Graph& operator=(Graph&& rhs) { base_type::operator=(rhs); }
+		Graph& operator=(Graph&& rhs) { base_type::operator=( std::move(rhs) ); }
 		virtual ~Graph() = default;
 		
-		virtual bool add(node_type& x);
-		virtual bool remove(const id_type address);  
-		virtual bool merge_into(Graph& other); 
+		virtual bool remove(const id_type address);
 	}; //class Graph
 	
 	
 	template<typename N>
-	bool Graph<N>::add(node_type& x) {
-		IndexBase::add(x); 
-	}
+	Graph<N>::~Graph() { for(node_type& x : *this) x.clear(); }
 	
 	template<typename N> 
 	bool Graph<N>::remove(const id_type address) {
-		auto iter = index.find(address);
-		if( iter != index.end() ) { 
-			iter->second->clear(); //this is the only difference from Index version
-			if(iter->second->managed_by(*this)) iter->second->update_index(nullptr); 
-			index.erase(iter);
-			return true;
-		} else return false;
-	}
-	
-	template<typename N> 
-	bool Graph<N>::merge_into(Graph& other){
-		//might need to add protected method to Index allowing add without remove
-		for(auto x& : index) if( other.contains(x.first) ) return false;
-		return base_type::merge_into(other);
+		auto iter = find(address);
+		if(iter != end()) iter->clear();
+		else return false;
+		
+		base_type::remove(address);
+		return true;
 	}
 	
 } //namespace ben
 
 #endif
+

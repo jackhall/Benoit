@@ -2,7 +2,7 @@
 #define BenoitIndex_h
 
 /*
-    Benoit: a flexible framework for distributed graphs
+    Benoit: a flexible framework for distributed graphs and spaces
     Copyright (C) 2011  Jack Hall
 
     This program is free software: you can redistribute it and/or modify
@@ -41,17 +41,19 @@ namespace ben {
 	template<typename S>
 	class Index : public IndexBase {
 	private:
-		typedef S 		singleton_type;
 		typedef IndexBase 	base_type;
 		typedef Index		self_type;
 		typedef size_t		size_type;
+		typedef std::unordered_map<id_type, Singleton*> map_type;
 		
 		using base_type::update_singleton;
 		using base_type::update_all;
 		using base_type::index; //FIELD
 			
-	public:				
-		class const_iterator;
+	public:		
+		typedef S singleton_type;
+			
+		class const_iterator; //do away with const_iterator? semantically weird
 		class iterator;
 	
 		Index()=default;
@@ -74,19 +76,7 @@ namespace ben {
 		using base_type::clear;
 		size_type size() { return index.size(); }
 		
-		virtual bool merge_into(self_type& other) {
-		//transfers management of all Singletons to other, first checking for redundancy
-		//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
-		//either transfers all Singletons or none
-			if(this == &other) return false;
-			for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
-				if( other.contains(it->first) ) return false;
-			
-			auto it = index.begin(), ite = index.end();
-			while(it != ite) other.add( *static_cast<singleton_type*>((it++)->second) ); 
-		
-			return true;
-		}
+		virtual bool merge_into(self_type& other) { return base_type::merge_into(other); }
 		
 		iterator begin() { return iterator( index.begin() ); }
 		iterator end()   { return iterator( index.end() ); }
@@ -97,13 +87,13 @@ namespace ben {
 	
 	
 	template<typename S>
-	class Index<S>::const_iterator : public std::iterator<std::bidirectional_iterator_tag, singleton_type> {
+	class Index<S>::const_iterator : public std::iterator<std::forward_iterator_tag, singleton_type> {
 	protected:
-		typename std::map<id_type, Singleton*>::iterator current;
+		typename map_type::iterator current;
 		friend class Index;
-		const_iterator(const typename std::map<id_type, Singleton*>::iterator iter)
+		const_iterator(const typename map_type::iterator iter)
 			: current(iter) {}
-		const_iterator(const typename std::map<id_type, Singleton*>::const_iterator iter)
+		const_iterator(const typename map_type::const_iterator iter)
 			: current(iter) {}
 			
 	public:
@@ -123,12 +113,12 @@ namespace ben {
 			++current;
 			return temp;
 		}
-		const_iterator& operator--() { --current; return *this; }
-		const_iterator  operator--(int) {
-			auto temp = current;
-			--current;
-			return temp;
-		}
+		//const_iterator& operator--() { --current; return *this; }
+		//const_iterator  operator--(int) {
+		//	auto temp = current;
+		//	--current;
+		//	return temp;
+		//}
 		
 		bool operator==(const const_iterator& rhs) const
 			{ return current==rhs.current; }
@@ -143,7 +133,7 @@ namespace ben {
 		typedef const_iterator base_type;
 		using base_type::current;
 		friend class Index;
-		iterator(const typename std::map<id_type, Singleton*>::iterator iter)
+		iterator(const typename map_type::iterator iter)
 			: base_type(iter) {}
 		
 	public:	
@@ -158,12 +148,12 @@ namespace ben {
 			++current;
 			return temp;
 		}
-		iterator& operator--() { const_iterator::operator--(); }
-		iterator  operator--(int) {
-			auto temp = current;
-			--current;
-			return temp;
-		}
+		//iterator& operator--() { const_iterator::operator--(); }
+		//iterator  operator--(int) {
+		//	auto temp = current;
+		//	--current;
+		//	return temp;
+		//}
 	}; //class iterator
 	
 } //namespace ben

@@ -88,8 +88,7 @@ namespace {
 			EXPECT_EQ( &singleton1, &(index2.elem(singleton1.ID())) );
 			//singleton+index1
 			EXPECT_FALSE( index1_ptr->contains(singleton1.ID()) );
-			EXPECT_FALSE( index1_ptr->check(singleton1.ID(), &singleton1) );
-			EXPECT_NE( &singleton1, &(index1_ptr->elem(singleton1.ID())) );
+			EXPECT_FALSE( index1_ptr->check(singleton1.ID(), &singleton1) ); 
 		
 		//====== Index<> move assignment operator =======
 		*index1_ptr = std::move(index2);
@@ -109,7 +108,6 @@ namespace {
 			//singleton+index2
 			EXPECT_FALSE( index2.contains(singleton1.ID()) );
 			EXPECT_FALSE( index2.check(singleton1.ID(), &singleton1) );
-			EXPECT_NE( &singleton1, &(index2.elem(singleton1.ID())) );
 		
 		//====== Index<> destructor =========
 		delete index1_ptr;
@@ -184,7 +182,6 @@ namespace {
 			EXPECT_EQ( &singleton6, &(index2.elem(singleton6.ID())) );
 			//singleton5+index2 tests
 			EXPECT_FALSE( index2.check(singleton5.ID(), &singleton5) );
-			EXPECT_NE( &singleton5, &(index2.elem(singleton5.ID())) );
 		
 		//---- from null
 		DerivedSingleton singleton7( std::move(singleton3) ); 
@@ -212,7 +209,6 @@ namespace {
 			EXPECT_TRUE( index2.contains(singleton6.ID()) );
 			//singleton6+index2 tests
 			EXPECT_FALSE( index2.check(singleton6.ID(), &singleton6) );
-			EXPECT_NE( &singleton6, &(index2.elem(singleton6.ID())) );
 			//singleton5+index2 tests
 			EXPECT_TRUE( index2.check(singleton5.ID(), &singleton5) );
 			EXPECT_EQ( &singleton5, &(index2.elem(singleton5.ID())) );
@@ -319,26 +315,16 @@ namespace {
 		Index<DerivedSingleton> index1;
 		DerivedSingleton singleton1(index1), singleton2(index1), singleton3(index1);
 		
-		auto it = index1.begin();
-		auto ite = index1.end();
-		unsigned short id = singleton1.ID();
-		while(it != ite) {
-			EXPECT_EQ(id, it->ID());
-			++it; ++id;
-		}
-		
+		for(DerivedSingleton& x : index1) EXPECT_TRUE( index1.contains(x.ID()) );
+
 		const Index<DerivedSingleton>& index2 = index1;
 		
-		auto cit = index2.begin();
-		auto cite = index2.end();
-		id = singleton1.ID();
-		while(cit != cite) {
-			EXPECT_EQ(id, cit->ID());
-			++cit; ++id;
-		}
+		for(const DerivedSingleton& x : index2) EXPECT_TRUE( index2.contains(x.ID()) );
 		
-		--it; --cit;
-		it--; cit--;
+		//--it; --cit;
+		//it--; cit--;
+		auto it = index1.begin();
+		auto cit = index2.begin();
 		it++; cit++;
 		
 		EXPECT_TRUE(it == cit);
@@ -369,17 +355,15 @@ namespace {
 		EXPECT_TRUE(singleton6.managed_by(index2));
 		
 		//find tests
-		auto iter1 = index1.end(); 
-		--iter1;
-		EXPECT_TRUE(index1.find(5000) == iter1); //gtest problem with expect_eq
+		auto iter1 = index1.begin(); 
+		EXPECT_TRUE(index1.find(iter1->ID()) == iter1); //gtest problem with expect_eq
 		EXPECT_TRUE(index1.end() == index1.find(5001));
 		//EXPECT_EQ(index1.find(5000), iter1);
 		//EXPECT_EQ(index1.end(), index1.find(5001));
 		
 		//find const tests
-		auto iter2 = index3.end();
-		--iter2;
-		EXPECT_TRUE(index3.find(5000) == iter2); //gtest problem with expect_eq
+		auto iter2 = index3.begin();
+		EXPECT_TRUE(index3.find(iter2->ID()) == iter2); //gtest problem with expect_eq
 		EXPECT_TRUE(index3.end() == index3.find(5001));
 		//EXPECT_EQ(index3.find(5000), iter2);
 		//EXPECT_EQ(index3.end(), index3.find(5001));

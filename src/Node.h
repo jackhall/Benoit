@@ -61,24 +61,26 @@ namespace ben {
 	template<typename I, typename O>
 	class Node : public Singleton { 
 	public:
-		static_assert(std::is_same<I::link_type, O::link_type>::value);
-		static_assert(std::is_same<I::value_type, O::value_type>::value);
-		static_assert(std::is_same<I::signal_type, O::signal_type>::value);
-		static_assert(std::is_same<I::id_type, O::id_type>::value);
-		
-		typedef Node 			self_type;
 		typedef Graph<Node> 		index_type;
-		typedef Singleton 		base_type;
 		typedef I 			input_port_type;
 		typedef O 			output_port_type;
-		typedef typename I::id_type	id_type;
-		typedef typename I::value_type 	value_type;
-		typedef typename I::signal_type	signal_type;
 		typedef typename I::link_type	link_type; 
 		typedef typename std::vector<I>::iterator input_iterator;
 		typedef typename std::vector<O>::iterator output_iterator;
 		
-	private:	
+	private:
+		typedef Node 			self_type;
+		typedef Singleton 		base_type;
+		typedef typename I::value_type 	value_type;
+		typedef typename I::signal_type	signal_type;
+	
+		static_assert(std::is_same<index_type::singleton_type, self_type>::value);
+		static_assert(std::is_same<id_type, I::id_type>::value);
+		static_assert(std::is_same<I::link_type, O::link_type>::value);
+		static_assert(std::is_same<I::value_type, O::value_type>::value);
+		static_assert(std::is_same<I::signal_type, O::signal_type>::value);
+		static_assert(std::is_same<I::id_type, O::id_type>::value);
+	
 		std::vector<input_port_type> inputs; //maintain as heaps?
 		std::vector<output_port_type> outputs;
 		//std::mutex node_mutex;
@@ -103,6 +105,9 @@ namespace ben {
 		//bool try_lock() { return node_mutex.try_lock(); }
 		//void unlock() { node_mutex.unlock(); }
 		
+		const index_type& get_index() const 
+			{ return static_cast<const index_type&>(base_type::get_index()); }
+		
 		input_iterator  find_input(const id_type address);
 		output_iterator find_output(const id_type address);
 		
@@ -120,17 +125,17 @@ namespace ben {
 		void clear_outputs();
 		void clear() { clear_inputs(); clear_outputs(); }
 		
-		id_type size_inputs() const { return inputs.size(); }
-		id_type size_outputs() const { return outputs.size(); }
+		size_t size_inputs() const { return inputs.size(); }
+		size_t size_outputs() const { return outputs.size(); }
 		
 		bool contains_input(const id_type address) const { inputs.end() == find_input(address); }
 		bool contains_output(const id_type address) const { outputs.end() == find_output(address); }
 		//other std::vector methods - assign, swap
 		
-		input_iterator  input_begin() 	{ return inputs.begin(); }
-		input_iterator  input_end() 	{ return inputs.end(); }
-		output_iterator output_begin() 	{ return outputs.begin(); }
-		output_iterator output_end() 	{ return outputs.end(); }
+		input_iterator  ibegin() { return inputs.begin(); }
+		input_iterator  iend() 	 { return inputs.end(); }
+		output_iterator obegin() { return outputs.begin(); }
+		output_iterator oend() 	 { return outputs.end(); }
 		
 	}; //Node
 	
@@ -141,20 +146,17 @@ namespace ben {
 	//methods - constructors
 	template<typename I, typename O>
 	Node<I,O>::Node(const Node& rhs) : base_type(*rhs.index) {
-		if( !clone_links(rhs) ) clear(); //should never happen
+		if( !clone_links(rhs) ) clear(); //should never fail
 	}
 	
 	template<typename I, typename O>
 	Node<I,O>::Node(const Node& rhs, const id_type nID) : base_type(*rhs.index, nID) {
-		if( !clone_links(rhs) ) clear(); //should never happen
+		if( !clone_links(rhs) ) clear(); //should never fail
 	}
 	
 	template<typename I, typename O>
-	Node<I,O>::Node(Node&& rhs) 
-		: nodeID(rhs.nodeID), index(rhs.index), //can't delgate; need Index::update, not Index::add
-		  inputs( std::move(rhs.inputs) ), outputs( std::move(rhs.outputs) ) { 
-		update_singleton(this);
-	}
+	Node<I,O>::Node(Node&& rhs) : base_type( std::move(rhs) ), inputs( std::move(rhs.inputs) ), 
+		  		      outputs( std::move(rhs.outputs) ) {}
 	
 	//methods - assignment
 	template<typename I, typename O>
@@ -162,7 +164,7 @@ namespace ben {
 		if(this != &rhs) {
 			clear();
 			switch_index(rhs.index);
-			if( !clone_links(rhs) ) clear(); //should never happen
+			if( !clone_links(rhs) ) clear(); //should never fail
 		}
 	}
 	
@@ -183,12 +185,12 @@ namespace ben {
 	void Node<I,O>::clone_links(const self_type& other) {
 		clear();
 		id_type currentID;
-		for(auto x& : other.inputs) {
+		for(input_port_type& x : other.inputs) {
 			currentID = x.source();
 			if(currentID != ID()) add_input(currentID, x.get_value());
 		}
 		
-		for(auto x& : other.outputs) {
+		for(output_port_type& x : other.outputs) {
 			currentID = x.source();
 			if(currentID != ID()) add_output(currentID, x.get_value());
 		}
@@ -199,7 +201,7 @@ namespace ben {
 		for(auto it=inputs.begin(),
 		    auto ite=inputs.end(); it!=ite; ++it) {
 			if(it->source() == address) {
-				inputs.erase(it);
+				inputs.erase(it); //invalidates iterator
 				return true;
 			}
 		}
@@ -211,7 +213,7 @@ namespace ben {
 		for(auto it=outputs.begin(),
 		    auto ite=outputs.end(); it!=ite; ++it) {
 			if(it->target() == address) {
-				outputs.erase(it);
+				outputs.erase(it); //invalidates iterator
 				return true;
 			}
 		}
@@ -241,7 +243,7 @@ namespace ben {
 		if( get_index().contains(address) ) {
 			if( contains_input(address) ) return false;
 			inputs.push_back( InPort(new link_type(value), address) );
-			get_index().find(address).outputs.push_back( OutPort(inputs.back(), ID()) );
+			get_index().elem(address).outputs.push_back( OutPort(inputs.back(), ID()) );
 			return true;
 		} else return false;
 	}
@@ -251,32 +253,32 @@ namespace ben {
 		if( get_index().contains(address) ) {
 			if( contains_output(address) ) return false;
 			outputs.push_back( OutPort(new link_type(value), address) );
-			get_index().find(address).inputs.push_back( InPort(outputs.back(), ID()) );
+			get_index().elem(address).inputs.push_back( InPort(outputs.back(), ID()) );
 			return true;
 		} else return false;
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::remove_input(const input_iterator iter) {
-		get_index().find(iter->source()).clean_up_output(ID());
+		get_index().elem(iter->source()).clean_up_output(ID());
 		inputs.erase(iter);
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::remove_output(const output_iterator iter) {
-		get_index().find(iter->target()).clean_up_input(ID());
+		get_index().elem(iter->target()).clean_up_input(ID());
 		outputs.erase(iter);
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_inputs() {
-		for(auto x& : inputs) get_index().find(x.source()).clean_up_output(ID());
+		for(input_port_type& x : inputs) get_index().elem(x.source()).clean_up_output(ID());
 		inputs.clear();
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_outputs() {
-		for(auto x& : outputs) get_index().find(x.target()).clean_up_input(ID());
+		for(output_port_type& x : outputs) get_index().elem(x.target()).clean_up_input(ID());
 		outputs.clear();
 	}
 	
