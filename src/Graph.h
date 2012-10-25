@@ -47,7 +47,7 @@ namespace ben {
 		typedef typename base_type::singleton_type singleton_type;
 		//typedef typename base_type::iterator iterator; //necessary?
 
-		Graph()=default;
+		Graph() = default;
 		Graph(const Graph& rhs) = delete;
 		Graph(Graph&& rhs) : base_type( std::move(rhs) ) {}
 		Graph& operator=(const Graph& rhs) = delete; 

@@ -32,7 +32,12 @@
 
 namespace {
 
-	
+	TEST(PortLink, Construction) {
+		using namespace ben;
+		PullLink<int, double, 1> link1;
+		PullLink<int, double, 2> link2;
+		PullLink<int, double, 3> link3;
+	}
 
 } //anonymous namespace 
 

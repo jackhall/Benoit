@@ -81,10 +81,9 @@ namespace ben {
 		
 		Link() : Link(value_type()) {} //needs value_type to be default-constructible
 		explicit Link(const value_type& v) : value(v) {}
-		
-	public:
 		virtual ~Link() = default;
-		
+	
+	public:
 		value_type get_value() const { return value.load(std::memory_order_consume); }
 		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
 	}; //class Link

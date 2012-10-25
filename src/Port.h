@@ -55,20 +55,13 @@ namespace ben {
 		typedef typename L::value_type 	value_type;
 		typedef typename L::signal_type signal_type;
 		typedef I 			id_type;
+	
 	protected:
 		std::shared_ptr<link_type> link_ptr;
 		Port(link_type* ptr) : link_ptr(ptr) {}
 		
-	public:
 		Port() = delete;
-		Port(const Port& rhs) : link_ptr(rhs.link_ptr) {}
 		Port(Port&& rhs) : link_ptr( std::move(rhs.link_ptr) ) {}
-		Port& operator=(const Port& rhs) {
-			//check for sameness would be redundant because Port
-			//assignment is only called by InPort or OutPort assignment
-			link_ptr = rhs.link_ptr;
-			return *this;
-		}
 		Port& operator=(Port&& rhs) { 
 			//check for sameness would be redundant because Port
 			//assignment is only called by InPort or OutPort assignment
@@ -76,7 +69,8 @@ namespace ben {
 			return *this;
 		}
 		virtual ~Port() = default;
-		
+	
+	public:
 		inline const value_type& get_value() const { return link_ptr->get_value(); }
 		inline void set_value(const value_type& v) const { link_ptr->set_value(v); }
 		inline bool is_ready() const { return link_ptr->is_ready(); }
@@ -103,7 +97,6 @@ namespace ben {
 	
 		InPort(link_type* ptr, id_type nSource) : base_type(ptr), sourceID(nSource) {}
 		InPort(const complement_type& other, id_type nSource) : base_type(other), sourceID(nSource) {}
-		InPort(const self_type& rhs) : base_type(rhs), sourceID(rhs.sourceID) {}
 		InPort(self_type&& rhs) : base_type( std::move(rhs) ), sourceID(rhs.sourceID) {}
 		InPort& operator=(const self_type& rhs) {
 			if(this != &rhs) {
@@ -144,7 +137,6 @@ namespace ben {
 	
 		OutPort(link_type* ptr, id_type nTarget) : base_type(ptr), targetID(nTarget) {}
 		OutPort(const complement_type& other, id_type nTarget) : base_type(other), targetID(nTarget) {}
-		OutPort(const self_type& rhs) : base_type(rhs), targetID(rhs.targetID) {}
 		OutPort(self_type&& rhs) : base_type( std::move(rhs) ), targetID(rhs.target) {}
 		OutPort& operator=(const self_type& rhs) {
 			if(this != &rhs) {
