@@ -2,7 +2,7 @@
 #define BenoitGraph_h
 
 /*
-    Benoit: a flexible framework for distributed graphs
+    Benoit: a flexible framework for distributed graphs and spaces
     Copyright (C) 2011  Jack Hall
 
     This program is free software: you can redistribute it and/or modify
@@ -23,6 +23,7 @@
 
 #include <map>
 #include <iostream>
+#include "Index.h"
 
 namespace ben {
 	/*
@@ -43,6 +44,7 @@ namespace ben {
 		typedef size_t	size_type;
 		typedef typename N::id_type id_type;
 		typedef Index<N> base_type;
+		typedef typename base_type::singleton_type singleton_type;
 		//typedef typename base_type::iterator iterator; //necessary?
 
 		Graph()=default;
@@ -50,7 +52,7 @@ namespace ben {
 		Graph(Graph&& rhs) : base_type( std::move(rhs) ) {}
 		Graph& operator=(const Graph& rhs) = delete; 
 		Graph& operator=(Graph&& rhs) { base_type::operator=( std::move(rhs) ); }
-		virtual ~Graph() = default;
+		virtual ~Graph();
 		
 		virtual bool remove(const id_type address);
 	}; //class Graph
@@ -62,7 +64,7 @@ namespace ben {
 	template<typename N> 
 	bool Graph<N>::remove(const id_type address) {
 		auto iter = find(address);
-		if(iter != end()) iter->clear();
+		if(iter != base_type::end()) iter->clear();
 		else return false;
 		
 		base_type::remove(address);

@@ -2,7 +2,7 @@
 #define BenoitPushLink_h
 
 /*
-    Benoit: a flexible framework for distributed graphs
+    Benoit: a flexible framework for distributed graphs and spaces
     Copyright (C) 2011-2012  Jack Hall
 
     This program is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@
 */
 
 #include <atomic>
+#include <mutex>
 #include "Link.h"
 
 namespace ben {
@@ -47,44 +48,49 @@ namespace ben {
 		unread state could not be defined for certain operations. Push and pull 
 		operations are done in constant time. 
 	*/
+	public:
+		typedef V value_type;
+		typedef S signal_type;
 	private:
-		typedef std::memory_order_acq_rel acq_rel; //for convenience/readability
+		typedef Link<V,S> base_type;
+		typedef PushLink self_type;
+		typedef typename base_type::frame_type frame_type;
 		
 		std::array<signal_type, B> buffer;
-		unsigned short index;
+		std::atomic<unsigned short> index;
 		std::atomic<bool> ready;
 		std::mutex link_mutex;
 		
 	public:
 		PushLink() : PushLink(value_type()) {} //needs signal_type to be default-constructible
 		explicit PushLink(const value_type& v) 
-			: Link(v), buffer(), ready(false), index(0), link_mutex() {}
-		PushLink(const PushLink& rhs) = delete; //no reason to have this
-		PushLink& operator=(const PushLink& rhs) = delete; //would leave hanging pointers
-		PushLink& operator=(PushLink&& rhs) = delete;
+			: base_type(v), buffer(), ready(false), index(0), link_mutex() {}
+		PushLink(const self_type& rhs) = delete; //no reason to have this
+		PushLink& operator=(const self_type& rhs) = delete; //would leave hanging pointers
+		PushLink& operator=(self_type&& rhs) = delete;
 		~PushLink() = default;
 		
 		void flush() { 
-			ready.store(false, release);
-			read_index.store(0, release); write_index = 0;
+			ready.store(false, std::memory_order_release);
+			index.store(0, std::memory_order_release);
 			for(std::atomic<signal_type>& item : buffer)
-				item.store(signal_type(), release);
+				item.store(signal_type(), std::memory_order_release);
 		}
-		bool is_ready() const { return ready.load(std::memory_consume); }
+		bool is_ready() const { return ready.load(std::memory_order_consume); }
 		bool push(const signal_type& signal) { 
 			link_mutex.lock();
 			buffer[index] = signal;
 			++index;
-			if(index >= B) {
-				index = 0;
-				ready.store(true, release);
+			if(index.load(std::memory_order_acquire) >= B) {
+				index.store(0, std::memory_order_release);
+				ready.store(true, std::memory_order_release);
 			}
 			link_mutex.unlock();
 			return true;
 		} 
 		signal_type pull() { 
 			link_mutex.lock();
-			temp = buffer[index];
+			auto temp = buffer[index.load(std::memory_order_acquire)];
 			link_mutex.unlock();
 			return temp;
 		} 
@@ -103,27 +109,35 @@ namespace ben {
 		This specialization saves memory and computation time since no
 		states or logic are needed to handle a multi-element buffer. 
 	*/
+
+	public:
+		typedef V value_type;
+		typedef S signal_type;
 	private:
+		typedef Link<V,S> base_type;
+		typedef PushLink self_type;
+		typedef typename base_type::frame_type frame_type;
+
 		std::atomic<bool> ready;
 		std::atomic<signal_type> front;
 		
 	public:
 		PushLink() : PushLink(value_type()) {} //needs value_type to be default-constructible
-		PushLink(const value_type& v) : Link(v), ready(false), front() {}
+		PushLink(const value_type& v) : base_type(v), ready(false), front() {}
 		
 		void flush() { 
-			ready.store(false, release);
-			front.store(signal_type(), release); 
+			ready.store(false, std::memory_order_release);
+			front.store(signal_type(), std::memory_order_release); 
 		}
-		bool is_ready() const { return ready.load(consume); }
+		bool is_ready() const { return ready.load(std::memory_order_consume); }
 		bool push(const signal_type& signal) { 
-			front.store(signal, release); 
-			ready.store(true, release);
+			front.store(signal, std::memory_order_release); 
+			ready.store(true, std::memory_order_release);
 			return true;
 		}
 		signal_type pull() { 
-			ready.store(false, release);
-			return front.load(consume); 
+			ready.store(false, std::memory_order_release);
+			return front.load(std::memory_order_consume); 
 		}
 	};
 	

@@ -2,7 +2,7 @@
 #define BenoitNode_h
 
 /*
-    Benoit: a flexible framework for distributed graphs
+    Benoit: a flexible framework for distributed graphs and spaces
     Copyright (C) 2011  Jack Hall
 
     This program is free software: you can redistribute it and/or modify
@@ -26,6 +26,7 @@
 #include <vector>
 #include <atomic>
 #include <mutex>
+#include "Singleton.h"
 #include "PullLink.h"
 #include "PushLink.h"
 #include "Port.h"
@@ -74,12 +75,13 @@ namespace ben {
 		typedef typename I::value_type 	value_type;
 		typedef typename I::signal_type	signal_type;
 	
-		static_assert(std::is_same<index_type::singleton_type, self_type>::value);
-		static_assert(std::is_same<id_type, I::id_type>::value);
-		static_assert(std::is_same<I::link_type, O::link_type>::value);
-		static_assert(std::is_same<I::value_type, O::value_type>::value);
-		static_assert(std::is_same<I::signal_type, O::signal_type>::value);
-		static_assert(std::is_same<I::id_type, O::id_type>::value);
+		//static_assert that index_type::singleton_type is the same as self_type?
+		static_assert(std::is_same<id_type, typename I::id_type>::value, 
+			      "Index and Port unique ID types don't match");
+		static_assert(std::is_same<typename I::link_type, typename O::link_type>::value, 
+			      "Ports not managing same type of Link");
+		static_assert(std::is_same<typename I::id_type, typename O::id_type>::value, 
+			      "Ports using different unique ID types");
 	
 		std::vector<input_port_type> inputs; //maintain as heaps?
 		std::vector<output_port_type> outputs;
@@ -111,14 +113,14 @@ namespace ben {
 		input_iterator  find_input(const id_type address);
 		output_iterator find_output(const id_type address);
 		
-		bool add_input(const id_type address, const value_type& value = V());
-		bool add_output(const id_type address, const value_type& value = V());
+		bool add_input(const id_type address, const value_type& value = value_type());
+		bool add_output(const id_type address, const value_type& value = value_type());
 		
 		void remove_input(const input_iterator iter);
 		void remove_input(const id_type address)
 			{ remove_input( find_input(address) ); }
 		void remove_output(const output_iterator iter);
-		void remove_output(const id_type address);
+		void remove_output(const id_type address)
 			{ remove_output( find_output(address) ); }
 		
 		void clear_inputs(); //should these clean up other nodes?
@@ -182,7 +184,7 @@ namespace ben {
 	Node<I,O>::~Node() {} //might want to lock the node while deleting links
 	
 	template<typename I, typename O>
-	void Node<I,O>::clone_links(const self_type& other) {
+	bool Node<I,O>::clone_links(const self_type& other) {
 		clear();
 		id_type currentID;
 		for(input_port_type& x : other.inputs) {
@@ -198,8 +200,7 @@ namespace ben {
 	
 	template<typename I, typename O>
 	bool Node<I,O>::clean_up_input(const id_type address) {
-		for(auto it=inputs.begin(),
-		    auto ite=inputs.end(); it!=ite; ++it) {
+		for(auto it=inputs.begin(), ite=inputs.end(); it!=ite; ++it) {
 			if(it->source() == address) {
 				inputs.erase(it); //invalidates iterator
 				return true;
@@ -210,8 +211,7 @@ namespace ben {
 	
 	template<typename I, typename O>
 	bool Node<I,O>::clean_up_output(const id_type address) {
-		for(auto it=outputs.begin(),
-		    auto ite=outputs.end(); it!=ite; ++it) {
+		for(auto it=outputs.begin(), ite=outputs.end(); it!=ite; ++it) {
 			if(it->target() == address) {
 				outputs.erase(it); //invalidates iterator
 				return true;
@@ -221,39 +221,39 @@ namespace ben {
 	}
 	
 	template<typename I, typename O>
-	input_iterator Node<I,O>::find_input(const id_type address) {
-		auto it = input_begin();
-		for(auto ite=input_end(); it!=ite; ++it) 
+	typename Node<I,O>::input_iterator Node<I,O>::find_input(const id_type address) {
+		auto it = ibegin();
+		for(auto ite=iend(); it!=ite; ++it) 
 			if(it->source() == address) break;
 
 		return it;
 	}
 	
 	template<typename I, typename O>
-	output_iterator Node<I,O>::find_output(const id_type address) {
-		auto it = output_begin();
-		for(auto ite=output_end(); it!=ite; ++it) 
+	typename Node<I,O>::output_iterator Node<I,O>::find_output(const id_type address) {
+		auto it = obegin();
+		for(auto ite=oend(); it!=ite; ++it) 
 			if(it->target() == address) break;
 		
 		return it;
 	}
 	
 	template<typename I, typename O>
-	bool Node<I,O>::add_input(const id_type address, const value_type& value = V()) {
+	bool Node<I,O>::add_input(const id_type address, const value_type& value) {
 		if( get_index().contains(address) ) {
 			if( contains_input(address) ) return false;
-			inputs.push_back( InPort(new link_type(value), address) );
-			get_index().elem(address).outputs.push_back( OutPort(inputs.back(), ID()) );
+			inputs.push_back( input_port_type(new link_type(value), address) );
+			get_index().elem(address).outputs.push_back( output_port_type(inputs.back(), ID()) );
 			return true;
 		} else return false;
 	}
 	
 	template<typename I, typename O>
-	bool Node<I,O>::add_output(const id_type address, const value_type& value = V()) {
+	bool Node<I,O>::add_output(const id_type address, const value_type& value) {
 		if( get_index().contains(address) ) {
 			if( contains_output(address) ) return false;
-			outputs.push_back( OutPort(new link_type(value), address) );
-			get_index().elem(address).inputs.push_back( InPort(outputs.back(), ID()) );
+			outputs.push_back( output_port_type(new link_type(value), address) );
+			get_index().elem(address).inputs.push_back( input_port_type(outputs.back(), ID()) );
 			return true;
 		} else return false;
 	}

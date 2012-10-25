@@ -2,7 +2,7 @@
 #define BenoitPort_h
 
 /*
-    Benoit: a flexible framework for distributed graphs
+    Benoit: a flexible framework for distributed graphs and spaces
     Copyright (C) 2011-2012  Jack Hall
 
     This program is free software: you can redistribute it and/or modify
@@ -83,61 +83,87 @@ namespace ben {
 	}; //class Port
 	
 
+	template<typename L> class OutPort;
+
 	template<typename L>
-	struct InPort : public Port<L> {
+	class InPort : public Port<L> {
+	private:
+		typedef Port<L> base_type;
+		typedef InPort self_type;
+		typedef OutPort<L> complement_type;
+		using base_type::link_ptr;
+		
+	public:
+		typedef typename base_type::id_type id_type;
+		typedef typename base_type::value_type value_type;
+		typedef typename base_type::signal_type signal_type;
+		typedef L link_type;
+	
 		id_type sourceID;
 	
-		InPort(link_type* ptr, id_type nSource) : Port(ptr), sourceID(nSource) {}
-		Inport(const OutPort<L>& other, id_type nSource) : Port(rhs), sourceID(nSource) {}
-		InPort(const InPort& rhs) : Port(rhs), sourceID(rhs.sourceID) {}
-		InPort(InPort&& rhs) : Port( std::move(rhs) ), sourceID(rhs.sourceID) {}
-		InPort& operator=(const InPort& rhs) {
+		InPort(link_type* ptr, id_type nSource) : base_type(ptr), sourceID(nSource) {}
+		InPort(const complement_type& other, id_type nSource) : base_type(other), sourceID(nSource) {}
+		InPort(const self_type& rhs) : base_type(rhs), sourceID(rhs.sourceID) {}
+		InPort(self_type&& rhs) : base_type( std::move(rhs) ), sourceID(rhs.sourceID) {}
+		InPort& operator=(const self_type& rhs) {
 			if(this != &rhs) {
-				Port::operator=(rhs);
+				base_type::operator=(rhs);
 				sourceID = rhs.sourceID;
 			}
 			return *this;
 		}
-		InPort& operator=(InPort&& rhs) {
+		InPort& operator=(self_type&& rhs) {
 			if(this != &rhs) {
-				Port::operator=( std::move(rhs) );
+				base_type::operator=( std::move(rhs) );
 				sourceID = rhs.sourceID;
 			}
 			return *this;
 		}
-		bool operator<(const InPort& rhs) const { return sourceID < rhs.sourceID; }
+		bool operator<(const self_type& rhs) const { return sourceID < rhs.sourceID; }
 		
 		inline id_type source() const { return source; }
-		inline S pull() const { return link_ptr->pull(); }
+		inline signal_type pull() const { return link_ptr->pull(); }
 	}; //struct InPort
 	
 	
 	template<typename L>
-	struct OutPort : public Port<L> {
+	class OutPort : public Port<L> {
+	private:
+		typedef Port<L> base_type;
+		typedef OutPort self_type;
+		typedef InPort<L> complement_type;
+		using base_type::link_ptr;
+		
+	public:
+		typedef typename base_type::id_type id_type;
+		typedef typename base_type::value_type value_type;
+		typedef typename base_type::signal_type signal_type;
+		typedef L link_type;
+		
 		id_type targetID;
 	
-		OutPort(L* ptr, id_type nTarget) : Port(ptr), target(nTarget) {}
-		Outport(const InPort<L>& other, id_type nTarget) : Port(rhs), targetID(nTarget) {}
-		OutPort(const OutPort& rhs) : Port(rhs), targetID(rhs.targetID) {}
-		OutPort(OutPort&& rhs) : Port( std::move(rhs) ), target(rhs.target) {}
-		OutPort& operator=(const OutPort& rhs) {
+		OutPort(link_type* ptr, id_type nTarget) : base_type(ptr), targetID(nTarget) {}
+		OutPort(const complement_type& other, id_type nTarget) : base_type(other), targetID(nTarget) {}
+		OutPort(const self_type& rhs) : base_type(rhs), targetID(rhs.targetID) {}
+		OutPort(self_type&& rhs) : base_type( std::move(rhs) ), targetID(rhs.target) {}
+		OutPort& operator=(const self_type& rhs) {
 			if(this != &rhs) {
-				Port::operator=(rhs);
+				base_type::operator=(rhs);
 				targetID = rhs.targetID;
 			}
 			return *this;
 		}
-		OutPort& operator=(OutPort&& rhs) {
+		OutPort& operator=(self_type&& rhs) {
 			if(this != &rhs) {
-				Port::operator=( std::move(rhs) );
+				base_type::operator=( std::move(rhs) );
 				targetID = rhs.targetID;
 			}
 			return *this;
 		}
-		bool operator<(const OutPort& rhs) const { return targetID < rhs.targetID; }
+		bool operator<(const self_type& rhs) const { return targetID < rhs.targetID; }
 		
 		inline id_type target() const { return link_ptr->target; }
-		inline bool push(const S& signal) { return link_ptr->push(signal); }
+		inline bool push(const signal_type& signal) { return link_ptr->push(signal); }
 	}; //struct OutPort
 
 } //namespace ben

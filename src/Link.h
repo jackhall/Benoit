@@ -2,7 +2,7 @@
 #define BenoitLink_h
 
 /*
-    Benoit: a flexible framework for distributed graphs
+    Benoit: a flexible framework for distributed graphs and spaces
     Copyright (C) 2011-2012  Jack Hall
 
     This program is free software: you can redistribute it and/or modify
@@ -75,10 +75,6 @@ namespace ben {
 		typedef V value_type;
 		typedef S signal_type;
 	protected:
-		//for convenience/readability 
-		typedef std::memory_order_consume consume;
-		typedef std::memory_order_acquire acquire;
-		typedef std::memory_order_release release;
 		typedef Frame<signal_type> frame_type;
 		
 		std::atomic<value_type> value;
@@ -89,8 +85,8 @@ namespace ben {
 	public:
 		virtual ~Link() = default;
 		
-		value_type get_value() const { return value.load(consume); }
-		void set_value(const value_type& v) { value.store(v, release); }
+		value_type get_value() const { return value.load(std::memory_order_consume); }
+		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
 	}; //class Link
 	
 } //namespace ben

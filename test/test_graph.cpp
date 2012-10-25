@@ -1,5 +1,5 @@
 /*
-	Benoit: distributed graph and space data structures
+	Benoit: a flexible framework for distributed graphs and spaces
 	Copyright (C) 2012  John Wendell Hall
 
 	This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,11 @@
 
 #include <iostream>
 #include "gtest/gtest.h"
-#
+#include "PullLink.h"
+#include "PushLink.h"
+#include "Port.h"
+#include "Graph.h"
+#include "Node.h"
 
 namespace {
 
