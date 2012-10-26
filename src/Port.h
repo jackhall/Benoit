@@ -89,8 +89,8 @@ namespace ben {
 		
 	public:
 		typedef typename base_type::id_type id_type;
-		typedef typename base_type::value_type value_type;
-		typedef typename base_type::signal_type signal_type;
+		typedef typename L::value_type value_type;
+		typedef typename L::signal_type signal_type;
 		typedef L link_type;
 	
 		id_type sourceID;
@@ -112,9 +112,9 @@ namespace ben {
 			}
 			return *this;
 		}
-		bool operator<(const self_type& rhs) const { return sourceID < rhs.sourceID; }
+		//bool operator<(const self_type& rhs) const { return sourceID < rhs.sourceID; }
 		
-		inline id_type source() const { return source; }
+		inline id_type source() const { return link_ptr->source; }
 		inline signal_type pull() const { return link_ptr->pull(); }
 	}; //struct InPort
 	
@@ -129,8 +129,8 @@ namespace ben {
 		
 	public:
 		typedef typename base_type::id_type id_type;
-		typedef typename base_type::value_type value_type;
-		typedef typename base_type::signal_type signal_type;
+		typedef typename L::value_type value_type;
+		typedef typename L::signal_type signal_type;
 		typedef L link_type;
 		
 		id_type targetID;
@@ -152,10 +152,10 @@ namespace ben {
 			}
 			return *this;
 		}
-		bool operator<(const self_type& rhs) const { return targetID < rhs.targetID; }
+		//bool operator<(const self_type& rhs) const { return targetID < rhs.targetID; }
 		
 		inline id_type target() const { return link_ptr->target; }
-		inline bool push(const signal_type& signal) { return link_ptr->push(signal); }
+		inline bool push(const signal_type& signal) { return link_ptr->push(signal); } //take another look at const requirements
 	}; //struct OutPort
 
 } //namespace ben

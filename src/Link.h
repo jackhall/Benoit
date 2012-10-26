@@ -42,7 +42,7 @@ namespace ben {
 			
 	*/
 	
-	template<typename S>
+	template<typename T>
 	struct Frame {
 	/*
 		Frame is a moveable helper struct for use with Link types. It combines
@@ -50,12 +50,12 @@ namespace ben {
 		is meant to be treated as an atomic. 
 	*/
 		bool ready; 
-		S data;
+		T data;
 
 		Frame() : ready(false), data() {} //needs signal_type to be default-constructible
 		Frame(const Frame&& rhs) : ready(rhs.ready), 
 					   data( std::move(rhs.data) ) {}
-		Frame& operator=(const Frame&& rhs) {
+		Frame& operator=(Frame&& rhs) {
 			if(this != &rhs) {
 				ready = rhs.ready;
 				data = std::move( rhs.data );
