@@ -22,6 +22,7 @@
 */
 
 #include <atomic>
+#include <type_traits>
 
 namespace ben {
 	
@@ -41,27 +42,50 @@ namespace ben {
 			default construction and construction from a value_type reference
 			
 	*/
+	template<typename T>
+	struct GenericFrame {
+	/*
+		GenericFrame is for any signals that are not POD or moveable.
+	*/
+		bool ready;
+		T data;
+		
+		GenericFrame() noexcept : ready(false), data() {} //needs signal_type to be default-constructible
+		GenericFrame(bool bReady, const T& x) : ready(bReady), data(x) {}
+	}; //struct GenericFrame
+	
 	
 	template<typename T>
-	struct Frame {
+	struct PODFrame {
 	/*
-		Frame is a moveable helper struct for use with Link types. It combines
+		PODFrame specializes frames to hopefully allow more compiler optimizations.
+	*/
+		bool ready;
+		T data;
+	}; //struct PODFrame
+	
+	
+	template<typename T>
+	struct MoveableFrame {
+	/*
+		MoveableFrame is a moveable helper struct for use with Link types. It combines
 		a signal and a boolean denoting whether the signal has been read. It 
 		is meant to be treated as an atomic. 
 	*/
 		bool ready; 
 		T data;
 
-		Frame() : ready(false), data() {} //needs signal_type to be default-constructible
-		Frame(const Frame&& rhs) : ready(rhs.ready), 
-					   data( std::move(rhs.data) ) {}
-		Frame& operator=(Frame&& rhs) {
+		MoveableFrame() noexcept : ready(false), data() {} //needs signal_type to be default-constructible
+		MoveableFrame(bool bReady, const T& x) : ready(bReady), data(x) {}
+		MoveableFrame(const MoveableFrame&& rhs) noexcept : ready(rhs.ready), data( std::move(rhs.data) ) {}
+		MoveableFrame& operator=(MoveableFrame&& rhs) {
 			if(this != &rhs) {
 				ready = rhs.ready;
 				data = std::move( rhs.data );
 			}
 		}
-	}; //struct Frame
+		~MoveableFrame() noexcept = default;
+	}; //struct MoveableFrame
 	
 	
 	template<typename V, typename S>
@@ -75,7 +99,7 @@ namespace ben {
 		typedef V value_type;
 		typedef S signal_type;
 	protected:
-		typedef Frame<signal_type> frame_type;
+		typedef MoveableFrame<signal_type> frame_type;
 		
 		std::atomic<value_type> value;
 		

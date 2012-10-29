@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -std=c++11 -lpthread -lgtest -lbenoit -g 
+CFLAGS = -std=c++11 -lpthread -lgtest -lbenoit -g -march=native
 PATHS = -I../src -I../build -I../Wayne/src
 SRC = ../src
 

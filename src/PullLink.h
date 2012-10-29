@@ -59,14 +59,16 @@ namespace ben {
 		unsigned short read_index, write_index;
 		
 	public:
-		PullLink() : PullLink(value_type()) {} //needs signal_type to be default-constructible
-		explicit PullLink(const value_type& v) 
+		PullLink() noexcept : PullLink(value_type()) {} //needs signal_type to be default-constructible
+		explicit PullLink(const value_type& v) noexcept
 			: base_type(v), buffer(), read_index(0), write_index(0) {}
 		PullLink(const self_type& rhs) = delete; //no reason to have this
 		PullLink& operator=(const self_type& rhs) = delete; //would leave hanging pointers
 		PullLink& operator=(self_type&& rhs) = delete;
-		~PullLink() = default;
+		~PullLink() noexcept = default;
 		
+		using base_type::get_value;
+		using base_type::set_value;
 		void flush() { 
 			for(std::atomic<frame_type>& item : buffer)
 				item.store(frame_type(), std::memory_order_release);
@@ -80,7 +82,7 @@ namespace ben {
 			auto item_temp = buffer[write_index].load(std::memory_order_acquire);
 			if(!item_temp.ready) return false; //reading has overtaken writing
 			else {
-				buffer[write_index].store(frame_type{true, signal}, std::memory_order_release);
+				buffer[write_index].store(frame_type(true, signal), std::memory_order_release);
 				if(write_index >= (B-1)) write_index = 0;
 				else ++write_index;
 				return true;
@@ -128,14 +130,17 @@ namespace ben {
 		std::atomic<frame_type> front;
 		
 	public:
-		PullLink() : PullLink(value_type()) {} //needs value_type to be default-constructible
-		explicit PullLink(const value_type& v) : base_type(v), front() {}
+		PullLink() noexcept : PullLink(value_type()) {} //needs value_type to be default-constructible
+		explicit PullLink(const value_type& v) noexcept : base_type(v), front() {}
+		~PullLink() noexcept = default;
 		
+		using base_type::get_value;
+		using base_type::set_value;
 		void flush() { front.store(frame_type(), std::memory_order_release); }
 		bool is_ready() const { return front.load(std::memory_order_consume).ready; }
 		bool push(const signal_type& signal) { 
 			if(!front.load(std::memory_order_acquire).ready) {
-				front.store(frame_type{true, signal}, std::memory_order_release); 
+				front.store(frame_type(true, signal), std::memory_order_release); 
 				return true;
 			} else return false;
 		}
@@ -143,7 +148,7 @@ namespace ben {
 			auto temp_item = front.load(std::memory_order_acquire);
 			if(temp_item.ready) {
 				temp_item.ready = false;
-				front.store(temp_item, std::memory_order_release);
+				front.store(std::move(temp_item), std::memory_order_release);
 				return temp_item.data; 
 			} else return signal_type();
 		}
@@ -169,10 +174,13 @@ namespace ben {
 		std::atomic<frame_type> zeroth, first; 
 		
 	public:
-		PullLink() : PullLink(value_type()) {} //needs value_type to be default-constructible
-		PullLink(const value_type& v) 
+		PullLink() noexcept : PullLink(value_type()) {} //needs value_type to be default-constructible
+		PullLink(const value_type& v) noexcept
 			: base_type(v), zeroth(), first(), read_index(false), write_index(false) {}
+		~PullLink() noexcept = default;
 		
+		using base_type::get_value;
+		using base_type::set_value;
 		void flush() { 
 			zeroth.store(frame_type(), std::memory_order_release);
 			first.store(frame_type(), std::memory_order_release); 
@@ -186,7 +194,7 @@ namespace ben {
 			if(write_index) {
 				auto temp_item = first.load(std::memory_order_acquire);
 				if(!temp_item.ready) { 
-					first.store(frame_type{true, signal}, std::memory_order_release);
+					first.store(frame_type(true, signal), std::memory_order_release);
 					write_index = false;
 					return true;
 				} else return false;
@@ -200,12 +208,12 @@ namespace ben {
 			}
 		}
 		signal_type pull() { 
-			signal_type result();
+			signal_type result;
 			if(read_index) {
 				auto temp_item = first.load(std::memory_order_acquire);
 				if(temp_item.ready) {
 					temp_item.ready = false;
-					first.store(temp_item, std::memory_order_release);
+					first.store(std::move(temp_item), std::memory_order_release);
 					result = temp_item.data;
 					read_index = false;
 				}
@@ -213,7 +221,7 @@ namespace ben {
 				auto temp_item = zeroth.load(std::memory_order_acquire);
 				if(temp_item.ready) {
 					temp_item.ready = false;
-					zeroth.store(temp_item, std::memory_order_release);
+					zeroth.store(std::move(temp_item), std::memory_order_release);
 					result = temp_item.data;
 					read_index = false;
 				}
