@@ -84,16 +84,14 @@ namespace ben {
 			std::lock_guard<std::mutex> lock(link_mutex);
 			buffer[index] = signal;
 			++index;
-			if(index >= B) {
-				index = 0;
-				ready.store(true, std::memory_order_release);
-			}
+			if(index >= B) index = 0;
+			ready.store(true, std::memory_order_release);
 			return true;
 		} 
 		signal_type pull() { 
 			std::lock_guard<std::mutex> lock(link_mutex);
-			auto temp = buffer[index];
-			return temp;
+			ready.store(false, std::memory_order_release);
+			return buffer[index];
 		} 
 	}; //class PushLink
 	

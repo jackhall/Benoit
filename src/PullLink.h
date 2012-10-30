@@ -80,7 +80,7 @@ namespace ben {
 			//if it hasn't been read, return false (buffer is full)
 			//if it has been read, overwrite it, increment write_index & return true
 			auto item_temp = buffer[write_index].load(std::memory_order_acquire);
-			if(!item_temp.ready) return false; //reading has overtaken writing
+			if(item_temp.ready) return false; //reading has overtaken writing
 			else {
 				buffer[write_index].store(frame_type(true, signal), std::memory_order_release);
 				if(write_index >= (B-1)) write_index = 0;
@@ -93,11 +93,11 @@ namespace ben {
 			//if it hasn't been read, overwrite it with ready=false, data=data,
 			//	increment read_index & return its signal
 			//if it has been read, return a blank signal (buffer is empty)
-			signal_type result();
+			signal_type result;
 			auto temp = buffer[read_index].load(std::memory_order_consume);
 			if(temp.ready) {
 				temp.ready = false;
-				buffer[read_index].store(temp, std::memory_order_release); 
+				buffer[read_index].store(std::move(temp), std::memory_order_release); 
 				result = temp.data;
 				if(read_index >= (B-1)) read_index = 0;
 				else ++read_index;
@@ -223,7 +223,7 @@ namespace ben {
 					temp_item.ready = false;
 					zeroth.store(std::move(temp_item), std::memory_order_release);
 					result = temp_item.data;
-					read_index = false;
+					read_index = true;
 				}
 			}
 			return result;

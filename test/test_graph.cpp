@@ -23,6 +23,8 @@
 //	./test_graph
 
 #include <iostream>
+#include <vector>
+#include <random>
 #include "gtest/gtest.h"
 #include "PullLink.h"
 #include "PushLink.h"
@@ -32,7 +34,84 @@
 
 namespace {
 
-	TEST(Links, All) {
+	class Links : public ::testing::Test {
+	protected:
+		std::vector<double> signals;
+		
+		Links() {}
+		
+		void PrepareSignals(const unsigned int n) {
+			std::default_random_engine gen;
+  			std::uniform_real_distribution<double> random_real(0.0,1.0);
+			signals.resize(n);
+			for(double& x : signals) { x = random_real(gen); }
+		}
+		
+		template<unsigned int N>
+		void TestLink(ben::PullLink<int, double, N>& link) {
+			link.flush();
+			EXPECT_FALSE(link.is_ready());
+			PrepareSignals(N);
+			for(auto x : signals) {
+				EXPECT_TRUE(link.push(x)); 
+				EXPECT_TRUE(link.is_ready()); 
+			}
+			EXPECT_FALSE(link.push(1.23));
+			
+			for(auto x : signals) {
+				EXPECT_TRUE(link.is_ready());
+				EXPECT_EQ(x, link.pull());
+			}
+			EXPECT_FALSE(link.is_ready());
+			
+			if(N>1) {
+				PrepareSignals(N/2);
+				for(auto x : signals) {
+					EXPECT_TRUE(link.push(x));
+					EXPECT_TRUE(link.is_ready());
+				}
+				EXPECT_EQ(signals[0], link.pull());
+				double second_signal;
+				if(N/2 > 1) second_signal = signals[1];
+				
+				PrepareSignals(N/2);
+				for(auto x : signals) {
+					EXPECT_TRUE(link.push(x));
+					EXPECT_TRUE(link.is_ready());
+				}
+				if(N/2 <= 1) second_signal = signals[0];
+				EXPECT_EQ(second_signal, link.pull());
+			}
+		}
+		
+		template<unsigned int M>
+		void TestLink(ben::PushLink<int, double, M>& link) {
+			link.flush();
+			PrepareSignals(M+1);
+			EXPECT_FALSE(link.is_ready());
+			EXPECT_TRUE(link.push(1.23));
+			EXPECT_TRUE(link.is_ready());
+			EXPECT_EQ(1.23, link.pull()); //fails
+			EXPECT_FALSE(link.is_ready());
+			
+			for(auto x : signals) {
+				EXPECT_TRUE(link.push(x));
+				EXPECT_TRUE(link.is_ready());
+			}
+			EXPECT_TRUE(link.is_ready());
+			EXPECT_EQ(signals[1], link.pull());
+			EXPECT_FALSE(link.is_ready()); 
+			EXPECT_EQ(signals[1], link.pull());
+			
+			if(M>1) {
+				EXPECT_TRUE(link.push(1.23));
+				EXPECT_TRUE(link.is_ready());
+				EXPECT_EQ(signals[2], link.pull());
+			}
+		}
+	};
+
+	TEST_F(Links, All) {
 		using namespace ben;
 		//the following mostly just need to compile, and are separate from the other tests
 		PullLink<int, double, 1> link1x;
@@ -57,7 +136,7 @@ namespace {
 		EXPECT_EQ(1, link1.get_value());
 		PullLink<int, double, 2> link2(2);
 		EXPECT_EQ(2, link2.get_value());
-		PullLink<int, double, 3> link3(3);
+		PullLink<int, double, 4> link3(3);
 		EXPECT_EQ(3, link3.get_value());
 		
 		PushLink<int, double, 1> link4(4);
@@ -65,48 +144,14 @@ namespace {
 		PushLink<int, double, 2> link5(5);
 		EXPECT_EQ(5, link5.get_value());
 		
-		double signal1 = 1.23;
-		double signal2 = 4.56;
-		double signal3 = 7.89;
-		double signal4 = 9.51;
+		//PullLink
+		TestLink<1>(link1);
+		TestLink<2>(link2);
+		TestLink<4>(link3); 
 		
-		//PullLink<1>
-		EXPECT_FALSE(link1.is_ready());
-		EXPECT_TRUE(link1.push(signal1));
-		EXPECT_TRUE(link1.is_ready());
-		
-		EXPECT_FALSE(link1.push(signal2));
-		EXPECT_EQ(signal1, link1.pull());
-		EXPECT_FALSE(link1.is_ready());
-		
-		//PullLink<2>
-		EXPECT_FALSE(link2.is_ready());
-		EXPECT_TRUE(link2.push(signal1));
-		EXPECT_TRUE(link2.is_ready());
-		
-		EXPECT_TRUE(link2.push(signal2));
-		EXPECT_TRUE(link2.is_ready());
-		
-		EXPECT_FALSE(link2.push(signal3));
-		EXPECT_EQ(signal1, link2.pull());
-		EXPECT_FALSE(link2.is_ready());
-		
-		EXPECT_TRUE(link2.push(signal3));
-		EXPECT_TRUE(link2.is_ready());
-		
-		EXPECT_EQ(signal2, link2.pull());
-		EXPECT_FALSE(link2.is_ready());
-		
-		EXPECT_TRUE(link2.push(signal4));
-		link2.flush();
-		EXPECT_FALSE(link2.is_ready());
-			
-		//PullLink<n>
-		
-		//PushLink<1>
-		
-		//PushLink<n>
-		
+		//PushLink
+		TestLink<1>(link4);
+		TestLink<2>(link5); //fails	
 	}
 
 	TEST(Ports, All) {
