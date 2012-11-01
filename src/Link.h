@@ -23,6 +23,7 @@
 
 #include <atomic>
 #include <type_traits>
+#include <initializer_list>
 
 namespace ben {
 	
@@ -41,51 +42,51 @@ namespace ben {
 			pull(), push() and is_ready() methods
 			default construction and construction from a value_type reference
 			
-	*/
-	template<typename T>
-	struct GenericFrame {
+	*/	
+	template<typename T, bool Moveable, bool POD>
+	struct Frame {
 	/*
-		GenericFrame is for any signals that are not POD or moveable.
+		Generic Frame is for any signals that are not POD or moveable.
 	*/
 		bool ready;
 		T data;
 		
-		GenericFrame() noexcept : ready(false), data() {} //needs signal_type to be default-constructible
-		GenericFrame(bool bReady, const T& x) : ready(bReady), data(x) {}
-	}; //struct GenericFrame
+		Frame() noexcept : ready(false), data() {} //needs signal_type to be default-constructible
+		Frame(bool bReady, const T& x) : ready(bReady), data(x) {}
+	}; //struct Generic Frame
 	
 	
-	template<typename T>
-	struct PODFrame {
+	template<typename T, bool Moveable>
+	struct Frame<T, Moveable, true> {
 	/*
-		PODFrame specializes frames to hopefully allow more compiler optimizations.
+		POD Frame specializes frames to hopefully allow more compiler optimizations.
 	*/
 		bool ready;
 		T data;
-	}; //struct PODFrame
+	}; //struct POD Frame
 	
 	
 	template<typename T>
-	struct MoveableFrame {
+	struct Frame<T, true, false> {
 	/*
-		MoveableFrame is a moveable helper struct for use with Link types. It combines
+		Moveable Frame is a moveable helper struct for use with Link types. It combines
 		a signal and a boolean denoting whether the signal has been read. It 
 		is meant to be treated as an atomic. 
 	*/
 		bool ready; 
 		T data;
 
-		MoveableFrame() noexcept : ready(false), data() {} //needs signal_type to be default-constructible
-		MoveableFrame(bool bReady, const T& x) : ready(bReady), data(x) {}
-		MoveableFrame(const MoveableFrame&& rhs) noexcept : ready(rhs.ready), data( std::move(rhs.data) ) {}
-		MoveableFrame& operator=(MoveableFrame&& rhs) {
+		Frame() noexcept : ready(false), data() {} //needs signal_type to be default-constructible
+		Frame(bool bReady, const T& x) : ready(bReady), data(x) {}
+		Frame(const Frame&& rhs) noexcept : ready(rhs.ready), data( std::move(rhs.data) ) {}
+		Frame& operator=(Frame&& rhs) {
 			if(this != &rhs) {
 				ready = rhs.ready;
 				data = std::move( rhs.data );
 			}
 		}
-		~MoveableFrame() noexcept = default;
-	}; //struct MoveableFrame
+		~Frame() noexcept = default;
+	}; //struct Moveable Frame
 	
 	
 	template<typename V, typename S>
@@ -99,7 +100,9 @@ namespace ben {
 		typedef V value_type;
 		typedef S signal_type;
 	protected:
-		typedef MoveableFrame<signal_type> frame_type;
+		typedef Frame<signal_type, std::is_move_constructible<signal_type>::value
+					   && std::is_move_assignable<signal_type>::value, 
+					   std::is_pod<signal_type>::value> frame_type;
 		
 		std::atomic<value_type> value;
 		

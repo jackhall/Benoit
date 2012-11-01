@@ -82,7 +82,7 @@ namespace ben {
 			auto item_temp = buffer[write_index].load(std::memory_order_acquire);
 			if(item_temp.ready) return false; //reading has overtaken writing
 			else {
-				buffer[write_index].store(frame_type(true, signal), std::memory_order_release);
+				buffer[write_index].store(frame_type{true, signal}, std::memory_order_release);
 				if(write_index >= (B-1)) write_index = 0;
 				else ++write_index;
 				return true;
@@ -97,8 +97,8 @@ namespace ben {
 			auto temp = buffer[read_index].load(std::memory_order_consume);
 			if(temp.ready) {
 				temp.ready = false;
-				buffer[read_index].store(std::move(temp), std::memory_order_release); 
 				result = temp.data;
+				buffer[read_index].store(std::move(temp), std::memory_order_release); 
 				if(read_index >= (B-1)) read_index = 0;
 				else ++read_index;
 			} 
@@ -140,7 +140,7 @@ namespace ben {
 		bool is_ready() const { return front.load(std::memory_order_consume).ready; }
 		bool push(const signal_type& signal) { 
 			if(!front.load(std::memory_order_acquire).ready) {
-				front.store(frame_type(true, signal), std::memory_order_release); 
+				front.store(frame_type{true, signal}, std::memory_order_release); 
 				return true;
 			} else return false;
 		}
@@ -194,7 +194,7 @@ namespace ben {
 			if(write_index) {
 				auto temp_item = first.load(std::memory_order_acquire);
 				if(!temp_item.ready) { 
-					first.store(frame_type(true, signal), std::memory_order_release);
+					first.store(frame_type{true, signal}, std::memory_order_release);
 					write_index = false;
 					return true;
 				} else return false;

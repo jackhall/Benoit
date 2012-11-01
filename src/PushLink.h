@@ -57,14 +57,14 @@ namespace ben {
 		typedef typename base_type::frame_type frame_type;
 		
 		std::array<signal_type, B> buffer;
-		unsigned short index;
+		unsigned short read_index, write_index;
 		std::atomic<bool> ready;
 		std::mutex link_mutex;
 		
 	public:
 		PushLink() : PushLink(value_type()) {} //needs signal_type to be default-constructible
 		explicit PushLink(const value_type& v) 
-			: base_type(v), buffer(), ready(false), index(0), link_mutex() {}
+			: base_type(v), buffer(), ready(false), read_index(0), write_index(0), link_mutex() {}
 		PushLink(const self_type& rhs) = delete; //no reason to have this
 		PushLink& operator=(const self_type& rhs) = delete; //would leave hanging pointers
 		PushLink& operator=(self_type&& rhs) = delete;
@@ -75,23 +75,26 @@ namespace ben {
 		void flush() { 
 			std::lock_guard<std::mutex> lock(link_mutex);
 			ready.store(false, std::memory_order_release);
-			index = 0;
+			read_index = write_index = 0;
 			for(signal_type& item : buffer)
 				item = signal_type();
 		}
 		bool is_ready() const { return ready.load(std::memory_order_acquire); }
 		bool push(const signal_type& signal) { 
 			std::lock_guard<std::mutex> lock(link_mutex);
-			buffer[index] = signal;
-			++index;
-			if(index >= B) index = 0;
+			buffer[write_index] = signal;
+			if(write_index==read_index && is_ready()) 
+				if(++read_index >= B) read_index = 0;
+			if(++write_index >= B) write_index = 0;
 			ready.store(true, std::memory_order_release);
 			return true;
 		} 
 		signal_type pull() { 
 			std::lock_guard<std::mutex> lock(link_mutex);
-			ready.store(false, std::memory_order_release);
-			return buffer[index];
+			auto temp = std::move(buffer[read_index]);
+			if(ready.exchange(false, std::memory_order_acq_rel)) 
+				if(++read_index >= B) read_index = 0;
+			return temp; 
 		} 
 	}; //class PushLink
 	

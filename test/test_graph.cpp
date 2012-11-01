@@ -91,8 +91,9 @@ namespace {
 			EXPECT_FALSE(link.is_ready());
 			EXPECT_TRUE(link.push(1.23));
 			EXPECT_TRUE(link.is_ready());
-			EXPECT_EQ(1.23, link.pull()); //fails
+			EXPECT_EQ(1.23, link.pull()); 
 			EXPECT_FALSE(link.is_ready());
+			//EXPECT_EQ(1.23, link.pull()); //fails with move semantics (no copy left behind)
 			
 			for(auto x : signals) {
 				EXPECT_TRUE(link.push(x));
@@ -101,9 +102,9 @@ namespace {
 			EXPECT_TRUE(link.is_ready());
 			EXPECT_EQ(signals[1], link.pull());
 			EXPECT_FALSE(link.is_ready()); 
-			EXPECT_EQ(signals[1], link.pull());
 			
 			if(M>1) {
+				EXPECT_EQ(signals[2], link.pull());
 				EXPECT_TRUE(link.push(1.23));
 				EXPECT_TRUE(link.is_ready());
 				EXPECT_EQ(signals[2], link.pull());
@@ -151,7 +152,7 @@ namespace {
 		
 		//PushLink
 		TestLink<1>(link4);
-		TestLink<2>(link5); //fails	
+		TestLink<2>(link5); 	
 	}
 
 	TEST(Ports, All) {
