@@ -65,7 +65,6 @@ namespace ben {
 		typedef Graph<Node> 		index_type;
 		typedef I 			input_port_type;
 		typedef O 			output_port_type;
-		typedef typename I::link_type	link_type; 
 		typedef typename std::vector<I>::iterator input_iterator;
 		typedef typename std::vector<O>::iterator output_iterator;
 		
@@ -75,11 +74,16 @@ namespace ben {
 		typedef typename I::value_type 	value_type;
 		typedef typename I::signal_type	signal_type;
 	
-		//static_assert that index_type::singleton_type is the same as self_type?
 		static_assert(std::is_same<id_type, typename I::id_type>::value, 
 			      "Index and Port unique ID types don't match");
-		static_assert(std::is_same<typename I::link_type, typename O::link_type>::value, 
-			      "Ports not managing same type of Link");
+		static_assert(std::is_same<I, typename O::complement_type>::value,
+			      "Port types should complement one another");
+		static_assert(std::is_same<typename I::complement_type, O>::value,
+			      "Port types should complement one another");
+		static_assert(std::is_same<typename I::value_type, typename O::value_type>::value,
+			      "Port value types should match"); //is this semantically necessary? (it isn't syntactically)
+		static_assert(std::is_same<typename I::signal_type, typename O::signal_type>::value,
+			      "Port signal types should match");
 		static_assert(std::is_same<typename I::id_type, typename O::id_type>::value, 
 			      "Ports using different unique ID types");
 	
@@ -242,7 +246,7 @@ namespace ben {
 	bool Node<I,O>::add_input(const id_type address, const value_type& value) {
 		if( get_index().contains(address) ) {
 			if( contains_input(address) ) return false;
-			inputs.push_back( input_port_type(new link_type(value), address) );
+			inputs.push_back( input_port_type(address, value) );
 			get_index().elem(address).outputs.push_back( output_port_type(inputs.back(), ID()) );
 			return true;
 		} else return false;
@@ -252,7 +256,7 @@ namespace ben {
 	bool Node<I,O>::add_output(const id_type address, const value_type& value) {
 		if( get_index().contains(address) ) {
 			if( contains_output(address) ) return false;
-			outputs.push_back( output_port_type(new link_type(value), address) );
+			outputs.push_back( output_port_type(address, value) );
 			get_index().elem(address).inputs.push_back( input_port_type(outputs.back(), ID()) );
 			return true;
 		} else return false;

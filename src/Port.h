@@ -61,7 +61,9 @@ namespace ben {
 		Port(link_type* ptr) : link_ptr(ptr) {}
 		
 		Port() = delete;
+		Port(const Port& rhs) : link_ptr(rhs.link_ptr) {}
 		Port(Port&& rhs) : link_ptr( std::move(rhs.link_ptr) ) {}
+		Port& operator=(const Port& rhs) { link_ptr = rhs.link_ptr; return *this; }
 		Port& operator=(Port&& rhs) { 
 			//check for sameness would be redundant because Port
 			//assignment is only called by InPort or OutPort assignment
@@ -71,7 +73,7 @@ namespace ben {
 		virtual ~Port() = default;
 	
 	public:
-		inline const value_type& get_value() const { return link_ptr->get_value(); }
+		inline value_type get_value() const { return link_ptr->get_value(); }
 		inline void set_value(const value_type& v) const { link_ptr->set_value(v); }
 		inline bool is_ready() const { return link_ptr->is_ready(); }
 	}; //class Port
@@ -84,19 +86,21 @@ namespace ben {
 	private:
 		typedef Port<L> base_type;
 		typedef InPort self_type;
-		typedef OutPort<L> complement_type;
 		using base_type::link_ptr;
 		
 	public:
 		typedef typename base_type::id_type id_type;
 		typedef typename L::value_type value_type;
 		typedef typename L::signal_type signal_type;
+		typedef OutPort<L> complement_type;
 		typedef L link_type;
 	
 		id_type sourceID;
 	
-		InPort(link_type* ptr, id_type nSource) : base_type(ptr), sourceID(nSource) {}
+		InPort(id_type nSource, value_type x = value_type()) 
+			: base_type(new link_type(x)), sourceID(nSource) {}
 		InPort(const complement_type& other, id_type nSource) : base_type(other), sourceID(nSource) {}
+		InPort(const self_type& rhs) : base_type(rhs), sourceID(rhs.sourceID) {} //does Node need this?
 		InPort(self_type&& rhs) : base_type( std::move(rhs) ), sourceID(rhs.sourceID) {}
 		InPort& operator=(const self_type& rhs) {
 			if(this != &rhs) {
@@ -114,7 +118,7 @@ namespace ben {
 		}
 		//bool operator<(const self_type& rhs) const { return sourceID < rhs.sourceID; }
 		
-		inline id_type source() const { return link_ptr->source; }
+		inline id_type source() const { return sourceID; }
 		inline signal_type pull() const { return link_ptr->pull(); }
 	}; //struct InPort
 	
@@ -124,20 +128,22 @@ namespace ben {
 	private:
 		typedef Port<L> base_type;
 		typedef OutPort self_type;
-		typedef InPort<L> complement_type;
 		using base_type::link_ptr;
 		
 	public:
 		typedef typename base_type::id_type id_type;
 		typedef typename L::value_type value_type;
 		typedef typename L::signal_type signal_type;
+		typedef InPort<L> complement_type;
 		typedef L link_type;
 		
 		id_type targetID;
 	
-		OutPort(link_type* ptr, id_type nTarget) : base_type(ptr), targetID(nTarget) {}
+		OutPort(id_type nTarget, value_type x = value_type()) 
+			: base_type(new link_type(x)), targetID(nTarget) {}
 		OutPort(const complement_type& other, id_type nTarget) : base_type(other), targetID(nTarget) {}
-		OutPort(self_type&& rhs) : base_type( std::move(rhs) ), targetID(rhs.target) {}
+		OutPort(const self_type& rhs) : base_type(rhs), targetID(rhs.targetID) {} //does Node need this?
+		OutPort(self_type&& rhs) : base_type( std::move(rhs) ), targetID(rhs.targetID) {}
 		OutPort& operator=(const self_type& rhs) {
 			if(this != &rhs) {
 				base_type::operator=(rhs);
@@ -154,7 +160,7 @@ namespace ben {
 		}
 		//bool operator<(const self_type& rhs) const { return targetID < rhs.targetID; }
 		
-		inline id_type target() const { return link_ptr->target; }
+		inline id_type target() const { return targetID; }
 		inline bool push(const signal_type& signal) { return link_ptr->push(signal); } //take another look at const requirements
 	}; //struct OutPort
 

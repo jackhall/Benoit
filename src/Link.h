@@ -60,6 +60,8 @@ namespace ben {
 	struct Frame<T, Moveable, true> {
 	/*
 		POD Frame specializes frames to hopefully allow more compiler optimizations.
+		
+		This version of Frame is an aggregate, so the compiler will generate move and copy ctors!
 	*/
 		bool ready;
 		T data;
@@ -102,12 +104,12 @@ namespace ben {
 	protected:
 		typedef Frame<signal_type, std::is_move_constructible<signal_type>::value
 					   && std::is_move_assignable<signal_type>::value, 
-					   std::is_pod<signal_type>::value> frame_type;
+					   std::is_pod<signal_type>::value> frame_type; 
 		
 		std::atomic<value_type> value;
 		
 		Link() : Link(value_type()) {} //needs value_type to be default-constructible
-		explicit Link(const value_type& v) : value(v) {}
+		explicit Link(const value_type& v) : value(v) {} //needs value_type to be copy-constructible
 		virtual ~Link() = default;
 	
 	public:

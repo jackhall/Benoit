@@ -155,10 +155,60 @@ namespace {
 		TestLink<2>(link5); 	
 	}
 
-	TEST(Ports, All) {
+	TEST(Ports, Construction) {
 		using namespace ben;
-		//use PullLink<1>
+		typedef InPort<PullLink<int, double, 2>>  input_port_type;
+		typedef OutPort<PullLink<int, double, 2>> output_port_type;
+		
+		//normal construction
+		input_port_type input_port1(5);
+		EXPECT_EQ(5, input_port1.source());
+		EXPECT_EQ(0, input_port1.get_value());
+		EXPECT_FALSE(input_port1.is_ready());
+		
+		input_port_type input_port2(7, 10);
+		EXPECT_EQ(7, input_port2.source());
+		EXPECT_EQ(10, input_port2.get_value());
+		EXPECT_FALSE(input_port2.is_ready());
+		
+		output_port_type output_port1(11);
+		EXPECT_EQ(11, output_port1.target());
+		EXPECT_EQ(0, output_port1.get_value());
+		EXPECT_FALSE(output_port1.is_ready());
+		
+		output_port_type output_port2(13, 20);
+		EXPECT_EQ(13, output_port2.target());
+		EXPECT_EQ(20, output_port2.get_value());
+		EXPECT_FALSE(output_port2.is_ready());
+		
+		//complement constructors
+		input_port_type input_port3(output_port2, 17);
+		EXPECT_EQ(17, input_port3.source());
+		EXPECT_EQ(20, input_port3.get_value());
+		EXPECT_FALSE(input_port3.is_ready());
+		
+		output_port_type output_port3(input_port2, 19);
+		EXPECT_EQ(19, output_port3.target());
+		EXPECT_EQ(10, output_port3.get_value());
+		EXPECT_FALSE(output_port3.is_ready());
+		
+		//copy constructor
+		
+		//move constructor
+		
+		//assignment
+		
+		//move assignment
+		
+		//destruction
 	}
+	
+	TEST(Ports, Methods) {
+		//get_value
+		//set_value
+		//sending and receiving data
+	}
+	
 } //anonymous namespace 
 
 int main(int argc, char **argv) {
