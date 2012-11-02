@@ -67,12 +67,12 @@ namespace ben {
 		typedef O 			output_port_type;
 		typedef typename std::vector<I>::iterator input_iterator;
 		typedef typename std::vector<O>::iterator output_iterator;
+		typedef typename I::value_type 	value_type;
+		typedef typename I::signal_type	signal_type;
 		
 	private:
 		typedef Node 			self_type;
 		typedef Singleton 		base_type;
-		typedef typename I::value_type 	value_type;
-		typedef typename I::signal_type	signal_type;
 	
 		static_assert(std::is_same<id_type, typename I::id_type>::value, 
 			      "Index and Port unique ID types don't match");
@@ -114,10 +114,10 @@ namespace ben {
 		const index_type& get_index() const 
 			{ return static_cast<const index_type&>(base_type::get_index()); }
 		
-		input_iterator  find_input(const id_type address);
-		output_iterator find_output(const id_type address);
+		input_iterator  find_input(const id_type address); //lacks a definition
+		output_iterator find_output(const id_type address); //lacks a definition
 		
-		bool add_input(const id_type address, const value_type& value = value_type());
+		bool add_input(const id_type address, const value_type& value = value_type()); //initializing with a temporary!
 		bool add_output(const id_type address, const value_type& value = value_type());
 		
 		void remove_input(const input_iterator iter);
