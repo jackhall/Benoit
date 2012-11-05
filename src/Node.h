@@ -92,8 +92,8 @@ namespace ben {
 		//std::mutex node_mutex;
 		
 		bool clone_links(const self_type& other);
-		bool clean_up_input(const id_type address);
-		bool clean_up_output(const id_type address);
+		void clean_up_input();
+		void clean_up_output();
 		
 	public:
 		Node() = default;
@@ -203,26 +203,14 @@ namespace ben {
 	}
 	
 	template<typename I, typename O>
-	bool Node<I,O>::clean_up_input(const id_type address) {
-		for(auto it=inputs.begin(), ite=inputs.end(); it!=ite; ++it) {
-			if(it->source() == address) {
-				inputs.erase(it); //invalidates iterator
-				return true;
-			}
-		}
-		return false;
-	}
+	void Node<I,O>::clean_up_input() 
+		{ std::remove_if(inputs.begin(), inputs.end(), 
+				 [](const input_port_type x){ return x.is_ghost(); }); }
 	
 	template<typename I, typename O>
-	bool Node<I,O>::clean_up_output(const id_type address) {
-		for(auto it=outputs.begin(), ite=outputs.end(); it!=ite; ++it) {
-			if(it->target() == address) {
-				outputs.erase(it); //invalidates iterator
-				return true;
-			}
-		}
-		return false;
-	}
+	void Node<I,O>::clean_up_output() 
+		{ std::remove_if(outputs.begin(), outputs.end(), 
+				 [](const output_port_type x){ return x.is_ghost(); }); }
 	
 	template<typename I, typename O>
 	typename Node<I,O>::input_iterator Node<I,O>::find_input(const id_type address) {

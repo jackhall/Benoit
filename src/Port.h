@@ -76,6 +76,7 @@ namespace ben {
 		inline value_type get_value() const { return link_ptr->get_value(); }
 		inline void set_value(const value_type& v) const { link_ptr->set_value(v); }
 		inline bool is_ready() const { return link_ptr->is_ready(); }
+		inline bool is_ghost() const { return link_ptr.unique(); }
 	}; //class Port
 	
 

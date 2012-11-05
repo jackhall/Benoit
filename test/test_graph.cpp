@@ -165,34 +165,43 @@ namespace {
 		EXPECT_EQ(5, input_port1.source());
 		EXPECT_EQ(0, input_port1.get_value());
 		EXPECT_FALSE(input_port1.is_ready());
+		EXPECT_TRUE(input_port1.is_ghost());
 		
 		input_port_type input_port2(7, 10);
 		EXPECT_EQ(7, input_port2.source());
 		EXPECT_EQ(10, input_port2.get_value());
 		EXPECT_FALSE(input_port2.is_ready());
+		EXPECT_TRUE(input_port2.is_ghost());
 		
 		output_port_type output_port1(11);
 		EXPECT_EQ(11, output_port1.target());
 		EXPECT_EQ(0, output_port1.get_value());
 		EXPECT_FALSE(output_port1.is_ready());
+		EXPECT_TRUE(output_port1.is_ghost());
 		
 		output_port_type output_port2(13, 20);
 		EXPECT_EQ(13, output_port2.target());
 		EXPECT_EQ(20, output_port2.get_value());
 		EXPECT_FALSE(output_port2.is_ready());
+		EXPECT_TRUE(output_port2.is_ghost());
 		
 		//complement constructors
 		input_port_type input_port3(output_port2, 17);
 		EXPECT_EQ(17, input_port3.source());
 		EXPECT_EQ(20, input_port3.get_value());
 		EXPECT_FALSE(input_port3.is_ready());
+		EXPECT_FALSE(output_port2.is_ghost());
+		EXPECT_FALSE(input_port3.is_ghost());
 		
 		output_port_type output_port3(input_port2, 19);
 		EXPECT_EQ(19, output_port3.target());
 		EXPECT_EQ(10, output_port3.get_value());
 		EXPECT_FALSE(output_port3.is_ready());
+		EXPECT_FALSE(input_port2.is_ghost());
+		EXPECT_FALSE(output_port3.is_ghost());
 		
 		//copy constructor
+		
 		
 		//move constructor
 		
