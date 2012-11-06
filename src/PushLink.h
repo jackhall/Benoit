@@ -38,8 +38,8 @@ namespace ben {
 		temporary note: PushLink<2> specialization is not yet thread-safe. 
 	*/	
 	
-	template<typename V, typename S, unsigned short B> 
-	class PushLink : public Link<V,S> {
+	template<typename S, unsigned short B> 
+	class PushLink : public Link<S> {
 	/*
 		The general form of PullLink, implementing a circular buffer. The
 		read and write operations use the same index that is only moved
@@ -49,10 +49,9 @@ namespace ben {
 		operations are done in constant time. 
 	*/
 	public:
-		typedef V value_type;
 		typedef S signal_type;
 	private:
-		typedef Link<V,S> base_type;
+		typedef Link<S> base_type;
 		typedef PushLink self_type;
 		typedef typename base_type::frame_type frame_type;
 		
@@ -62,16 +61,12 @@ namespace ben {
 		std::mutex link_mutex;
 		
 	public:
-		PushLink() : PushLink(value_type()) {} //needs signal_type to be default-constructible
-		explicit PushLink(const value_type& v) 
-			: base_type(v), buffer(), ready(false), read_index(0), write_index(0), link_mutex() {}
+		PushLink() : base_type(), buffer(), ready(false), read_index(0), write_index(0), link_mutex() {}
 		PushLink(const self_type& rhs) = delete; //no reason to have this
 		PushLink& operator=(const self_type& rhs) = delete; //would leave hanging pointers
 		PushLink& operator=(self_type&& rhs) = delete;
 		~PushLink() noexcept = default;
 		
-		using base_type::get_value;
-		using base_type::set_value;
 		void flush() { 
 			std::lock_guard<std::mutex> lock(link_mutex);
 			ready.store(false, std::memory_order_release);
@@ -99,24 +94,23 @@ namespace ben {
 	}; //class PushLink
 	
 	
-	template<typename V, typename S>
-	class PushLink<V,S,0> : public Link<V,S> { //use this for non-message-passing links later?
+	template<typename S>
+	class PushLink<S,0> : public Link<S> { //use this for non-message-passing links later?
 		PushLink() = delete; //prevent instantiation
 	};
 	
 	
-	template<typename V, typename S>
-	class PushLink<V,S,1> : public Link<V,S> {
+	template<typename S>
+	class PushLink<S,1> : public Link<S> {
 	/*
 		This specialization saves memory and computation time since no
 		states or logic are needed to handle a multi-element buffer. 
 	*/
 
 	public:
-		typedef V value_type;
 		typedef S signal_type;
 	private:
-		typedef Link<V,S> base_type;
+		typedef Link<S> base_type;
 		typedef PushLink self_type;
 		typedef typename base_type::frame_type frame_type;
 
@@ -124,12 +118,9 @@ namespace ben {
 		std::atomic<signal_type> front;
 		
 	public:
-		PushLink() noexcept : PushLink(value_type()) {} //needs value_type to be default-constructible
-		PushLink(const value_type& v) noexcept : base_type(v), ready(false), front() {}
+		PushLink() noexcept : base_type(), ready(false), front() {} //needs value_type to be default-constructible
 		~PushLink() noexcept = default;
 		
-		using base_type::get_value;
-		using base_type::set_value;
 		void flush() { 
 			ready.store(false, std::memory_order_release);
 			front.store(signal_type(), std::memory_order_release); 

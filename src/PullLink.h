@@ -36,8 +36,8 @@ namespace ben {
 		two threads (producer-std::memory_order_consumer relationship). 
 	*/
 	
-	template<typename V, typename S, unsigned short B> 
-	class PullLink : public Link<V,S> {
+	template<typename S, unsigned short B> 
+	class PullLink : public Link<S> {
 	/*
 		The general form of PullLink, implementing a circular buffer. The
 		read and write operations (and the indicies for each) are isolated
@@ -48,10 +48,9 @@ namespace ben {
 		from Link. Push and pull operations are done in constant time. 
 	*/
 	public:
-		typedef V value_type;
 		typedef S signal_type;
 	private:
-		typedef Link<V,S> base_type;
+		typedef Link<S> base_type;
 		typedef PullLink self_type;
 		typedef typename base_type::frame_type frame_type;
 		
@@ -59,19 +58,15 @@ namespace ben {
 		unsigned short read_index, write_index;
 		
 	public:
-		PullLink() noexcept : PullLink(value_type()) {} //needs signal_type to be default-constructible
-		explicit PullLink(const value_type& v) noexcept
-			: base_type(v), buffer(), read_index(0), write_index(0) {}
+		PullLink() noexcept : base_type(), buffer(), read_index(0), write_index(0) {} //needs signal_type to be default-constructible
 		PullLink(const self_type& rhs) = delete; //no reason to have this
 		PullLink& operator=(const self_type& rhs) = delete; //would leave hanging pointers
 		PullLink& operator=(self_type&& rhs) = delete;
 		~PullLink() noexcept = default;
 		
-		using base_type::get_value;
-		using base_type::set_value;
 		void flush() { 
 			for(std::atomic<frame_type>& item : buffer)
-				item.store(frame_type(), std::memory_order_release);
+				item.store(frame_type{false, signal_type()}, std::memory_order_release);
 			read_index = 0; write_index = 0;
 		}
 		bool is_ready() const { return buffer[read_index].load(std::memory_order_consume).ready; }
@@ -107,36 +102,34 @@ namespace ben {
 	}; //class PullLink
 	
 	
-	template<typename V, typename S>
-	class PullLink<V,S,0> : public Link<V,S> { //use this for non-message-passing links later?
+	template<typename S>
+	class PullLink<S,0> : public Link<S> { //use this for non-message-passing links later?
 		PullLink() = delete; //prevent instantiation
 	};
 	
 	
-	template<typename V, typename S>
-	class PullLink<V,S,1> : public Link<V,S> {
+	template<typename S>
+	class PullLink<S,1> : public Link<S> {
 	/*
 		This specialization saves memory and computation time since no
 		states or logic are needed to handle a multi-element buffer. 
 	*/
 	public:
-		typedef V value_type;
 		typedef S signal_type;
 	private:
-		typedef Link<V,S> base_type;
+		typedef Link<S> base_type;
 		typedef PullLink self_type;
 		typedef typename base_type::frame_type frame_type;
 		
 		std::atomic<frame_type> front;
 		
 	public:
-		PullLink() noexcept : PullLink(value_type()) {} //needs value_type to be default-constructible
-		explicit PullLink(const value_type& v) noexcept : base_type(v), front() {}
+		PullLink() noexcept : base_type(), front() {} 
 		~PullLink() noexcept = default;
 		
-		using base_type::get_value;
-		using base_type::set_value;
-		void flush() { front.store(frame_type(), std::memory_order_release); }
+		void flush() { 
+			front.store({false, signal_type()}); //segfaults
+		} 
 		bool is_ready() const { return front.load(std::memory_order_consume).ready; }
 		bool push(const signal_type& signal) { 
 			if(!front.load(std::memory_order_acquire).ready) {
@@ -155,18 +148,17 @@ namespace ben {
 	};
 	
 	
-	template<typename V, typename S>
-	class PullLink<V,S,2> : Link<V,S> {
+	template<typename S>
+	class PullLink<S,2> : Link<S> {
 	/*
 		This specialization uses marginally less storage and computation by
 		using individual variables for the buffer slots and bools for the read
 		and write indicies. 
 	*/
 	public:
-		typedef V value_type;
 		typedef S signal_type;
 	private:
-		typedef Link<V,S> base_type;
+		typedef Link<S> base_type;
 		typedef PullLink self_type;
 		typedef typename base_type::frame_type frame_type;
 	
@@ -174,16 +166,13 @@ namespace ben {
 		std::atomic<frame_type> zeroth, first; 
 		
 	public:
-		PullLink() noexcept : PullLink(value_type()) {} //needs value_type to be default-constructible
-		PullLink(const value_type& v) noexcept
-			: base_type(v), zeroth(), first(), read_index(false), write_index(false) {}
+		PullLink() noexcept : base_type(), zeroth(), first(), read_index(false), write_index(false) {} 
 		~PullLink() noexcept = default;
 		
-		using base_type::get_value;
-		using base_type::set_value;
 		void flush() { 
-			zeroth.store(frame_type(), std::memory_order_release);
-			first.store(frame_type(), std::memory_order_release); 
+			frame_type temp_frame = {false, signal_type()};
+			zeroth.store(temp_frame, std::memory_order_release);
+			first.store(temp_frame, std::memory_order_release); 
 			read_index = write_index = false; 
 		}
 		bool is_ready() const { 

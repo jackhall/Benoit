@@ -91,7 +91,7 @@ namespace ben {
 	}; //struct Moveable Frame
 	
 	
-	template<typename V, typename S>
+	template<typename S>
 	class Link {
 	/*
 		A general link, including appropriate and convenient typedefs 
@@ -99,22 +99,14 @@ namespace ben {
 		getters and setters. 
 	*/
 	public:
-		typedef V value_type;
 		typedef S signal_type;
 	protected:
 		typedef Frame<signal_type, std::is_move_constructible<signal_type>::value
 					   && std::is_move_assignable<signal_type>::value, 
 					   std::is_pod<signal_type>::value> frame_type; 
 		
-		std::atomic<value_type> value;
-		
-		Link() : Link(value_type()) {} //needs value_type to be default-constructible
-		explicit Link(const value_type& v) : value(v) {} //needs value_type to be copy-constructible
 		virtual ~Link() = default;
-	
-	public:
-		value_type get_value() const { return value.load(std::memory_order_consume); }
-		void set_value(const value_type& v) { value.store(v, std::memory_order_release); }
+
 	}; //class Link
 	
 } //namespace ben

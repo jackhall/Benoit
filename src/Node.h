@@ -117,8 +117,8 @@ namespace ben {
 		input_iterator  find_input(const id_type address); //lacks a definition
 		output_iterator find_output(const id_type address); //lacks a definition
 		
-		bool add_input(const id_type address, const value_type& value = value_type()); //initializing with a temporary!
-		bool add_output(const id_type address, const value_type& value = value_type());
+		bool add_input(const id_type address); //initializing with a temporary!
+		bool add_output(const id_type address);
 		
 		void remove_input(const input_iterator iter);
 		void remove_input(const id_type address)
@@ -146,8 +146,8 @@ namespace ben {
 	}; //Node
 	
 	//typedef to hide default Port and Link choices
-	template<typename V, typename S>
-	using stdNode = Node< InPort< PullLink<V,S,2> >, OutPort< PullLink<V,S,2> > >;
+	template<typename S>
+	using stdNode = Node< InPort< PullLink<S,2> >, OutPort< PullLink<S,2> > >;
 	
 	//methods - constructors
 	template<typename I, typename O>
@@ -231,20 +231,20 @@ namespace ben {
 	}
 	
 	template<typename I, typename O>
-	bool Node<I,O>::add_input(const id_type address, const value_type& value) {
+	bool Node<I,O>::add_input(const id_type address) {
 		if( get_index().contains(address) ) {
 			if( contains_input(address) ) return false;
-			inputs.push_back( input_port_type(address, value) );
+			inputs.push_back( input_port_type(address) );
 			get_index().elem(address).outputs.push_back( output_port_type(inputs.back(), ID()) );
 			return true;
 		} else return false;
 	}
 	
 	template<typename I, typename O>
-	bool Node<I,O>::add_output(const id_type address, const value_type& value) {
+	bool Node<I,O>::add_output(const id_type address) {
 		if( get_index().contains(address) ) {
 			if( contains_output(address) ) return false;
-			outputs.push_back( output_port_type(address, value) );
+			outputs.push_back( output_port_type(address) );
 			get_index().elem(address).inputs.push_back( input_port_type(outputs.back(), ID()) );
 			return true;
 		} else return false;
