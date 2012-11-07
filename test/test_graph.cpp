@@ -114,8 +114,17 @@ namespace {
 
 	TEST_F(Links, All) {
 		using namespace ben;
-				
-		//these will actually be used
+
+		//these mostly just have to compile
+		typedef PullLink<std::vector<double>,1> vector_link_type;
+		EXPECT_EQ(SignalTrait::moveable, vector_link_type::signal_trait);
+		
+		typedef PullLink<double, 1> double_link_type;
+		EXPECT_EQ(SignalTrait::POD, double_link_type::signal_trait);
+		
+		//need a copyable but not moveable signal_type
+		
+		//these will actually be used	
 		PullLink<double, 1> link1;
 		PullLink<double, 2> link2;
 		PullLink<double, 4> link3;
@@ -129,7 +138,7 @@ namespace {
 		std::cout << "segfault soon1\n";
 		TestLink<2>(link2);
 		std::cout << "segfault soon1\n";
-		TestLink<4>(link3); 
+		TestLink<4>(link3); //segfaults
 		
 		//PushLink
 		std::cout << "segfault soon1\n";

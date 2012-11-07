@@ -65,19 +65,20 @@ namespace ben {
 		~PullLink() noexcept = default;
 		
 		void flush() { 
+			frame_type temp_frame = {false, signal_type()};
 			for(std::atomic<frame_type>& item : buffer)
-				item.store(frame_type{false, signal_type()}, std::memory_order_release);
+				item.store(temp_frame);
 			read_index = 0; write_index = 0;
 		}
-		bool is_ready() const { return buffer[read_index].load(std::memory_order_consume).ready; }
+		bool is_ready() const { return buffer[read_index].load().ready; }
 		bool push(const signal_type& signal) { 
 			//checks item at write_index
 			//if it hasn't been read, return false (buffer is full)
 			//if it has been read, overwrite it, increment write_index & return true
-			auto item_temp = buffer[write_index].load(std::memory_order_acquire);
+			auto item_temp = buffer[write_index].load();
 			if(item_temp.ready) return false; //reading has overtaken writing
 			else {
-				buffer[write_index].store(frame_type{true, signal}, std::memory_order_release);
+				buffer[write_index].store(frame_type{true, signal});
 				if(write_index >= (B-1)) write_index = 0;
 				else ++write_index;
 				return true;
@@ -89,11 +90,11 @@ namespace ben {
 			//	increment read_index & return its signal
 			//if it has been read, return a blank signal (buffer is empty)
 			signal_type result;
-			auto temp = buffer[read_index].load(std::memory_order_consume);
+			auto temp = buffer[read_index].load();
 			if(temp.ready) {
 				temp.ready = false;
 				result = temp.data;
-				buffer[read_index].store(std::move(temp), std::memory_order_release); 
+				buffer[read_index].store(std::move(temp)); 
 				if(read_index >= (B-1)) read_index = 0;
 				else ++read_index;
 			} 
@@ -128,20 +129,21 @@ namespace ben {
 		~PullLink() noexcept = default;
 		
 		void flush() { 
-			front.store({false, signal_type()}); //segfaults
+			frame_type temp_frame = {false, signal_type()};
+			front.store(temp_frame); //segfaults
 		} 
-		bool is_ready() const { return front.load(std::memory_order_consume).ready; }
+		bool is_ready() const { return front.load().ready; }
 		bool push(const signal_type& signal) { 
-			if(!front.load(std::memory_order_acquire).ready) {
-				front.store(frame_type{true, signal}, std::memory_order_release); 
+			if(!front.load().ready) {
+				front.store(frame_type{true, signal}); 
 				return true;
 			} else return false;
 		}
 		signal_type pull() { 
-			auto temp_item = front.load(std::memory_order_acquire);
+			auto temp_item = front.load();
 			if(temp_item.ready) {
 				temp_item.ready = false;
-				front.store(std::move(temp_item), std::memory_order_release);
+				front.store(std::move(temp_item));
 				return temp_item.data; 
 			} else return signal_type();
 		}
@@ -171,26 +173,26 @@ namespace ben {
 		
 		void flush() { 
 			frame_type temp_frame = {false, signal_type()};
-			zeroth.store(temp_frame, std::memory_order_release);
-			first.store(temp_frame, std::memory_order_release); 
+			zeroth.store(temp_frame);
+			first.store(temp_frame); 
 			read_index = write_index = false; 
 		}
 		bool is_ready() const { 
-			if(read_index) 	return first.load(std::memory_order_consume).ready; 
-			else 		return zeroth.load(std::memory_order_consume).ready;
+			if(read_index) 	return first.load().ready; 
+			else 		return zeroth.load().ready;
 		}
 		bool push(const signal_type& signal) { 
 			if(write_index) {
-				auto temp_item = first.load(std::memory_order_acquire);
+				auto temp_item = first.load();
 				if(!temp_item.ready) { 
-					first.store(frame_type{true, signal}, std::memory_order_release);
+					first.store(frame_type{true, signal});
 					write_index = false;
 					return true;
 				} else return false;
 			} else { 
-				auto temp_item = zeroth.load(std::memory_order_acquire);
+				auto temp_item = zeroth.load();
 				if(!temp_item.ready) { 
-					zeroth.store(frame_type{true, signal}, std::memory_order_release);
+					zeroth.store(frame_type{true, signal});
 					write_index = true;
 					return true;
 				} else return false;
@@ -199,18 +201,18 @@ namespace ben {
 		signal_type pull() { 
 			signal_type result;
 			if(read_index) {
-				auto temp_item = first.load(std::memory_order_acquire);
+				auto temp_item = first.load();
 				if(temp_item.ready) {
 					temp_item.ready = false;
-					first.store(std::move(temp_item), std::memory_order_release);
+					first.store(std::move(temp_item));
 					result = temp_item.data;
 					read_index = false;
 				}
 			} else {
-				auto temp_item = zeroth.load(std::memory_order_acquire);
+				auto temp_item = zeroth.load();
 				if(temp_item.ready) {
 					temp_item.ready = false;
-					zeroth.store(std::move(temp_item), std::memory_order_release);
+					zeroth.store(std::move(temp_item));
 					result = temp_item.data;
 					read_index = true;
 				}

@@ -118,7 +118,7 @@ namespace ben {
 		std::atomic<signal_type> front;
 		
 	public:
-		PushLink() noexcept : base_type(), ready(false), front() {} //needs value_type to be default-constructible
+		PushLink() noexcept : base_type(), ready(false), front() {} 
 		~PushLink() noexcept = default;
 		
 		void flush() { 

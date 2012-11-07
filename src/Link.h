@@ -42,44 +42,47 @@ namespace ben {
 			pull(), push() and is_ready() methods
 			default construction and construction from a value_type reference
 			
-	*/	
-	template<typename T, bool Moveable, bool POD>
+	*/
+	enum class SignalTrait {copyable, POD, moveable};
+	
+	
+	template<typename S, SignalTrait T> 
 	struct Frame {
 	/*
 		Generic Frame is for any signals that are not POD or moveable.
 	*/
 		bool ready;
-		T data;
-		
-		Frame() noexcept : ready(false), data() {} //needs signal_type to be default-constructible
-		Frame(bool bReady, const T& x) : ready(bReady), data(x) {}
+		S data;
+		 
+		Frame() noexcept : ready(false), data() {} 
+		Frame(bool bReady, const S& x) : ready(bReady), data(x) {}
 	}; //struct Generic Frame
 	
 	
-	template<typename T, bool Moveable>
-	struct Frame<T, Moveable, true> {
+	template<typename S> 
+	struct Frame<S, SignalTrait::POD> {
 	/*
 		POD Frame specializes frames to hopefully allow more compiler optimizations.
 		
 		This version of Frame is an aggregate, so the compiler will generate move and copy ctors!
 	*/
 		bool ready;
-		T data;
+		S data;
 	}; //struct POD Frame
 	
 	
-	template<typename T>
-	struct Frame<T, true, false> {
+	template<typename S> 
+	struct Frame<S, SignalTrait::moveable> {
 	/*
 		Moveable Frame is a moveable helper struct for use with Link types. It combines
 		a signal and a boolean denoting whether the signal has been read. It 
 		is meant to be treated as an atomic. 
 	*/
 		bool ready; 
-		T data;
+		S data;
 
-		Frame() noexcept : ready(false), data() {} //needs signal_type to be default-constructible
-		Frame(bool bReady, const T& x) : ready(bReady), data(x) {}
+		Frame() noexcept : ready(false), data() {} 
+		Frame(bool bReady, const S& x) : ready(bReady), data(x) {}
 		Frame(const Frame&& rhs) noexcept : ready(rhs.ready), data( std::move(rhs.data) ) {}
 		Frame& operator=(Frame&& rhs) {
 			if(this != &rhs) {
@@ -94,20 +97,42 @@ namespace ben {
 	template<typename S>
 	class Link {
 	/*
-		A general link, including appropriate and convenient typedefs 
-		and a value field. The value field is accessed atomically by
-		getters and setters. 
+		A general link, including appropriate and convenient typedefs.
 	*/
 	public:
 		typedef S signal_type;
-	protected:
-		typedef Frame<signal_type, std::is_move_constructible<signal_type>::value
-					   && std::is_move_assignable<signal_type>::value, 
-					   std::is_pod<signal_type>::value> frame_type; 
+	
+	private:
+		static_assert(std::is_default_constructible<signal_type>::value, 
+			      "signals should be default-constructible"); 
+	
+		template<bool can_copy, bool is_pod, bool can_move>
+		struct Trait_Helper { static constexpr SignalTrait value = SignalTrait::copyable; };
 		
+		template<bool can_move>
+		struct Trait_Helper<true, true, can_move> { static constexpr SignalTrait value = SignalTrait::POD; };
+		
+		template<bool can_copy>
+		struct Trait_Helper<can_copy, false, true> { static constexpr SignalTrait value = SignalTrait::moveable; };
+		
+		template<bool is_pod>
+		struct Trait_Helper<false, is_pod, false> {}; //need some way to pass signals around
+	
+	public:
+		static constexpr SignalTrait signal_trait 
+			= Trait_Helper<std::is_copy_constructible<signal_type>::value
+					&& std::is_copy_assignable<signal_type>::value,
+					std::is_pod<signal_type>::value,
+					std::is_move_constructible<signal_type>::value
+					&& std::is_move_assignable<signal_type>::value>::value;
+	
+	protected:
+		typedef Frame<S, signal_trait> frame_type;
 		virtual ~Link() = default;
-
 	}; //class Link
+	
+	template<typename S>
+	constexpr SignalTrait Link<S>::signal_trait;
 	
 } //namespace ben
 
