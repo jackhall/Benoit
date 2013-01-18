@@ -42,97 +42,121 @@ namespace ben {
 			pull(), push() and is_ready() methods
 			default construction and construction from a value_type reference
 			
-	*/
-	enum class SignalTrait {copyable, POD, moveable};
-	
-	
-	template<typename S, SignalTrait T> 
-	struct Frame {
-	/*
-		Generic Frame is for any signals that are not POD or moveable.
-	*/
-		bool ready;
-		S data;
-		 
-		Frame() noexcept : ready(false), data() {} 
-		Frame(bool bReady, const S& x) : ready(bReady), data(x) {}
-	}; //struct Generic Frame
-	
+	*/		
 	
 	template<typename S> 
-	struct Frame<S, SignalTrait::POD> {
+	struct Frame<S> {
 	/*
-		POD Frame specializes frames to hopefully allow more compiler optimizations.
+		POD Frame hopefully allows more compiler optimizations.
 		
 		This version of Frame is an aggregate, so the compiler will generate move and copy ctors!
 	*/
 		bool ready;
 		S data;
-	}; //struct POD Frame
-	
-	
-	template<typename S> 
-	struct Frame<S, SignalTrait::moveable> {
-	/*
-		Moveable Frame is a moveable helper struct for use with Link types. It combines
-		a signal and a boolean denoting whether the signal has been read. It 
-		is meant to be treated as an atomic. 
-	*/
-		bool ready; 
-		S data;
-
-		Frame() noexcept : ready(false), data() {} 
-		Frame(bool bReady, const S& x) : ready(bReady), data(x) {}
-		Frame(const Frame&& rhs) noexcept : ready(rhs.ready), data( std::move(rhs.data) ) {}
-		Frame& operator=(Frame&& rhs) {
-			if(this != &rhs) {
-				ready = rhs.ready;
-				data = std::move( rhs.data );
-			}
-		}
-		~Frame() noexcept = default;
-	}; //struct Moveable Frame
+	}; //struct Frame
 	
 	
 	template<typename S>
-	class Link {
+	class LinkBase {
 	/*
-		A general link, including appropriate and convenient typedefs.
+		A general link base class, including appropriate and convenient typedefs.
 	*/
 	public:
 		typedef S signal_type;
-	
 	private:
 		static_assert(std::is_default_constructible<signal_type>::value, 
 			      "signals should be default-constructible"); 
-	
-		template<bool can_copy, bool is_pod, bool can_move>
-		struct Trait_Helper { static constexpr SignalTrait value = SignalTrait::copyable; };
-		
-		template<bool can_move>
-		struct Trait_Helper<true, true, can_move> { static constexpr SignalTrait value = SignalTrait::POD; };
-		
-		template<bool can_copy>
-		struct Trait_Helper<can_copy, false, true> { static constexpr SignalTrait value = SignalTrait::moveable; };
-		
-		template<bool is_pod>
-		struct Trait_Helper<false, is_pod, false> {}; //need some way to pass signals around
-	
-	public:
-		static constexpr SignalTrait signal_trait 
-			= Trait_Helper<std::is_copy_constructible<signal_type>::value
-					&& std::is_copy_assignable<signal_type>::value,
-					std::is_pod<signal_type>::value,
-					std::is_move_constructible<signal_type>::value
-					&& std::is_move_assignable<signal_type>::value>::value;
-	
 	protected:
-		typedef Frame<S, signal_trait> frame_type;
-		virtual ~Link() = default;
-	}; //class Link
+		typedef Frame<S> frame_type;
+	};
+	
+	
+	template<typename S, unsigned short B> class Link;
 	
 	template<typename S>
-	constexpr SignalTrait Link<S>::signal_trait;
+	class Link<S,1> : public LinkBase<S> {
+	/*
+		A link with a one-element buffer.
+	*/	
+	private:
+
+		std::atomic<frame_type> data;
+	
+	public:
+		Link() noexcept : data{false, signal_type()} {} 
+		~Link() noexcept = default;
+		
+		void flush() { data.store(frame_type{false, signal_type()}); }
+		bool is_ready() const { return data.load().ready; }
+		bool push(const signal_type& signal) { //returns true if an unread signal is overwritten
+			auto temp = data.exchange(frame_type{true, signal});
+			return temp.ready;
+		}
+		
+		signal_type pull() { 
+			auto temp = data.exchange(frame_type{false, signal_type()});
+			return temp.data; 
+		}
+	}; //class Link (length 1 specialization)
+	
+	
+	template<typename S, unsigned short B>
+	class Link : public LinkBase<S> {
+	private:
+		Link<S,1> next;
+		std::array<frame_type, B-1> buffer;
+		unsigned short index;
+		
+	public:
+		Link() noexcept : next(), buffer{false, signal_type()}, index(0) {} 
+		~Link() noexcept = default;
+		
+		void flush() { 
+			next.flush();
+			for(frame_type& x : buffer) { x.store(frame_type{false, signal_type};); }
+		} 
+		
+		bool is_ready() const { return next.is_ready(); }
+		
+		bool push(const signal_type& signal) {
+			auto temp = buffer[index].data;
+			buffer[index++] = frame_type{true, signal};
+			if(index == B-1) index = 0;
+			if(temp.ready) return next.push(temp.data);
+			else return false;
+		}
+		
+		signal_type pull() { return next.pull(); }
+	}; //class Link (length n specialization)
+	
+	
+	template<typename S>
+	class Link<S,2> : public LinkBase<S> {
+	/*
+		A link with a two-element buffer.
+	*/	
+	private:
+		Link<S,1> next;
+		frame_type buffer;
+	
+	public:
+		Link() noexcept : next(), buffer{false, signal_type()} {} 
+		~Link() noexcept = default;
+		
+		void flush() { 
+			next.flush();
+			buffer = frame_type{false, signal_type()}; 
+		}
+		bool is_ready() const { return next.is_ready(); }
+		bool push(const signal_type& signal) { //returns true if an unread signal is overwritten
+			auto temp = buffer.data;
+			buffer = frame_type{true, signal};
+			if(temp.ready) return next.push(buffer.data);
+			else return false;
+		}
+		
+		signal_type pull() { return next.pull(); }
+	}; //class Link (length 2 specialization)
 	
 } //namespace ben
 
