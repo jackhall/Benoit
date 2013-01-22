@@ -22,6 +22,7 @@
 */
 
 #include <atomic>
+#include <array>
 #include <type_traits>
 #include <initializer_list>
 
@@ -45,7 +46,7 @@ namespace ben {
 	*/		
 	
 	template<typename S> 
-	struct Frame<S> {
+	struct Frame {
 	/*
 		POD Frame hopefully allows more compiler optimizations.
 		
@@ -79,10 +80,13 @@ namespace ben {
 		A link with a one-element buffer.
 	*/	
 	private:
-
+		typedef LinkBase<S> base_type;
+		typedef typename base_type::frame_type frame_type;
+		
 		std::atomic<frame_type> data;
 	
 	public:
+		typedef typename base_type::signal_type signal_type;
 		Link() noexcept : data{false, signal_type()} {} 
 		~Link() noexcept = default;
 		
@@ -103,17 +107,22 @@ namespace ben {
 	template<typename S, unsigned short B>
 	class Link : public LinkBase<S> {
 	private:
+		typedef LinkBase<S> base_type;
+		typedef typename base_type::frame_type frame_type;
+		
 		Link<S,1> next;
 		std::array<frame_type, B-1> buffer;
 		unsigned short index;
 		
 	public:
+		typedef typename base_type::signal_type signal_type;
+
 		Link() noexcept : next(), buffer{false, signal_type()}, index(0) {} 
 		~Link() noexcept = default;
 		
 		void flush() { 
 			next.flush();
-			for(frame_type& x : buffer) { x.store(frame_type{false, signal_type};); }
+			for(frame_type& x : buffer) { x = frame_type{false, signal_type()}; }
 		} 
 		
 		bool is_ready() const { return next.is_ready(); }
@@ -136,10 +145,14 @@ namespace ben {
 		A link with a two-element buffer.
 	*/	
 	private:
+		typedef LinkBase<S> base_type;
+		typedef typename base_type::frame_type frame_type;
+	
 		Link<S,1> next;
 		frame_type buffer;
 	
 	public:
+		typedef typename base_type::signal_type signal_type;
 		Link() noexcept : next(), buffer{false, signal_type()} {} 
 		~Link() noexcept = default;
 		
@@ -151,7 +164,7 @@ namespace ben {
 		bool push(const signal_type& signal) { //returns true if an unread signal is overwritten
 			auto temp = buffer.data;
 			buffer = frame_type{true, signal};
-			if(temp.ready) return next.push(buffer.data);
+			if(temp.ready) return next.push(signal);
 			else return false;
 		}
 		

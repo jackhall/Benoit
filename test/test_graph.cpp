@@ -26,8 +26,7 @@
 #include <vector>
 #include <random>
 #include "gtest/gtest.h"
-#include "PullLink.h"
-#include "PushLink.h"
+#include "Link.h"
 #include "Port.h"
 #include "Graph.h"
 #include "Node.h"
@@ -48,7 +47,7 @@ namespace {
 		}
 		
 		template<unsigned int N>
-		void TestLink(ben::PullLink<double, N>& link) {
+		void TestLink(ben::Link<double, N>& link) {
 			link.flush(); //segfaults
 			EXPECT_FALSE(link.is_ready());
 			PrepareSignals(N);
@@ -83,73 +82,32 @@ namespace {
 				EXPECT_EQ(second_signal, link.pull());
 			}
 		}
-		
-		template<unsigned int M>
-		void TestLink(ben::PushLink<double, M>& link) {
-			link.flush();
-			PrepareSignals(M+1);
-			EXPECT_FALSE(link.is_ready());
-			EXPECT_TRUE(link.push(1.23));
-			EXPECT_TRUE(link.is_ready());
-			EXPECT_EQ(1.23, link.pull()); 
-			EXPECT_FALSE(link.is_ready());
-			//EXPECT_EQ(1.23, link.pull()); //fails with move semantics (no copy left behind)
-			
-			for(auto x : signals) {
-				EXPECT_TRUE(link.push(x));
-				EXPECT_TRUE(link.is_ready());
-			}
-			EXPECT_TRUE(link.is_ready());
-			EXPECT_EQ(signals[1], link.pull());
-			EXPECT_FALSE(link.is_ready()); 
-			
-			if(M>1) {
-				EXPECT_EQ(signals[2], link.pull());
-				EXPECT_TRUE(link.push(1.23));
-				EXPECT_TRUE(link.is_ready());
-				EXPECT_EQ(signals[2], link.pull());
-			}
-		}
 	};
 
 	TEST_F(Links, All) {
 		using namespace ben;
 
-		//these mostly just have to compile
-		typedef PullLink<std::vector<double>,1> vector_link_type;
-		EXPECT_EQ(SignalTrait::moveable, vector_link_type::signal_trait);
-		
-		typedef PullLink<double, 1> double_link_type;
-		EXPECT_EQ(SignalTrait::POD, double_link_type::signal_trait);
-		
-		//need a copyable but not moveable signal_type
+		//this mostly just has to compile
+		//Link<std::vector<double>,3> vector_link;
 		
 		//these will actually be used	
-		PullLink<double, 1> link1;
-		PullLink<double, 2> link2;
-		PullLink<double, 4> link3;
+		Link<double, 1> link1;
+		Link<double, 2> link2;
+		Link<double, 4> link4;
 		
-		PushLink<double, 1> link4;
-		PushLink<double, 2> link5;
-		
-		//PullLink
+		//Link
 		std::cout << "segfault soon1\n";
 		TestLink<1>(link1); //segfaults
 		std::cout << "segfault soon1\n";
 		TestLink<2>(link2);
 		std::cout << "segfault soon1\n";
-		TestLink<4>(link3); //segfaults
-		
-		//PushLink
-		std::cout << "segfault soon1\n";
-		TestLink<1>(link4);
-		TestLink<2>(link5); 	
+		TestLink<4>(link4); //segfaults
 	}
 
 	TEST(Ports, Construction) {
 		using namespace ben;
-		typedef InPort<PullLink<double, 2>>  input_port_type;
-		typedef OutPort<PullLink<double, 2>> output_port_type;
+		typedef InPort<Link<double, 2>>  input_port_type;
+		typedef OutPort<Link<double, 2>> output_port_type;
 		
 		//normal construction
 		input_port_type input_port1(5);

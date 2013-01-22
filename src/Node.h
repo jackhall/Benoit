@@ -27,8 +27,7 @@
 #include <atomic>
 #include <mutex>
 #include "Singleton.h"
-#include "PullLink.h"
-#include "PushLink.h"
+#include "Link.h"
 #include "Port.h"
 
 namespace ben {	
@@ -147,7 +146,7 @@ namespace ben {
 	
 	//typedef to hide default Port and Link choices
 	template<typename S>
-	using stdNode = Node< InPort< PullLink<S,2> >, OutPort< PullLink<S,2> > >;
+	using stdNode = Node< InPort< Link<S,1> >, OutPort< Link<S,1> > >;
 	
 	//methods - constructors
 	template<typename I, typename O>
