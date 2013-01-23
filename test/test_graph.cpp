@@ -49,7 +49,7 @@ namespace {
 		template<unsigned int N>
 		void TestLink(ben::Link<double, N>& link) {
 			std::cout << "n = " << N << std::endl; 
-			link.flush(); //segfaults on n=2
+			link.flush(); //segfaults on n=2, segfault on n=1 apparently optimized away
 			EXPECT_FALSE(link.is_ready());
 			PrepareSignals(N);
 			for(auto x : signals) {
@@ -57,7 +57,7 @@ namespace {
 				EXPECT_TRUE(link.is_ready()); 
 			}
 			EXPECT_TRUE(link.is_ready());
-			EXPECT_EQ(x, link.pull());
+			EXPECT_EQ(signals.front(), link.pull());
 			EXPECT_FALSE(link.is_ready());
 			
 			if(N>1) {

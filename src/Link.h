@@ -49,7 +49,6 @@ namespace ben {
 	struct Frame {
 	/*
 		POD Frame hopefully allows more compiler optimizations.
-		
 		This version of Frame is an aggregate, so the compiler will generate move and copy ctors!
 	*/
 		bool ready;
@@ -87,7 +86,7 @@ namespace ben {
 	
 	public:
 		typedef typename base_type::signal_type signal_type;
-		Link() noexcept : data{false, signal_type()} {} 
+		Link() noexcept : data({false, signal_type()}), base_type() {} 
 		~Link() noexcept = default;
 		
 		void flush() { data.store(frame_type{false, signal_type()}); }
@@ -114,21 +113,26 @@ namespace ben {
 		std::array<frame_type, B-1> buffer;
 		unsigned short index;
 		
+		void reset_buffer() { 
+			for(frame_type& x : buffer)
+		       		{ x = frame_type{false, signal_type()}; }
+		}
+		
 	public:
 		typedef typename base_type::signal_type signal_type;
 
-		Link() noexcept : next(), buffer{false, signal_type()}, index(0) {} 
+		Link() noexcept : next(), buffer(), index(0), base_type() { reset_buffer(); } 
 		~Link() noexcept = default;
 		
 		void flush() { 
 			next.flush();
-			for(frame_type& x : buffer) { x = frame_type{false, signal_type()}; }
+			reset_buffer();
 		} 
 		
 		bool is_ready() const { return next.is_ready(); }
 		
 		bool push(const signal_type& signal) {
-			auto temp = buffer[index].data;
+			auto temp = buffer[index];
 			buffer[index++] = frame_type{true, signal};
 			if(index == B-1) index = 0;
 			if(temp.ready) return next.push(temp.data);
@@ -153,7 +157,7 @@ namespace ben {
 	
 	public:
 		typedef typename base_type::signal_type signal_type;
-		Link() noexcept : next(), buffer{false, signal_type()} {} 
+		Link() noexcept : next(), buffer{false, signal_type()}, base_type() {} 
 		~Link() noexcept = default;
 		
 		void flush() { 
@@ -162,9 +166,9 @@ namespace ben {
 		}
 		bool is_ready() const { return next.is_ready(); }
 		bool push(const signal_type& signal) { //returns true if an unread signal is overwritten
-			auto temp = buffer.data;
+			auto temp = buffer;
 			buffer = frame_type{true, signal};
-			if(temp.ready) return next.push(signal);
+			if(temp.ready) return next.push(temp.data);
 			else return false;
 		}
 		
