@@ -49,7 +49,7 @@ namespace {
 		template<unsigned int N>
 		void TestLink(ben::Link<double, N>& link) {
 			std::cout << "n = " << N << std::endl; 
-			link.flush(); //segfaults on n=2, segfault on n=1 apparently optimized away
+			link.flush(); //the next access to link::next::atomic will segfault
 			EXPECT_FALSE(link.is_ready());
 			PrepareSignals(N);
 			for(auto x : signals) {

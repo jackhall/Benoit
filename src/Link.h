@@ -74,19 +74,19 @@ namespace ben {
 	template<typename S, unsigned short B> class Link;
 	
 	template<typename S>
-	class Link<S,1> : public LinkBase<S> {
+	class Link<S,1> {
 	/*
 		A link with a one-element buffer.
 	*/	
 	private:
-		typedef LinkBase<S> base_type;
-		typedef typename base_type::frame_type frame_type;
+		typedef Frame<S> frame_type;
 		
 		std::atomic<frame_type> data;
+		//std::atomic<int> test_atomic;
 	
 	public:
-		typedef typename base_type::signal_type signal_type;
-		Link() noexcept : data({false, signal_type()}), base_type() {} 
+		typedef S signal_type;
+		Link() noexcept : data({false, signal_type()}) {} 
 		~Link() noexcept = default;
 		
 		void flush() { data.store(frame_type{false, signal_type()}); }
@@ -104,10 +104,11 @@ namespace ben {
 	
 	
 	template<typename S, unsigned short B>
-	class Link : public LinkBase<S> {
+	class Link {
+	public:
+		typedef S signal_type;
 	private:
-		typedef LinkBase<S> base_type;
-		typedef typename base_type::frame_type frame_type;
+		typedef Frame<S> frame_type;
 		
 		Link<S,1> next;
 		std::array<frame_type, B-1> buffer;
@@ -119,9 +120,7 @@ namespace ben {
 		}
 		
 	public:
-		typedef typename base_type::signal_type signal_type;
-
-		Link() noexcept : next(), buffer(), index(0), base_type() { reset_buffer(); } 
+		Link() noexcept : next(), buffer(), index(0) { reset_buffer(); } 
 		~Link() noexcept = default;
 		
 		void flush() { 
@@ -148,16 +147,16 @@ namespace ben {
 	/*
 		A link with a two-element buffer.
 	*/	
+	public:
+		typedef S signal_type;
 	private:
-		typedef LinkBase<S> base_type;
-		typedef typename base_type::frame_type frame_type;
+		typedef Frame<S> frame_type;
 	
 		Link<S,1> next;
 		frame_type buffer;
 	
 	public:
-		typedef typename base_type::signal_type signal_type;
-		Link() noexcept : next(), buffer{false, signal_type()}, base_type() {} 
+		Link() noexcept : next(), buffer{false, signal_type()} {} 
 		~Link() noexcept = default;
 		
 		void flush() { 
