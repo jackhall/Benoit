@@ -73,7 +73,7 @@ namespace ben {
 	
 	public:
 		inline bool is_ready() const { return link_ptr->is_ready(); }
-		inline bool is_ghost() const { return link_ptr.unique(); }
+		inline bool is_ghost() const { return link_ptr.use_count() < 2; }
 	}; //class Port
 	
 
@@ -96,7 +96,7 @@ namespace ben {
 	
 		InPort(id_type nSource) : base_type(new link_type()), sourceID(nSource) {}
 		InPort(const complement_type& other, id_type nSource) : base_type(other), sourceID(nSource) {}
-		InPort(const self_type& rhs) : base_type(rhs), sourceID(rhs.sourceID) {} //does Node need this?
+		InPort(const self_type& rhs) : base_type(rhs), sourceID(rhs.sourceID) {} //necessary for stl internals
 		InPort(self_type&& rhs) : base_type( std::move(rhs) ), sourceID(rhs.sourceID) {}
 		InPort& operator=(const self_type& rhs) {
 			if(this != &rhs) {

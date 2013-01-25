@@ -48,36 +48,36 @@ namespace {
 		
 		template<unsigned int N>
 		void TestLink(ben::Link<double, N>& link) {
-			std::cout << "n = " << N << std::endl; 
-			link.flush(); //the next access to link::next::atomic will segfault
+			link.flush(); 
 			EXPECT_FALSE(link.is_ready());
 			PrepareSignals(N);
-			for(auto x : signals) {
+			for(auto x : signals) 
 				EXPECT_FALSE(link.push(x)); 
-				EXPECT_TRUE(link.is_ready()); 
-			}
 			EXPECT_TRUE(link.is_ready());
 			EXPECT_EQ(signals.front(), link.pull());
 			EXPECT_FALSE(link.is_ready());
 			
-			if(N>1) {
-				PrepareSignals(N/2);
-				for(auto x : signals) {
-					EXPECT_TRUE(link.push(x));
-					EXPECT_TRUE(link.is_ready());
-				}
-				EXPECT_EQ(signals[0], link.pull());
-				double second_signal;
-				if(N/2 > 1) second_signal = signals[1];
-				
-				PrepareSignals(N/2);
-				for(auto x : signals) {
-					EXPECT_TRUE(link.push(x));
-					EXPECT_TRUE(link.is_ready());
-				}
-				if(N/2 <= 1) second_signal = signals[0];
-				EXPECT_EQ(second_signal, link.pull());
+			if(N>1) { 
+				std::vector<double> old_signals(std::move(signals));
+				PrepareSignals(3);
+				EXPECT_FALSE(link.push(signals[0]));
+				EXPECT_TRUE(link.is_ready());
+				EXPECT_TRUE(link.push(signals[1]));
+				EXPECT_TRUE(link.is_ready());
+				if(N < 4)
+					EXPECT_EQ(signals[0], link.pull());
+				else 
+					EXPECT_EQ(old_signals[2], link.pull());
+				EXPECT_FALSE(link.is_ready());
+				EXPECT_FALSE(link.push(signals[2]));
+				EXPECT_TRUE(link.is_ready());
+				if(N < 4)
+					EXPECT_EQ(signals[1], link.pull());
+				else
+					EXPECT_EQ(old_signals[3], link.pull());
 			}
+			link.flush();
+			EXPECT_FALSE(link.is_ready());
 		}
 	};
 
@@ -94,10 +94,8 @@ namespace {
 		
 		//Link
 		TestLink<1>(link1); 
-		std::cout << "segfault soon1\n";
-		TestLink<2>(link2); //segfaults
-		std::cout << "segfault soon1\n";
-		TestLink<4>(link4); //segfaults
+		TestLink<2>(link2);
+		TestLink<4>(link4);
 	}
 
 	TEST(Ports, Construction) {
@@ -106,39 +104,81 @@ namespace {
 		typedef OutPort<Link<double, 2>> output_port_type;
 		
 		//normal construction
-		input_port_type input_port1(5);
-		EXPECT_EQ(5, input_port1.source());
-		EXPECT_FALSE(input_port1.is_ready());
-		EXPECT_TRUE(input_port1.is_ghost());
+		auto input_port_ptr = new input_port_type(5);
+		EXPECT_EQ(5, input_port_ptr->source());
+		EXPECT_FALSE(input_port_ptr->is_ready());
+		EXPECT_TRUE(input_port_ptr->is_ghost());
 		
-		output_port_type output_port1(11);
-		EXPECT_EQ(11, output_port1.target());
-		EXPECT_FALSE(output_port1.is_ready());
-		EXPECT_TRUE(output_port1.is_ghost());
+		auto output_port_ptr = new output_port_type(11);
+		EXPECT_EQ(11, output_port_ptr->target());
+		EXPECT_FALSE(output_port_ptr->is_ready());
+		EXPECT_TRUE(output_port_ptr->is_ghost());
 		
 		//complement constructors
-		input_port_type input_port2(output_port1, 17);
+		input_port_type input_port2(*output_port_ptr, 17);
 		EXPECT_EQ(17, input_port2.source());
 		EXPECT_FALSE(input_port2.is_ready());
-		EXPECT_FALSE(output_port1.is_ghost());
+		EXPECT_FALSE(output_port_ptr->is_ghost());
 		EXPECT_FALSE(input_port2.is_ghost());
 		
-		output_port_type output_port2(input_port1, 19);
+		output_port_type output_port2(*input_port_ptr, 19);
 		EXPECT_EQ(19, output_port2.target());
 		EXPECT_FALSE(output_port2.is_ready());
-		EXPECT_FALSE(input_port1.is_ghost());
+		EXPECT_FALSE(input_port_ptr->is_ghost());
 		EXPECT_FALSE(output_port2.is_ghost());
 		
 		//copy constructor
-		
-		
-		//move constructor
-		
-		//assignment
-		
-		//move assignment
-		
+		input_port_type input_port3(*input_port_ptr);
+		EXPECT_EQ(5, input_port3.source());
+		EXPECT_FALSE(input_port3.is_ready());
+		EXPECT_FALSE(input_port3.is_ghost());
+		EXPECT_FALSE(input_port_ptr->is_ghost());
+
+		output_port_type output_port3(*output_port_ptr);
+		EXPECT_EQ(11, output_port3.target());
+		EXPECT_FALSE(output_port3.is_ready());
+		EXPECT_FALSE(output_port3.is_ghost());
+		EXPECT_FALSE(output_port_ptr->is_ghost());
+
 		//destruction
+		delete input_port_ptr, output_port_ptr;
+		EXPECT_FALSE(output_port2.is_ghost());
+		EXPECT_FALSE(input_port2.is_ghost());
+		EXPECT_FALSE(output_port3.is_ghost());
+		EXPECT_FALSE(input_port3.is_ghost());
+
+		//move constructor
+		input_port_type input_port4(std::move(input_port2));
+		EXPECT_EQ(17, input_port4.source());
+		EXPECT_FALSE(input_port4.is_ghost());
+		EXPECT_TRUE(input_port2.is_ghost());
+
+		output_port_type output_port4(std::move(output_port2));
+		EXPECT_EQ(19, output_port4.target());
+		EXPECT_FALSE(output_port4.is_ghost());
+		EXPECT_TRUE(output_port2.is_ghost());
+
+		//move assignment
+		input_port2 = std::move(input_port4);
+		EXPECT_EQ(17, input_port2.source());
+		EXPECT_FALSE(input_port2.is_ghost());
+		EXPECT_TRUE(input_port4.is_ghost());
+
+		output_port2 = std::move(output_port4);
+		EXPECT_EQ(19, output_port2.target());
+		EXPECT_FALSE(output_port2.is_ghost());
+		EXPECT_TRUE(output_port4.is_ghost());
+
+		//assignment
+		input_port4 = input_port2;
+		EXPECT_EQ(17, input_port4.source());
+		EXPECT_FALSE(input_port2.is_ghost());
+		EXPECT_FALSE(input_port4.is_ghost());
+
+		output_port4 = output_port2;
+		EXPECT_EQ(19, output_port4.target());
+		EXPECT_FALSE(output_port3.is_ghost());
+		EXPECT_FALSE(output_port_ptr->is_ghost());
 	}
 	
 	TEST(Ports, Methods) {
