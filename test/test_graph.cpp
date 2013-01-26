@@ -181,10 +181,46 @@ namespace {
 		EXPECT_FALSE(output_port_ptr->is_ghost());
 	}
 	
-	TEST(Ports, Methods) {
-		//get_value
-		//set_value
+	TEST(Ports, Data) {
 		//sending and receiving data
+		using namespace ben;
+		InPort<Link<double,2>> input_port(3);
+		OutPort<Link<double,2>> output_port(input_port, 5);
+		
+		double signal1(1.23), signal2(4.56), signal3(7.89);
+
+		EXPECT_FALSE(input_port.is_ready());
+		EXPECT_FALSE(output_port.push(signal1));
+		EXPECT_FALSE(input_port.is_ready());
+		EXPECT_FALSE(output_port.push(signal2));
+		EXPECT_TRUE(input_port.is_ready());
+		EXPECT_TRUE(output_port.push(signal3));
+		EXPECT_TRUE(input_port.is_ready());
+		EXPECT_EQ(signal2, input_port.pull());
+		EXPECT_EQ(0, input_port.pull());
+	}
+
+	TEST(Nodes, Construction) {
+		using namespace ben;
+		typedef Link<double,1> link_type;
+		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		Graph<node_type> graph1, graph2;
+		auto node1_ptr = new node_type(graph1);
+		auto node2_ptr = new node_type(graph1, 3);
+		auto node5_ptr = new node_type();
+		auto node6_ptr = new node_type(7);
+
+		//copy construction
+		auto node3_ptr = new node_type(*node1_ptr);
+		auto node4_ptr = new node_type(*node2_ptr, 5);
+		
+		//move construction
+
+		//move assignment
+
+		//assignment
+
+		//destruction
 	}
 	
 } //anonymous namespace 
