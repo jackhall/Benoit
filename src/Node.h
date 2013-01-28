@@ -106,6 +106,7 @@ namespace ben {
 		//bool try_lock() { return node_mutex.try_lock(); }
 		//void unlock() { node_mutex.unlock(); }
 		
+		using base_type::ID;
 		const index_type& get_index() const 
 			{ return static_cast<const index_type&>(base_type::get_index()); }
 		

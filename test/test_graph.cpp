@@ -208,31 +208,63 @@ namespace {
 		EXPECT_EQ(0, input_port.pull());
 	}
 
-	TEST(Nodes, Construction) {
+	TEST(Graphs, All) {
 		using namespace ben;
 		typedef Link<double,1> link_type;
 		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
 		Graph<node_type> graph1, graph2;
+		
+		//basic construction
 		auto node1_ptr = new node_type(graph1);
+		EXPECT_EQ(0, node1_ptr->size_inputs());
+		EXPECT_EQ(0, node1_ptr->size_outputs());
+		EXPECT_TRUE(graph1.check(node1_ptr->ID(), node1_ptr));
+
 		auto node2_ptr = new node_type(graph1, 3);
-		auto node5_ptr = new node_type();
-		auto node6_ptr = new node_type(7);
+		EXPECT_TRUE(graph1.check(3, node2_ptr));
+
+		auto node3_ptr = new node_type();
+		EXPECT_EQ(nullptr, &node3_ptr->get_index());
+		auto node4_ptr = new node_type(7);
+		EXPECT_EQ(nullptr, &node4_ptr->get_index());
+
+		//graph::add
+		EXPECT_FALSE(graph1.check(node3_ptr->ID(), node3_ptr));
+		EXPECT_TRUE(graph1.add(*node3_ptr));
+		EXPECT_TRUE(graph1.check(node3_ptr->ID(), node3_ptr));
+		EXPECT_TRUE(graph1.add(*node4_ptr));
+
+		//graph::empty, graph_size
+		EXPECT_TRUE(graph2.empty());
+		EXPECT_FALSE(graph1.empty());
+		EXPECT_EQ(4, graph1.size());
+
+		//graph iteration
+		for(node_type& x : graph1) {
+			EXPECT_TRUE(graph1.check(x.ID(), &x));
+		}
+		
+		//graph::contains
+		EXPECT_TRUE(graph1.contains(7));
+		EXPECT_
+		EXPECT_EQ(graph2.end(), graph2.find(3));
 		
 		//clone_links method
 		//move construction
 		//move assignment
 		//destruction
+		//node::find
+		//node::remove
+		//node::clear
+		//node::contains
+		//node iteration (begin/end)
+		//graph::find (const and nonconst)
+		//graph::remove
+		//graph::clear
+		//graph::merge_into
+		//graph iteration 
 	}
 
-	TEST(Nodes, Methods) {
-		//find
-		//add
-		//remove
-		//clear
-		//size
-		//contains
-		//iteration (begin/end)
-	}
 } //anonymous namespace 
 
 int main(int argc, char **argv) {
