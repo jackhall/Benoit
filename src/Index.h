@@ -86,11 +86,14 @@ namespace ben {
 	}; //class Index
 	
 	
+	template<typename U> std::ostream& operator<<(std::ostream& out, const typename Index<U>::const_iterator& iter);
+	
 	template<typename S>
 	class Index<S>::const_iterator : public std::iterator<std::forward_iterator_tag, singleton_type> {
 	protected:
 		typename map_type::iterator current;
 		friend class Index;
+		friend std::ostream& operator<< <S>(std::ostream& out, const const_iterator& iter);
 		const_iterator(const typename map_type::iterator iter)
 			: current(iter) {}
 		const_iterator(const typename map_type::const_iterator iter)
@@ -155,7 +158,12 @@ namespace ben {
 		//	return temp;
 		//}
 	}; //class iterator
-	
+
+	template<typename U>
+	std::ostream& operator<<(std::ostream& out, const typename Index<U>::const_iterator& iter) {
+		out << iter.current;
+		return out;
+	}	
 } //namespace ben
 
 #endif

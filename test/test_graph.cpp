@@ -228,16 +228,37 @@ namespace {
 		auto node4_ptr = new node_type(7);
 		EXPECT_EQ(nullptr, &node4_ptr->get_index());
 
-		//graph::add
+		//graph::add, graph::empty, graph::size
 		EXPECT_FALSE(graph1.check(node3_ptr->ID(), node3_ptr));
 		EXPECT_TRUE(graph1.add(*node3_ptr));
 		EXPECT_TRUE(graph1.check(node3_ptr->ID(), node3_ptr));
 		EXPECT_TRUE(graph1.add(*node4_ptr));
-
-		//graph::empty, graph_size
 		EXPECT_TRUE(graph2.empty());
+		EXPECT_TRUE(graph2.add(*node2_ptr));
+
+		EXPECT_FALSE(graph2.empty());
+		EXPECT_EQ(1, graph2.size());
 		EXPECT_FALSE(graph1.empty());
+		EXPECT_EQ(3, graph1.size());
+
+		//graph::remove
+		EXPECT_TRUE(graph2.remove(3));
+		EXPECT_FALSE(graph1.remove(3));
+		EXPECT_TRUE(graph2.empty());
+		EXPECT_TRUE(graph2.add(*node2_ptr));
+		
+		//graph::merge_into
+		EXPECT_TRUE(graph2.merge_into(graph1));
 		EXPECT_EQ(4, graph1.size());
+		EXPECT_TRUE(graph2.empty());
+
+		//graph move semantics
+		Graph<node_type> graph3(std::move(graph1));
+		EXPECT_EQ(4, graph3.size());
+		EXPECT_TRUE(graph1.empty());
+		graph1 = std::move(graph3);
+		EXPECT_EQ(4, graph1.size());
+		EXPECT_TRUE(graph3.empty());
 
 		//graph iteration
 		for(node_type& x : graph1) {
@@ -246,9 +267,15 @@ namespace {
 		
 		//graph::contains
 		EXPECT_TRUE(graph1.contains(7));
-		EXPECT_
-		EXPECT_EQ(graph2.end(), graph2.find(3));
-		
+		EXPECT_FALSE(graph2.contains(7));
+
+		//graph::find
+		EXPECT_TRUE(graph2.end() == graph2.find(3));
+		auto iter = graph1.begin();
+		while(iter->ID() != 7) ++iter;
+		EXPECT_TRUE(iter == graph1.find(7));
+		EXPECT_TRUE(graph1.end() == graph1.find(4));
+
 		//clone_links method
 		//move construction
 		//move assignment
@@ -258,11 +285,8 @@ namespace {
 		//node::clear
 		//node::contains
 		//node iteration (begin/end)
-		//graph::find (const and nonconst)
-		//graph::remove
 		//graph::clear
 		//graph::merge_into
-		//graph iteration 
 	}
 
 } //anonymous namespace 
