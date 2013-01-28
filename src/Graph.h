@@ -63,7 +63,7 @@ namespace ben {
 	
 	template<typename N> 
 	bool Graph<N>::remove(const id_type address) {
-		auto iter = find(address);
+		auto iter = this->find(address);
 		if(iter != base_type::end()) iter->clear();
 		else return false;
 		

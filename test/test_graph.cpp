@@ -76,6 +76,14 @@ namespace {
 				else
 					EXPECT_EQ(old_signals[3], link.pull());
 			}
+			if(N>2) {
+				link.flush();
+				PrepareSignals(3*N);
+				for(int i = 0; i<signals.size(); ++i) {
+					if(i >= N) EXPECT_EQ(signals[i-N], link.pull());
+					EXPECT_FALSE(link.push(signals[i]));
+				}
+			}
 			link.flush();
 			EXPECT_FALSE(link.is_ready());
 		}
@@ -209,20 +217,22 @@ namespace {
 		auto node2_ptr = new node_type(graph1, 3);
 		auto node5_ptr = new node_type();
 		auto node6_ptr = new node_type(7);
-
-		//copy construction
-		auto node3_ptr = new node_type(*node1_ptr);
-		auto node4_ptr = new node_type(*node2_ptr, 5);
 		
+		//clone_links method
 		//move construction
-
 		//move assignment
-
-		//assignment
-
 		//destruction
 	}
-	
+
+	TEST(Nodes, Methods) {
+		//find
+		//add
+		//remove
+		//clear
+		//size
+		//contains
+		//iteration (begin/end)
+	}
 } //anonymous namespace 
 
 int main(int argc, char **argv) {

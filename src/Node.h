@@ -66,12 +66,11 @@ namespace ben {
 		typedef O 			output_port_type;
 		typedef typename std::vector<I>::iterator input_iterator;
 		typedef typename std::vector<O>::iterator output_iterator;
-		typedef typename I::value_type 	value_type;
 		typedef typename I::signal_type	signal_type;
 		
 	private:
-		typedef Node 			self_type;
-		typedef Singleton 		base_type;
+		typedef Node 		self_type;
+		typedef Singleton 	base_type;
 	
 		static_assert(std::is_same<id_type, typename I::id_type>::value, 
 			      "Index and Port unique ID types don't match");
@@ -79,14 +78,12 @@ namespace ben {
 			      "Port types should complement one another");
 		static_assert(std::is_same<typename I::complement_type, O>::value,
 			      "Port types should complement one another");
-		static_assert(std::is_same<typename I::value_type, typename O::value_type>::value,
-			      "Port value types should match"); //is this semantically necessary? (it isn't syntactically)
 		static_assert(std::is_same<typename I::signal_type, typename O::signal_type>::value,
 			      "Port signal types should match");
 		static_assert(std::is_same<typename I::id_type, typename O::id_type>::value, 
 			      "Ports using different unique ID types");
 	
-		std::vector<input_port_type> inputs; //maintain as heaps?
+		std::vector<input_port_type> inputs; 
 		std::vector<output_port_type> outputs;
 		//std::mutex node_mutex;
 		
@@ -99,10 +96,9 @@ namespace ben {
 		explicit Node(const id_type id) : base_type(id) {}
 		explicit Node(index_type& graph) : base_type(graph) {}
 		Node(index_type& graph, const id_type id) : base_type(graph, id) {}
-		Node(const self_type& rhs); //copyable?
-		Node(const self_type& rhs, const id_type id);
+		Node(const self_type& rhs) = delete;
 		Node(self_type&& rhs); 
-		Node& operator=(const self_type& rhs); //duplicates Node, including Links but not ID
+		Node& operator=(const self_type& rhs) = delete;
 		Node& operator=(self_type&& rhs);
 		~Node(); 
 		
@@ -113,10 +109,10 @@ namespace ben {
 		const index_type& get_index() const 
 			{ return static_cast<const index_type&>(base_type::get_index()); }
 		
-		input_iterator  find_input(const id_type address); //lacks a definition
-		output_iterator find_output(const id_type address); //lacks a definition
+		input_iterator  find_input(const id_type address);
+		output_iterator find_output(const id_type address);
 		
-		bool add_input(const id_type address); //initializing with a temporary!
+		bool add_input(const id_type address);
 		bool add_output(const id_type address);
 		
 		void remove_input(const input_iterator iter);
@@ -150,29 +146,10 @@ namespace ben {
 	
 	//methods - constructors
 	template<typename I, typename O>
-	Node<I,O>::Node(const Node& rhs) : base_type(*rhs.index) {
-		if( !clone_links(rhs) ) clear(); //should never fail
-	}
-	
-	template<typename I, typename O>
-	Node<I,O>::Node(const Node& rhs, const id_type nID) : base_type(*rhs.index, nID) {
-		if( !clone_links(rhs) ) clear(); //should never fail
-	}
-	
-	template<typename I, typename O>
 	Node<I,O>::Node(Node&& rhs) : base_type( std::move(rhs) ), inputs( std::move(rhs.inputs) ), 
 		  		      outputs( std::move(rhs.outputs) ) {}
 	
 	//methods - assignment
-	template<typename I, typename O>
-	Node<I,O>&  Node<I,O>::operator=(const Node& rhs) { //duplicates Node, including Links but not ID
-		if(this != &rhs) {
-			clear();
-			switch_index(rhs.index);
-			if( !clone_links(rhs) ) clear(); //should never fail
-		}
-	}
-	
 	template<typename I, typename O>
 	Node<I,O>&  Node<I,O>::operator=(Node&& rhs) {
 		if(this != &rhs) {
@@ -188,17 +165,20 @@ namespace ben {
 	
 	template<typename I, typename O>
 	bool Node<I,O>::clone_links(const self_type& other) {
-		clear();
-		id_type currentID;
-		for(input_port_type& x : other.inputs) {
-			currentID = x.source();
-			if(currentID != ID()) add_input(currentID, x.get_value());
-		}
+		if(&get_index() == &other.get_index) {
+			clear();
+			id_type currentID;
+			for(input_port_type& x : other.inputs) {
+				currentID = x.source();
+				if(currentID != ID()) add_input(currentID, x.get_value());
+			}
 		
-		for(output_port_type& x : other.outputs) {
-			currentID = x.source();
-			if(currentID != ID()) add_output(currentID, x.get_value());
-		}
+			for(output_port_type& x : other.outputs) {
+				currentID = x.source();
+				if(currentID != ID()) add_output(currentID, x.get_value());
+			}
+			return true;
+		} else return false;
 	}
 	
 	template<typename I, typename O>
@@ -263,13 +243,13 @@ namespace ben {
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_inputs() {
-		for(input_port_type& x : inputs) get_index().elem(x.source()).clean_up_output(ID());
+		for(input_port_type& x : inputs) get_index().elem(x.source()).clean_up_output();
 		inputs.clear();
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_outputs() {
-		for(output_port_type& x : outputs) get_index().elem(x.target()).clean_up_input(ID());
+		for(output_port_type& x : outputs) get_index().elem(x.target()).clean_up_input();
 		outputs.clear();
 	}
 	

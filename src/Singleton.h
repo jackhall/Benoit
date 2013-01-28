@@ -46,8 +46,8 @@ namespace ben {
 		static std::atomic<id_type> IDCOUNT;  
 		static id_type get_new_ID() { return IDCOUNT.fetch_add(1); }
 	
-		id_type uniqueID;
 		index_type* index;
+		id_type uniqueID;
 		//std::mutex? maybe later
 		
 		void update_index(index_type* ptr) { index = ptr; }
