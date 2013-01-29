@@ -109,7 +109,8 @@ namespace ben {
 		using base_type::ID;
 		const index_type& get_index() const 
 			{ return static_cast<const index_type&>(base_type::get_index()); }
-		
+		bool is_managed() const { return base_type::managed(); }
+
 		input_iterator  find_input(const id_type address);
 		output_iterator find_output(const id_type address);
 		

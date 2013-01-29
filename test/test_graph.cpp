@@ -245,17 +245,24 @@ namespace {
 		EXPECT_TRUE(graph2.remove(3));
 		EXPECT_FALSE(graph1.remove(3));
 		EXPECT_TRUE(graph2.empty());
+		EXPECT_FALSE(node2_ptr->is_managed());
 		EXPECT_TRUE(graph2.add(*node2_ptr));
+		EXPECT_TRUE(node2_ptr->is_managed());
 		
 		//graph::merge_into
 		EXPECT_TRUE(graph2.merge_into(graph1));
 		EXPECT_EQ(4, graph1.size());
 		EXPECT_TRUE(graph2.empty());
+		EXPECT_EQ(&graph1, &(node1_ptr->get_index()));
+		EXPECT_EQ(&graph1, &(node2_ptr->get_index()));
 
 		//graph move semantics
 		Graph<node_type> graph3(std::move(graph1));
 		EXPECT_EQ(4, graph3.size());
 		EXPECT_TRUE(graph1.empty());
+		EXPECT_EQ(&graph3, &(node1_ptr->get_index()));
+		EXPECT_EQ(&graph3, &(node2_ptr->get_index()));
+
 		graph1 = std::move(graph3);
 		EXPECT_EQ(4, graph1.size());
 		EXPECT_TRUE(graph3.empty());
@@ -276,6 +283,14 @@ namespace {
 		EXPECT_TRUE(iter == graph1.find(7));
 		EXPECT_TRUE(graph1.end() == graph1.find(4));
 
+		//graph::clear
+		graph1.clear();
+		EXPECT_TRUE(graph1.empty());
+		EXPECT_FALSE(node1_ptr->is_managed());
+		EXPECT_FALSE(node2_ptr->is_managed());
+	}
+
+	TEST(Nodes, All) {
 		//clone_links method
 		//move construction
 		//move assignment
@@ -285,10 +300,7 @@ namespace {
 		//node::clear
 		//node::contains
 		//node iteration (begin/end)
-		//graph::clear
-		//graph::merge_into
 	}
-
 } //anonymous namespace 
 
 int main(int argc, char **argv) {
