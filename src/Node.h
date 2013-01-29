@@ -87,7 +87,6 @@ namespace ben {
 		std::vector<output_port_type> outputs;
 		//std::mutex node_mutex;
 		
-		bool clone_links(const self_type& other);
 		void clean_up_input();
 		void clean_up_output();
 		
@@ -111,12 +110,13 @@ namespace ben {
 			{ return static_cast<const index_type&>(base_type::get_index()); }
 		bool is_managed() const { return base_type::managed(); }
 
-		input_iterator  find_input(const id_type address);
-		output_iterator find_output(const id_type address);
+		input_iterator  find_input(const id_type address) const;
+		output_iterator find_output(const id_type address) const;
 		
 		bool add_input(const id_type address);
 		bool add_output(const id_type address);
-		
+		bool clone_links(const self_type& other);
+
 		void remove_input(const input_iterator iter);
 		void remove_input(const id_type address)
 			{ remove_input( find_input(address) ); }
@@ -167,7 +167,7 @@ namespace ben {
 	
 	template<typename I, typename O>
 	bool Node<I,O>::clone_links(const self_type& other) {
-		if(&get_index() == &other.get_index) {
+		if(&(get_index()) == &(other.get_index())) {
 			clear();
 			id_type currentID;
 			for(input_port_type& x : other.inputs) {
@@ -194,7 +194,7 @@ namespace ben {
 				 [](const output_port_type x){ return x.is_ghost(); }); }
 	
 	template<typename I, typename O>
-	typename Node<I,O>::input_iterator Node<I,O>::find_input(const id_type address) {
+	typename Node<I,O>::input_iterator Node<I,O>::find_input(const id_type address) const {
 		auto it = ibegin();
 		for(auto ite=iend(); it!=ite; ++it) 
 			if(it->source() == address) break;
@@ -203,7 +203,7 @@ namespace ben {
 	}
 	
 	template<typename I, typename O>
-	typename Node<I,O>::output_iterator Node<I,O>::find_output(const id_type address) {
+	typename Node<I,O>::output_iterator Node<I,O>::find_output(const id_type address) const {
 		auto it = obegin();
 		for(auto ite=oend(); it!=ite; ++it) 
 			if(it->target() == address) break;

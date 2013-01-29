@@ -323,16 +323,54 @@ namespace {
 		EXPECT_FALSE(node3_ptr->is_managed());
 	}
 
-	TEST(Nodes, All) {
-		//clone_links method
+	TEST(Nodes, Add_Remove) {
+		using namespace ben;
+		typedef Link<double,1> link_type;
+		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		Graph<node_type> graph1;
+
+		node_type node1(graph1, 3), node2(graph1, 5), node3(graph1, 7), node4(graph1, 11);
+		EXPECT_TRUE(node1.add_input(3));
+		EXPECT_TRUE(node1.contains_input(3));
+		EXPECT_TRUE(node1.add_input(5));
+		EXPECT_TRUE(node1.contains_input(5));
+		EXPECT_FALSE(node1.add_input(5));
+		EXPECT_TRUE(node1.add_input(7));
+		EXPECT_TRUE(node1.add_output(7));
+		EXPECT_TRUE(node1.contains_output(7));
+		EXPECT_FALSE(node1.contains_input(11));
+		EXPECT_FALSE(node1.contains_output(3));
+		
+		EXPECT_TRUE(node4.clone_links(node1));//needs work (won't compile)
+		EXPECT_TRUE(node4.contains_input(3));
+		EXPECT_TRUE(node4.contains_input(5));
+		EXPECT_TRUE(node4.contains_input(7));
+		EXPECT_TRUE(node4.contains_output(7));
+		EXPECT_FALSE(node4.contains_input(11));
+		EXPECT_FALSE(node4.contains_output(3));
+		node_type node5(13);
+		EXPECT_FALSE(node5.clone_links(node1));
+
+		node4.remove_input(7);
+		EXPECT_FALSE(node4.contains_input(7));
+		
+		node1.clear();
+		EXPECT_FALSE(node4.contains_input(3));
+		EXPECT_FALSE(node4.contains_input(5));
+		EXPECT_FALSE(node4.contains_input(7));
+		EXPECT_FALSE(node4.contains_output(7));
+	}
+
+	TEST(Nodes, Iteration) {
+		//node iteration
+		//find
+		//remove (iterator version)
+	}
+
+	TEST(Nodes, Move_Destruction) {
 		//move construction
 		//move assignment
 		//destruction
-		//node::find
-		//node::remove
-		//node::clear
-		//node::contains
-		//node iteration (begin/end)
 	}
 } //anonymous namespace 
 
