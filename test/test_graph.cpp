@@ -208,13 +208,12 @@ namespace {
 		EXPECT_EQ(0, input_port.pull());
 	}
 
-	TEST(Graphs, All) {
+	TEST(Nodes, Construction) {
 		using namespace ben;
 		typedef Link<double,1> link_type;
 		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
-		Graph<node_type> graph1, graph2;
+		Graph<node_type> graph1;
 		
-		//basic construction
 		auto node1_ptr = new node_type(graph1);
 		EXPECT_EQ(0, node1_ptr->size_inputs());
 		EXPECT_EQ(0, node1_ptr->size_outputs());
@@ -227,67 +226,101 @@ namespace {
 		EXPECT_EQ(nullptr, &node3_ptr->get_index());
 		auto node4_ptr = new node_type(7);
 		EXPECT_EQ(nullptr, &node4_ptr->get_index());
+	}
 
-		//graph::add, graph::empty, graph::size
-		EXPECT_FALSE(graph1.check(node3_ptr->ID(), node3_ptr));
+	TEST(Graphs, Add_Remove) {
+		using namespace ben;
+		typedef Link<double,1> link_type;
+		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		Graph<node_type> graph1, graph2;
+		
+		auto node1_ptr = new node_type(graph1, 3);
+		auto node2_ptr = new node_type(5);
+		auto node3_ptr = new node_type(7);
+
+		EXPECT_FALSE(graph1.check(5, node2_ptr));
+		EXPECT_TRUE(graph1.add(*node2_ptr));
+		EXPECT_TRUE(graph1.check(5, node2_ptr));
 		EXPECT_TRUE(graph1.add(*node3_ptr));
-		EXPECT_TRUE(graph1.check(node3_ptr->ID(), node3_ptr));
-		EXPECT_TRUE(graph1.add(*node4_ptr));
 		EXPECT_TRUE(graph2.empty());
 		EXPECT_TRUE(graph2.add(*node2_ptr));
-
+		EXPECT_TRUE(graph2.check(5, node2_ptr));
 		EXPECT_FALSE(graph2.empty());
 		EXPECT_EQ(1, graph2.size());
 		EXPECT_FALSE(graph1.empty());
-		EXPECT_EQ(3, graph1.size());
+		EXPECT_EQ(2, graph1.size());
 
-		//graph::remove
-		EXPECT_TRUE(graph2.remove(3));
-		EXPECT_FALSE(graph1.remove(3));
+		EXPECT_TRUE(graph2.remove(5));
+		EXPECT_FALSE(graph1.remove(5));
 		EXPECT_TRUE(graph2.empty());
 		EXPECT_FALSE(node2_ptr->is_managed());
 		EXPECT_TRUE(graph2.add(*node2_ptr));
 		EXPECT_TRUE(node2_ptr->is_managed());
+	}
+
+	TEST(Graphs, Merge_Move_Destruction) {		
+		using namespace ben;
+		typedef Link<double,1> link_type;
+		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		Graph<node_type> graph1, graph2;
+		auto graph2_ptr = new Graph<node_type>();
 		
-		//graph::merge_into
-		EXPECT_TRUE(graph2.merge_into(graph1));
+		auto node1_ptr = new node_type(graph1, 3);
+		auto node2_ptr = new node_type(graph1, 5);
+		auto node3_ptr = new node_type(*graph2_ptr, 7);
+		auto node4_ptr = new node_type(*graph2_ptr, 11);
+
+		EXPECT_TRUE(graph2_ptr->merge_into(graph1));
 		EXPECT_EQ(4, graph1.size());
-		EXPECT_TRUE(graph2.empty());
+		EXPECT_TRUE(graph2_ptr->empty());
 		EXPECT_EQ(&graph1, &(node1_ptr->get_index()));
 		EXPECT_EQ(&graph1, &(node2_ptr->get_index()));
 
-		//graph move semantics
 		Graph<node_type> graph3(std::move(graph1));
 		EXPECT_EQ(4, graph3.size());
 		EXPECT_TRUE(graph1.empty());
 		EXPECT_EQ(&graph3, &(node1_ptr->get_index()));
-		EXPECT_EQ(&graph3, &(node2_ptr->get_index()));
+		EXPECT_EQ(&graph3, &(node3_ptr->get_index()));
 
-		graph1 = std::move(graph3);
-		EXPECT_EQ(4, graph1.size());
+		*graph2_ptr = std::move(graph3);
+		EXPECT_EQ(4, graph2_ptr->size());
 		EXPECT_TRUE(graph3.empty());
+		EXPECT_EQ(graph2_ptr, &(node1_ptr->get_index()));
+		EXPECT_EQ(graph2_ptr, &(node3_ptr->get_index()));
 
-		//graph iteration
+		delete graph2_ptr;
+		EXPECT_FALSE(node1_ptr->is_managed());
+		EXPECT_FALSE(node2_ptr->is_managed());
+		EXPECT_FALSE(node3_ptr->is_managed());
+	}
+
+	TEST(Graphs, Content) {
+		using namespace ben;
+		typedef Link<double,1> link_type;
+		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		Graph<node_type> graph1, graph2;
+		
+		auto node1_ptr = new node_type(graph1, 3);
+		auto node2_ptr = new node_type(graph1, 5);
+		auto node3_ptr = new node_type(graph1, 7);
+
 		for(node_type& x : graph1) {
 			EXPECT_TRUE(graph1.check(x.ID(), &x));
 		}
 		
-		//graph::contains
 		EXPECT_TRUE(graph1.contains(7));
 		EXPECT_FALSE(graph2.contains(7));
 
-		//graph::find
 		EXPECT_TRUE(graph2.end() == graph2.find(3));
 		auto iter = graph1.begin();
 		while(iter->ID() != 7) ++iter;
 		EXPECT_TRUE(iter == graph1.find(7));
 		EXPECT_TRUE(graph1.end() == graph1.find(4));
 
-		//graph::clear
 		graph1.clear();
 		EXPECT_TRUE(graph1.empty());
 		EXPECT_FALSE(node1_ptr->is_managed());
-		EXPECT_FALSE(node2_ptr->is_managed());
+		EXPECT_FALSE(node3_ptr->is_managed());
 	}
 
 	TEST(Nodes, All) {
