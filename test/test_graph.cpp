@@ -353,7 +353,9 @@ namespace {
 
 		node4.remove_input(7);
 		EXPECT_FALSE(node4.contains_input(7));
-		
+		node4.remove_output(7);
+		EXPECT_FALSE(node4.contains_output(7));		
+
 		node1.clear();
 		EXPECT_FALSE(node4.contains_input(3));
 		EXPECT_FALSE(node4.contains_input(5));

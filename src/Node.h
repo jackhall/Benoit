@@ -110,8 +110,8 @@ namespace ben {
 			{ return static_cast<const index_type&>(base_type::get_index()); }
 		bool is_managed() const { return base_type::managed(); }
 
-		input_iterator  find_input(const id_type address) const;
-		output_iterator find_output(const id_type address) const;
+		input_iterator  find_input(const id_type address);
+		output_iterator find_output(const id_type address);
 		
 		bool add_input(const id_type address);
 		bool add_output(const id_type address);
@@ -131,8 +131,10 @@ namespace ben {
 		size_t size_inputs() const { return inputs.size(); }
 		size_t size_outputs() const { return outputs.size(); }
 		
-		bool contains_input(const id_type address) const { inputs.end() == find_input(address); }
-		bool contains_output(const id_type address) const { outputs.end() == find_output(address); }
+		bool contains_input(const id_type address) const 
+			{ return inputs.end() == const_cast<self_type*>(this)->find_input(address); }
+		bool contains_output(const id_type address) const 
+			{ return outputs.end() == const_cast<self_type*>(this)->find_output(address); }
 		//other std::vector methods - assign, swap
 		
 		input_iterator  ibegin() { return inputs.begin(); }
@@ -170,14 +172,14 @@ namespace ben {
 		if(&(get_index()) == &(other.get_index())) {
 			clear();
 			id_type currentID;
-			for(input_port_type& x : other.inputs) {
+			for(const input_port_type& x : other.inputs) {
 				currentID = x.source();
-				if(currentID != ID()) add_input(currentID, x.get_value());
+				if(currentID != ID()) add_input(currentID);
 			}
 		
-			for(output_port_type& x : other.outputs) {
-				currentID = x.source();
-				if(currentID != ID()) add_output(currentID, x.get_value());
+			for(const output_port_type& x : other.outputs) {
+				currentID = x.target();
+				if(currentID != ID()) add_output(currentID);
 			}
 			return true;
 		} else return false;
@@ -194,7 +196,7 @@ namespace ben {
 				 [](const output_port_type x){ return x.is_ghost(); }); }
 	
 	template<typename I, typename O>
-	typename Node<I,O>::input_iterator Node<I,O>::find_input(const id_type address) const {
+	typename Node<I,O>::input_iterator Node<I,O>::find_input(const id_type address) {
 		auto it = ibegin();
 		for(auto ite=iend(); it!=ite; ++it) 
 			if(it->source() == address) break;
@@ -203,7 +205,7 @@ namespace ben {
 	}
 	
 	template<typename I, typename O>
-	typename Node<I,O>::output_iterator Node<I,O>::find_output(const id_type address) const {
+	typename Node<I,O>::output_iterator Node<I,O>::find_output(const id_type address) {
 		auto it = obegin();
 		for(auto ite=oend(); it!=ite; ++it) 
 			if(it->target() == address) break;
@@ -233,13 +235,13 @@ namespace ben {
 	
 	template<typename I, typename O>
 	void Node<I,O>::remove_input(const input_iterator iter) {
-		get_index().elem(iter->source()).clean_up_output(ID());
+		get_index().elem(iter->source()).clean_up_output();
 		inputs.erase(iter);
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::remove_output(const output_iterator iter) {
-		get_index().elem(iter->target()).clean_up_input(ID());
+		get_index().elem(iter->target()).clean_up_input();
 		outputs.erase(iter);
 	}
 	
