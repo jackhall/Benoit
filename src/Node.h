@@ -132,9 +132,9 @@ namespace ben {
 		size_t size_outputs() const { return outputs.size(); }
 		
 		bool contains_input(const id_type address) const 
-			{ return inputs.end() == const_cast<self_type*>(this)->find_input(address); }
+			{ return inputs.end() != const_cast<self_type*>(this)->find_input(address); }
 		bool contains_output(const id_type address) const 
-			{ return outputs.end() == const_cast<self_type*>(this)->find_output(address); }
+			{ return outputs.end() != const_cast<self_type*>(this)->find_output(address); }
 		//other std::vector methods - assign, swap
 		
 		input_iterator  ibegin() { return inputs.begin(); }

@@ -121,7 +121,7 @@ namespace {
 		EXPECT_EQ(11, output_port_ptr->target());
 		EXPECT_FALSE(output_port_ptr->is_ready());
 		EXPECT_TRUE(output_port_ptr->is_ghost());
-		
+	
 		//complement constructors
 		input_port_type input_port2(*output_port_ptr, 17);
 		EXPECT_EQ(17, input_port2.source());
@@ -134,7 +134,7 @@ namespace {
 		EXPECT_FALSE(output_port2.is_ready());
 		EXPECT_FALSE(input_port_ptr->is_ghost());
 		EXPECT_FALSE(output_port2.is_ghost());
-		
+	
 		//copy constructor
 		input_port_type input_port3(*input_port_ptr);
 		EXPECT_EQ(5, input_port3.source());
@@ -150,6 +150,8 @@ namespace {
 
 		//destruction
 		delete input_port_ptr, output_port_ptr;
+		input_port_ptr = nullptr;
+		output_port_ptr = nullptr;
 		EXPECT_FALSE(output_port2.is_ghost());
 		EXPECT_FALSE(input_port2.is_ghost());
 		EXPECT_FALSE(output_port3.is_ghost());
@@ -176,7 +178,7 @@ namespace {
 		EXPECT_EQ(19, output_port2.target());
 		EXPECT_FALSE(output_port2.is_ghost());
 		EXPECT_TRUE(output_port4.is_ghost());
-
+	
 		//assignment
 		input_port4 = input_port2;
 		EXPECT_EQ(17, input_port4.source());
@@ -185,8 +187,8 @@ namespace {
 
 		output_port4 = output_port2;
 		EXPECT_EQ(19, output_port4.target());
-		EXPECT_FALSE(output_port3.is_ghost());
-		EXPECT_FALSE(output_port_ptr->is_ghost());
+		EXPECT_FALSE(output_port2.is_ghost());
+		EXPECT_FALSE(output_port4.is_ghost());
 	}
 	
 	TEST(Ports, Data) {
@@ -238,6 +240,7 @@ namespace {
 		auto node2_ptr = new node_type(5);
 		auto node3_ptr = new node_type(7);
 
+		EXPECT_TRUE(graph1.check(3, node1_ptr));
 		EXPECT_FALSE(graph1.check(5, node2_ptr));
 		EXPECT_TRUE(graph1.add(*node2_ptr));
 		EXPECT_TRUE(graph1.check(5, node2_ptr));
@@ -289,6 +292,7 @@ namespace {
 		EXPECT_EQ(graph2_ptr, &(node3_ptr->get_index()));
 
 		delete graph2_ptr;
+		graph2_ptr = nullptr;
 		EXPECT_FALSE(node1_ptr->is_managed());
 		EXPECT_FALSE(node2_ptr->is_managed());
 		EXPECT_FALSE(node3_ptr->is_managed());
@@ -327,9 +331,9 @@ namespace {
 		using namespace ben;
 		typedef Link<double,1> link_type;
 		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
-		Graph<node_type> graph1;
+		auto graph1_ptr = new Graph<node_type>();
 
-		node_type node1(graph1, 3), node2(graph1, 5), node3(graph1, 7), node4(graph1, 11);
+		node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
 		EXPECT_TRUE(node1.add_input(3));
 		EXPECT_TRUE(node1.contains_input(3));
 		EXPECT_TRUE(node1.add_input(5));
@@ -339,15 +343,16 @@ namespace {
 		EXPECT_TRUE(node1.add_output(7));
 		EXPECT_TRUE(node1.contains_output(7));
 		EXPECT_FALSE(node1.contains_input(11));
-		EXPECT_FALSE(node1.contains_output(3));
+		EXPECT_TRUE(node1.contains_output(3));
+		EXPECT_FALSE(node1.contains_output(5));
 		
-		EXPECT_TRUE(node4.clone_links(node1));//needs work (won't compile)
+		EXPECT_TRUE(node4.clone_links(node1));
 		EXPECT_TRUE(node4.contains_input(3));
 		EXPECT_TRUE(node4.contains_input(5));
 		EXPECT_TRUE(node4.contains_input(7));
 		EXPECT_TRUE(node4.contains_output(7));
 		EXPECT_FALSE(node4.contains_input(11));
-		EXPECT_FALSE(node4.contains_output(3));
+		EXPECT_FALSE(node4.contains_output(5));
 		node_type node5(13);
 		EXPECT_FALSE(node5.clone_links(node1));
 
@@ -357,19 +362,49 @@ namespace {
 		EXPECT_FALSE(node4.contains_output(7));		
 
 		node1.clear();
-		EXPECT_FALSE(node4.contains_input(3));
-		EXPECT_FALSE(node4.contains_input(5));
-		EXPECT_FALSE(node4.contains_input(7));
-		EXPECT_FALSE(node4.contains_output(7));
+		EXPECT_FALSE(node1.contains_input(3));
+		EXPECT_FALSE(node1.contains_input(5));
+		EXPECT_FALSE(node1.contains_input(7));
+		EXPECT_FALSE(node1.contains_output(7));
+
+		//this test was not included in Graphs.Destruction because it involves links
+		delete graph1_ptr;
+		graph1_ptr = nullptr;
+		EXPECT_EQ(0, node1.size_inputs() + node1.size_outputs());
+		EXPECT_EQ(0, node2.size_inputs() + node2.size_outputs());
+		EXPECT_EQ(0, node3.size_inputs() + node3.size_outputs());
+		EXPECT_EQ(0, node4.size_inputs() + node4.size_outputs());
 	}
 
 	TEST(Nodes, Iteration) {
+		using namespace ben;
+		typedef Link<double,1> link_type;
+		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		auto graph1_ptr = new Graph<node_type>();
+
+		node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
+		node1.add_input(3);
+		node1.add_input(5);
+		node1.add_input(7);
+		node1.add_output(7);
+		node4.clone_links(node1);
 		//node iteration
 		//find
 		//remove (iterator version)
 	}
 
 	TEST(Nodes, Move_Destruction) {
+		using namespace ben;
+		typedef Link<double,1> link_type;
+		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		auto graph1_ptr = new Graph<node_type>();
+
+		node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
+		node1.add_input(3);
+		node1.add_input(5);
+		node1.add_input(7);
+		node1.add_output(7);
+		node4.clone_links(node1);
 		//move construction
 		//move assignment
 		//destruction
