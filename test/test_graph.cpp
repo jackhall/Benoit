@@ -358,8 +358,10 @@ namespace {
 
 		node4.remove_input(7);
 		EXPECT_FALSE(node4.contains_input(7));
+		EXPECT_FALSE(node3.contains_output(11));
 		node4.remove_output(7);
-		EXPECT_FALSE(node4.contains_output(7));		
+		EXPECT_FALSE(node4.contains_output(7));	
+		EXPECT_FALSE(node3.contains_input(11));	
 
 		node1.clear();
 		EXPECT_FALSE(node1.contains_input(3));
@@ -388,9 +390,27 @@ namespace {
 		node1.add_input(7);
 		node1.add_output(7);
 		node4.clone_links(node1);
-		//node iteration
-		//find
-		//remove (iterator version)
+		
+		for(auto iter = node1.ibegin(); iter != node1.iend(); ++iter) {
+			EXPECT_TRUE(graph1_ptr->elem(iter->source()).contains_output(3));
+		}
+
+		for(auto iter = node1.obegin(); iter != node1.oend(); ++iter) {
+			EXPECT_TRUE(graph1_ptr->elem(iter->target()).contains_input(3));
+		}
+		
+		node4.remove_input(node4.find_input(5));
+		EXPECT_FALSE(node4.contains_input(5));
+		EXPECT_FALSE(node2.contains_output(11));
+		EXPECT_TRUE(node4.iend() == node4.find_input(5));
+
+		node4.remove_output(node4.find_output(7));
+		EXPECT_FALSE(node4.contains_output(7));
+		EXPECT_FALSE(node3.contains_input(11));
+		EXPECT_TRUE(node4.oend() == node4.find_output(7));
+
+		delete graph1_ptr;
+		graph1_ptr = nullptr;
 	}
 
 	TEST(Nodes, Move_Destruction) {
@@ -399,15 +419,28 @@ namespace {
 		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
 		auto graph1_ptr = new Graph<node_type>();
 
-		node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
+		node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7);
+		auto node4_ptr = new node_type(*graph1_ptr, 11);
 		node1.add_input(3);
 		node1.add_input(5);
 		node1.add_input(7);
 		node1.add_output(7);
-		node4.clone_links(node1);
-		//move construction
-		//move assignment
-		//destruction
+		node4_ptr->clone_links(node1);
+
+		node_type node5 = std::move(node1);
+
+		node1 = std::move(node5);
+		
+		delete node4_ptr;
+		node4_ptr = nullptr;
+		std::cout << "printing input links of node #7\n";
+		for(auto iter = node3.ibegin(); iter != node3.iend(); ++iter) std::cout << iter->source() << "\n";
+		std::cout << "printing output links of node #7\n";
+		for(auto iter = node3.obegin(); iter != node3.oend(); ++iter) std::cout << iter->target() << "\n";
+		std::cout << "printing IDs\n";
+		for(node_type& x : *graph1_ptr) std::cout << x.ID() << "\n"; 
+		delete graph1_ptr;
+		graph1_ptr = nullptr;
 	}
 } //anonymous namespace 
 

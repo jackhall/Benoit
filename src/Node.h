@@ -87,8 +87,8 @@ namespace ben {
 		std::vector<output_port_type> outputs;
 		//std::mutex node_mutex;
 		
-		void clean_up_input();
-		void clean_up_output();
+		void clean_up_input(const id_type address) { remove_input(address); }
+		void clean_up_output(const id_type address) { remove_output(address); }
 		
 	public:
 		Node() = default;
@@ -99,7 +99,7 @@ namespace ben {
 		Node(self_type&& rhs); 
 		Node& operator=(const self_type& rhs) = delete;
 		Node& operator=(self_type&& rhs);
-		~Node(); 
+		virtual ~Node(); 
 		
 		//void lock() { node_mutex.lock(); }
 		//bool try_lock() { return node_mutex.try_lock(); }
@@ -118,13 +118,11 @@ namespace ben {
 		bool clone_links(const self_type& other);
 
 		void remove_input(const input_iterator iter);
-		void remove_input(const id_type address)
-			{ remove_input( find_input(address) ); }
+		void remove_input(const id_type address);
 		void remove_output(const output_iterator iter);
-		void remove_output(const id_type address)
-			{ remove_output( find_output(address) ); }
+		void remove_output(const id_type address);
 		
-		void clear_inputs(); //should these clean up other nodes?
+		void clear_inputs(); 
 		void clear_outputs();
 		void clear() { clear_inputs(); clear_outputs(); }
 		
@@ -165,7 +163,7 @@ namespace ben {
 	
 	//methods - destructor
 	template<typename I, typename O>
-	Node<I,O>::~Node() {} //might want to lock the node while deleting links
+	Node<I,O>::~Node() { clear(); } //might want to lock the node while deleting links
 	
 	template<typename I, typename O>
 	bool Node<I,O>::clone_links(const self_type& other) {
@@ -184,16 +182,6 @@ namespace ben {
 			return true;
 		} else return false;
 	}
-	
-	template<typename I, typename O>
-	void Node<I,O>::clean_up_input() 
-		{ std::remove_if(inputs.begin(), inputs.end(), 
-				 [](const input_port_type x){ return x.is_ghost(); }); }
-	
-	template<typename I, typename O>
-	void Node<I,O>::clean_up_output() 
-		{ std::remove_if(outputs.begin(), outputs.end(), 
-				 [](const output_port_type x){ return x.is_ghost(); }); }
 	
 	template<typename I, typename O>
 	typename Node<I,O>::input_iterator Node<I,O>::find_input(const id_type address) {
@@ -232,28 +220,42 @@ namespace ben {
 			return true;
 		} else return false;
 	}
+
+	template<typename I, typename O>
+	void Node<I,O>::remove_input(const id_type address) {
+		auto iter = find_input(address);
+		if(iter != iend()) remove_input(iter);
+	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::remove_input(const input_iterator iter) {
-		get_index().elem(iter->source()).clean_up_output();
+		auto address = iter->source();
 		inputs.erase(iter);
+		get_index().elem(address).clean_up_output(ID());
+	}
+
+	template<typename I, typename O>
+	void Node<I,O>::remove_output(const id_type address) {
+		auto iter = find_output(address);
+		if(iter != oend()) remove_output(iter);
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::remove_output(const output_iterator iter) {
-		get_index().elem(iter->target()).clean_up_input();
+		auto address = iter->target();
 		outputs.erase(iter);
+		get_index().elem(address).clean_up_input(ID());
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_inputs() {
-		for(input_port_type& x : inputs) get_index().elem(x.source()).clean_up_output();
+		for(input_port_type& x : inputs) get_index().elem(x.source()).clean_up_output(ID());
 		inputs.clear();
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_outputs() {
-		for(output_port_type& x : outputs) get_index().elem(x.target()).clean_up_input();
+		for(output_port_type& x : outputs) get_index().elem(x.target()).clean_up_input(ID());
 		outputs.clear();
 	}
 	
