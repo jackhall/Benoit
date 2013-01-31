@@ -336,25 +336,31 @@ namespace {
 		node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
 		EXPECT_TRUE(node1.add_input(3));
 		EXPECT_TRUE(node1.contains_input(3));
+		EXPECT_TRUE(node1.contains_output(3));
 		EXPECT_TRUE(node1.add_input(5));
 		EXPECT_TRUE(node1.contains_input(5));
+		EXPECT_TRUE(node2.contains_output(3));
 		EXPECT_FALSE(node1.add_input(5));
-		EXPECT_TRUE(node1.add_input(7));
 		EXPECT_TRUE(node1.add_output(7));
 		EXPECT_TRUE(node1.contains_output(7));
+		EXPECT_TRUE(node3.contains_input(3));
 		EXPECT_FALSE(node1.contains_input(11));
-		EXPECT_TRUE(node1.contains_output(3));
 		EXPECT_FALSE(node1.contains_output(5));
 		
 		EXPECT_TRUE(node4.clone_links(node1));
 		EXPECT_TRUE(node4.contains_input(3));
+		EXPECT_TRUE(node1.contains_output(11));
+		EXPECT_TRUE(node4.contains_output(3));
+		EXPECT_TRUE(node1.contains_input(11));
 		EXPECT_TRUE(node4.contains_input(5));
-		EXPECT_TRUE(node4.contains_input(7));
+		EXPECT_TRUE(node2.contains_output(11));
 		EXPECT_TRUE(node4.contains_output(7));
 		EXPECT_FALSE(node4.contains_input(11));
 		EXPECT_FALSE(node4.contains_output(5));
+		
 		node_type node5(13);
 		EXPECT_FALSE(node5.clone_links(node1));
+		EXPECT_FALSE(node5.contains_input(3));
 
 		node4.remove_input(7);
 		EXPECT_FALSE(node4.contains_input(7));
@@ -376,6 +382,11 @@ namespace {
 		EXPECT_EQ(0, node2.size_inputs() + node2.size_outputs());
 		EXPECT_EQ(0, node3.size_inputs() + node3.size_outputs());
 		EXPECT_EQ(0, node4.size_inputs() + node4.size_outputs());
+		EXPECT_FALSE(node1.is_managed());
+		EXPECT_FALSE(node2.is_managed());
+		EXPECT_FALSE(node3.is_managed());
+		EXPECT_FALSE(node4.is_managed());
+
 	}
 
 	TEST(Nodes, Iteration) {
@@ -428,17 +439,36 @@ namespace {
 		node4_ptr->clone_links(node1);
 
 		node_type node5 = std::move(node1);
+		EXPECT_EQ(3, node5.ID());
+		EXPECT_TRUE(graph1_ptr->check(3, &node5));
+		EXPECT_FALSE(node1.is_managed());
+		EXPECT_EQ(0, node1.size_inputs() + node1.size_outputs());
+		EXPECT_TRUE(node5.contains_input(3));
+		EXPECT_TRUE(node5.contains_input(5));
+		EXPECT_TRUE(node5.contains_input(7));
+		EXPECT_TRUE(node5.contains_output(3));
+		EXPECT_TRUE(node5.contains_output(7));
+		EXPECT_TRUE(node5.contains_input(11));
+		EXPECT_TRUE(node5.contains_output(11));
 
 		node1 = std::move(node5);
+		EXPECT_TRUE(graph1_ptr->check(3, &node1));
+		EXPECT_FALSE(node5.is_managed());
+		EXPECT_EQ(0, node5.size_inputs() + node5.size_outputs());
+		EXPECT_TRUE(node1.contains_input(3));
+		EXPECT_TRUE(node1.contains_input(5));
+		EXPECT_TRUE(node1.contains_input(7));
+		EXPECT_TRUE(node1.contains_output(3));
+		EXPECT_TRUE(node1.contains_output(7));
+		EXPECT_TRUE(node1.contains_input(11));
+		EXPECT_TRUE(node1.contains_output(11));
 		
 		delete node4_ptr;
 		node4_ptr = nullptr;
-		std::cout << "printing input links of node #7\n";
-		for(auto iter = node3.ibegin(); iter != node3.iend(); ++iter) std::cout << iter->source() << "\n";
-		std::cout << "printing output links of node #7\n";
-		for(auto iter = node3.obegin(); iter != node3.oend(); ++iter) std::cout << iter->target() << "\n";
-		std::cout << "printing IDs\n";
-		for(node_type& x : *graph1_ptr) std::cout << x.ID() << "\n"; 
+		EXPECT_FALSE(graph1_ptr->contains(11));
+		EXPECT_FALSE(node1.contains_input(11));
+		EXPECT_FALSE(node1.contains_output(11));
+
 		delete graph1_ptr;
 		graph1_ptr = nullptr;
 	}

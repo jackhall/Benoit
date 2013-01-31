@@ -87,8 +87,8 @@ namespace ben {
 		std::vector<output_port_type> outputs;
 		//std::mutex node_mutex;
 		
-		void clean_up_input(const id_type address) { remove_input(address); }
-		void clean_up_output(const id_type address) { remove_output(address); }
+		void clean_up_input(const id_type address);
+		void clean_up_output(const id_type address);
 		
 	public:
 		Node() = default;
@@ -182,7 +182,19 @@ namespace ben {
 			return true;
 		} else return false;
 	}
-	
+
+	template<typename I, typename O>	
+	void Node<I,O>::clean_up_input(const typename Node<I,O>::id_type address) { 
+		auto iter = find_input(address);
+		if(iter != iend()) inputs.erase(iter);
+	}
+
+	template<typename I, typename O>
+	void Node<I,O>::clean_up_output(const typename Node<I,O>::id_type address) { 
+		auto iter = find_output(address);
+		if(iter != oend()) outputs.erase(iter);
+	}
+
 	template<typename I, typename O>
 	typename Node<I,O>::input_iterator Node<I,O>::find_input(const id_type address) {
 		auto it = ibegin();

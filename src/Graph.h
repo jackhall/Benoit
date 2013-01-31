@@ -59,7 +59,10 @@ namespace ben {
 	
 	
 	template<typename N>
-	Graph<N>::~Graph() { for(node_type& x : *this) x.clear(); }
+	Graph<N>::~Graph() { 
+		for(node_type& x : *this) 
+			x.clear(); 
+	}
 	
 	template<typename N> 
 	bool Graph<N>::remove(const id_type address) {
