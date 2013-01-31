@@ -58,8 +58,8 @@ namespace ben {
 	
 		Index()=default;
 		Index(const self_type& rhs) = delete;
-		Index(self_type&& rhs) : base_type( std::move(rhs) ) {} //use move semantics to transfer all Nodes
-		Index& operator=(const self_type& rhs) = delete; //make unique copy of all Nodes? no
+		Index(self_type&& rhs) : base_type( std::move(rhs) ) {}
+		Index& operator=(const self_type& rhs) = delete; 
 		Index& operator=(self_type&& rhs) { base_type::operator=( std::move(rhs) ); }
 		virtual ~Index() { clear(); }
 		
@@ -72,7 +72,7 @@ namespace ben {
 		
 		virtual bool add(singleton_type& x) { return base_type::add(x); }
 		using base_type::remove;
-		virtual void clear();
+		using base_type::clear;
 		size_type size() { return index.size(); }
 		
 		virtual bool merge_into(self_type& other) { return base_type::merge_into(other); }
@@ -168,12 +168,6 @@ namespace ben {
 	typename Index<S>::singleton_type& Index<S>::elem(const typename Index<S>::id_type address) const {
 		auto iter = index.find(address);
 		return *static_cast<singleton_type*>(iter->second);
-	}
-
-	template<typename S>
-	void Index<S>::clear() {
-		for(auto x : index) static_cast<singleton_type*>(x.second)->clear();
-		base_type::clear();
 	}
 } //namespace ben
 

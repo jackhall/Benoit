@@ -55,6 +55,7 @@ namespace ben {
 		virtual ~Graph();
 		
 		virtual bool remove(const id_type address);
+		virtual void clear();
 	}; //class Graph
 	
 	
@@ -74,6 +75,12 @@ namespace ben {
 		return true;
 	}
 	
+	template<typename N>
+	void Graph<N>::clear() {
+		for(node_type& x : *this) x.clear();
+		base_type::clear();
+	}
+
 } //namespace ben
 
 #endif
