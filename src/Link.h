@@ -27,24 +27,17 @@
 #include <initializer_list>
 
 namespace ben {
-	
-	/*
-		Link is base class that does not touch message-passing behavior
-		except for a protected typedef for the Frame struct. Instead, 
-		Link handles value storage and access (atomic). Since it lacks
-		push(), pull() and is_ready() methods, it doesn't not have enough
-		traits to be wrapped by a conventional Port, even if it could be
-		constructed (it can't).  
-		
-		For interoperability with the rest of Benoit, every Link type should 
-		provide:
-			value_type and signal_type typedefs
-			get_value() and set_value() methods
-			pull(), push() and is_ready() methods
-			default construction and construction from a value_type reference
-			
-	*/		
-	
+/* Links are data buffers for the messages passed between Nodes. They're templated for both the
+ * message type and buffer length. There are two partial specializations for buffer length B=1 
+ * and B=2. 
+ *
+ * B=1 requires only one atomic element and no indexing. The other specializations each
+ * have a B=1 Link as a member, and use it as a kind of staging area. Data can only be pulled from
+ * there, and so only the output port gives access to the rest of the Link code. Thus data races 
+ * in the rest of the buffer are avoided, and Link B=1 encapsulates all atomic operations. 
+ *
+ * B=2 is special because it also needs no indexing. Larger Links are implemented as circular buffers. 
+ */
 	template<typename S> 
 	struct Frame {
 	/*
@@ -56,22 +49,8 @@ namespace ben {
 	}; //struct Frame
 	
 	
-	template<typename S>
-	class LinkBase {
-	/*
-		A general link base class, including appropriate and convenient typedefs.
-	*/
-	public:
-		typedef S signal_type;
-	private:
-		static_assert(std::is_default_constructible<signal_type>::value, 
-			      "signals should be default-constructible"); 
-	protected:
-		typedef Frame<S> frame_type;
-	};
-	
-	
 	template<typename S, unsigned short B> class Link;
+
 	
 	template<typename S>
 	class Link<S,1> {
@@ -80,12 +59,13 @@ namespace ben {
 	*/	
 	private:
 		typedef Frame<S> frame_type;
-		
 		std::atomic<frame_type> data;
-		//std::atomic<int> test_atomic;
-	
+		
 	public:
 		typedef S signal_type;
+		static_assert(std::is_default_constructible<signal_type>::value, 
+			      "signals should be default-constructible"); 
+
 		Link() noexcept : data({false, signal_type()}) {} 
 		~Link() noexcept = default;
 		
@@ -107,6 +87,9 @@ namespace ben {
 	class Link {
 	public:
 		typedef S signal_type;
+		static_assert(std::is_default_constructible<signal_type>::value, 
+			      "signals should be default-constructible"); 
+
 	private:
 		typedef Frame<S> frame_type;
 		
@@ -143,7 +126,7 @@ namespace ben {
 	
 	
 	template<typename S>
-	class Link<S,2> : public LinkBase<S> {
+	class Link<S,2> {
 	/*
 		A link with a two-element buffer.
 	*/	
@@ -151,7 +134,9 @@ namespace ben {
 		typedef S signal_type;
 	private:
 		typedef Frame<S> frame_type;
-	
+		static_assert(std::is_default_constructible<signal_type>::value, 
+			      "signals should be default-constructible"); 
+
 		Link<S,1> next;
 		frame_type buffer;
 	

@@ -28,22 +28,12 @@ namespace ben {
 	
 	class Singleton;
 
+/* An IndexBase, like a Singleton, is not meant to be instantiated. Unlike a Singleton, only the Index
+ * class template should inherit from it. IndexBase encapsulates a map to match IDs to Singleton pointers,
+ * like a directory. Like all of the high-level objects in Benoit, IndexBase has identity semantics and 
+ * cannot be copied. Inheriting from Commons provides readers/writer locking.
+ */
 	class IndexBase : public wayne::Commons {
-	/*
-		IndexBase keeps track of Singleton pointers by the IDs of those Singletons. Most
-		of its members are protected here and then hidden by Index<>. IndexBase is not meant
-		to be instantiated except as a base class of Index<>. 
-		
-		Some of the methods (check, contains) are implemented here because their behavior and 
-		interface would not conceivably change for more specialized Index-Singleton abstractions. 
-		Others (add, remove, clear) are left open for redefinition, but provide default 
-		implementations. In most cases, these default implementations should be called by their
-		replacements, because the Singleton-tracking behavior is meant to be encapsulated by 
-		IndexBase. 
-		
-		As a global data structure that may be accessed in multiple threads, IndexBase inherits
-		from wayne::Commons to provide readers/writer locking. 
-	*/
 	public: 
 		typedef unsigned int id_type;
 		friend class Singleton;

@@ -26,16 +26,14 @@
 #include "Index.h"
 
 namespace ben {
-	/*
-		Graph is the manager of a distributed directed graph consisting of the Nodes and Links that connect
-		them. As an Index, it does not own the Nodes (or it would not be a distributed structure). 
-		
-		Nodes may not be connected between Indicies. When an individual Node is moved, all Links must be cleared from it. 
-		Indicies may be swapped or merged, in which cases the Links between Nodes are preserved.  
-		
-		See Index and IndexBase for more information. 
-	*/
-	
+/* Graph is the manager of a distributed directed graph consisting of the Nodes and Links that connect
+ * them. As an Index, it does not own the Nodes (or it would not be a distributed structure). 
+ *
+ * Nodes may not be connected between Indicies. When an individual Node is moved, all Links must be cleared from it. 
+ * Indicies may be swapped or merged, in which cases the Links between Nodes are preserved. 
+ *
+ * See Index and IndexBase for more information. Graph adds very little to these base classes. 
+ */	
 	template<typename N> 
 	struct Graph : public Index<N> {
 		typedef N 	node_type;
@@ -61,14 +59,13 @@ namespace ben {
 	
 	template<typename N>
 	Graph<N>::~Graph() { 
-		for(node_type& x : *this) 
-			x.clear(); 
+		for(node_type& x : *this) x.clear(); //this->clear is called higher up the inheritance tree
 	}
 	
 	template<typename N> 
 	bool Graph<N>::remove(const id_type address) {
 		auto iter = this->find(address);
-		if(iter != base_type::end()) iter->clear();
+		if(iter != base_type::end()) iter->clear(); //break links with the rest of the graph
 		else return false;
 		
 		base_type::remove(address);
@@ -77,6 +74,7 @@ namespace ben {
 	
 	template<typename N>
 	void Graph<N>::clear() {
+	//since all Nodes become unmanaged, all links must be deleted
 		for(node_type& x : *this) x.clear();
 		base_type::clear();
 	}

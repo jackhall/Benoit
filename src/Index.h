@@ -26,18 +26,20 @@
 #include "IndexBase.h"
 
 namespace ben {
-	/*
-		Index is a layer between IndexBase and any client code that provides a type-safe interface
-		specific to the type of Singleton it tracks. This way IndexBase can be reused without 
-		requiring client code to violate type safety. The interface of Index is designed to look like
-		an STL interface, complete with iterators and add, empty, size and find methods. I use "remove"
-		instead of "erase" because the Singleton's destructor is not called. The swap_with and merge_into
-		methods are not required for completeness, but should be convenient. 
-		
-		Index has access to the machinery of IndexBase, but hides it from any further-derived children
-		to protect the encapsulation of IndexBase. 
-	*/
-
+/* Index is a layer between IndexBase and any client code that provides a type-safe interface
+ * specific to the type of Singleton it tracks. Static casting allows the general-purpose interface to
+ * be adapted for any derived type of Singleton-Index abstraction. This way IndexBase can be reused without 
+ * requiring client code to violate type safety. The interface of Index is designed to look like
+ * an STL interface, complete with iterators and add, empty, size and find methods. I use "remove"
+ * instead of "erase" because the Singleton's destructor is not called. The swap_with and merge_into
+ * methods are not required for completeness, but should be convenient. 
+ *
+ * Index has access to the machinery of IndexBase, but hides it from any further-derived children
+ * to protect the encapsulation of IndexBase. Semantics are based on identity, not value, so no copying is
+ * allowed, although moves are. 
+ *
+ * Because IndexBase is now based on std::unordered_map, only forward iterators are provided.
+ */
 	template<typename S>
 	class Index : public IndexBase {
 	private:
@@ -65,14 +67,14 @@ namespace ben {
 		
 		iterator find(const id_type address) { return iterator( index.find(address) ); }
 		const_iterator find(const id_type address) const { return const_iterator( index.find(address) ); }
-		singleton_type& elem(const id_type address) const; //throw if address does not exist?
+		singleton_type& elem(const id_type address) const; //throw an exception if address does not exist?
 		bool check(const id_type address, const singleton_type* local_ptr) const 
 			{ return base_type::check(address, local_ptr); }
 		bool empty() const { return index.empty(); }
 		
 		virtual bool add(singleton_type& x) { return base_type::add(x); }
-		using base_type::remove;
-		using base_type::clear;
+		using base_type::remove;//this is virtual
+		using base_type::clear;//this is virtual
 		size_type size() { return index.size(); }
 		
 		virtual bool merge_into(self_type& other) { return base_type::merge_into(other); }
@@ -81,7 +83,6 @@ namespace ben {
 		iterator end()   { return iterator( index.end() ); }
 		const_iterator begin() const { return const_iterator( index.begin() ); }
 		const_iterator end() const   { return const_iterator( index.end() ); }
-		
 	}; //class Index
 	
 	
@@ -115,12 +116,6 @@ namespace ben {
 			++current;
 			return temp;
 		}
-		//const_iterator& operator--() { --current; return *this; }
-		//const_iterator  operator--(int) {
-		//	auto temp = current;
-		//	--current;
-		//	return temp;
-		//}
 		
 		bool operator==(const const_iterator& rhs) const
 			{ return current==rhs.current; }
@@ -150,12 +145,6 @@ namespace ben {
 			++current;
 			return temp;
 		}
-		//iterator& operator--() { const_iterator::operator--(); }
-		//iterator  operator--(int) {
-		//	auto temp = current;
-		//	--current;
-		//	return temp;
-		//}
 	}; //class iterator
 
 	template<typename U>
@@ -166,6 +155,7 @@ namespace ben {
 
 	template<typename S>
 	typename Index<S>::singleton_type& Index<S>::elem(const typename Index<S>::id_type address) const {
+		//this is not safe to use unless you already know that address exists in this index
 		auto iter = index.find(address);
 		return *static_cast<singleton_type*>(iter->second);
 	}

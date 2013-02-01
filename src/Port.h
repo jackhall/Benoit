@@ -25,28 +25,16 @@
 
 namespace ben {
 	
-	/*
-		Wraps and manages a link. Port cannot be instantiated, but each
-		InPort and Output should be instantiated as a pair with a port of
-		the complementary type. 
-		
-		For interoperability with the rest of Benoit, every Port type should 
-		provide:
-			link_type, value_type, signal_type, and id_type typedefs
-			get_value, set_value and is_ready() methods
-			construction from a link_type pointer and an integer
-			move constructor and assignment operator
-			input port:
-				source() and pull() methods
-			output port:
-				target() and push() methods
-			operator< to sort by ID
-			
-		The default implementations of the Port classes provide simple pass-throughs
-		for Link method calls. More complex implementations could be written to store
-		extra data, check validity of pull operations or deal with custom Link classes
-		in a special way. 
-	*/
+/* Both the user and Node use port objects to handle Links. Ports serve two main 
+ * purposes. The first is to abstract away Link handling from Nodes, making both
+ * classes easier to maintain. The second is to enforce the directedness of a link
+ * by only allowing outputs to push data and inputs to pull. 
+ *
+ * These default implementations of the Port classes provide simple pass-throughs 
+ * for Link method calls. More complex implementations could be written to store
+ * extra data, check validity of pull operations or deal with custom Link classes
+ * in a special way. 
+ */
 	
 	template<typename L, typename I=unsigned int>
 	class Port {
@@ -56,7 +44,7 @@ namespace ben {
 		typedef I 			id_type;
 	
 	protected:
-		std::shared_ptr<link_type> link_ptr;
+		std::shared_ptr<link_type> link_ptr;//reference-counted smart pointer
 		Port(link_type* ptr) : link_ptr(ptr) {}
 		
 		Port() = delete;
@@ -135,7 +123,7 @@ namespace ben {
 	
 		OutPort(id_type nTarget) : base_type(new link_type()), targetID(nTarget) {}
 		OutPort(const complement_type& other, id_type nTarget) : base_type(other), targetID(nTarget) {}
-		OutPort(const self_type& rhs) : base_type(rhs), targetID(rhs.targetID) {} //does Node need this?
+		OutPort(const self_type& rhs) : base_type(rhs), targetID(rhs.targetID) {}
 		OutPort(self_type&& rhs) : base_type( std::move(rhs) ), targetID(rhs.targetID) {}
 		OutPort& operator=(const self_type& rhs) {
 			if(this != &rhs) {

@@ -31,33 +31,18 @@
 #include "Port.h"
 
 namespace ben {	
-	/*
-		Overview needs major updates!
-	
-		A Node is the vertex of a distributed directed graph structure. Each is managed by an Index, 
-		but it is designed to be owned by any object the programmer wishes. The Nodes are connected by 
-		Links, which are owned by the Node to which they are inputs. Links are not visible to the user; 
-		they are accessed via input_port and output_port. These port objects are part bidirectional 
-		iterator, part stream, and are used with operators only. An owning object treats the Node as a 
-		message passer; handling the Links is abstracted away. 
-		
-		The owned (input) Links are stored in a linked list so as to avoid copying the Link objects.
-		Because Nodes also store pointers to each output Link, copying a Link would mean updating this
-		pointer. The output Link pointers are stored in a vector. Using vector helps the compiler cache-
-		optimize access to a Link from the Link's origin. Any access to a Link from either the origin 
-		or target Node should only require one layer of indirection, not counting the (hopefully)
-		cache-optimized vector access. 
-		
-		Managing owned Nodes is done via public member functions, while managing output Node pointers is
-		done with private members. These private members are primarily used by the Links to manage their 
-		own pointers, so the Link ctors and dtor must be friended. 
-		
-		Node will be managed by a static Index member by default. It also has a static integer member to
-		ensure that Node IDs are unique. 
-		
-		Each Node will have a mutex member when multithreading is implemented.
-	*/
-	
+/* A Node is the vertex of a distributed directed graph structure. Each is managed by an Index, 
+ * but it is designed to be owned by any object the programmer wishes. The Nodes are connected by 
+ * Links, which are abstracted away through Ports. These port objects are accessed by bidirectional 
+ * iterators. Would there be problems treating them as streams? An owning object treats the Node as a 
+ * message passer; handling the Links is abstracted away from the user as well.
+ *
+ * Ports are stored in vectors for good cache optimization; copying them is designed to be cheap. There
+ * are two layers of indirection between a Node and its links: one to access ports in their vector, and
+ * one to dereference the shared_ptr in each link. The first is necessary because the number of links
+ * can't be known at compile-time, and the second because if links are actually stored in a Node, 
+ * thread safety is impossible. 
+ */
 	template<typename I, typename O>
 	class Node : public Singleton { 
 	public:
@@ -72,6 +57,8 @@ namespace ben {
 		typedef Node 		self_type;
 		typedef Singleton 	base_type;
 	
+		//Benoit would probably not compile anyway, but these assertions should
+		//make debugging easier
 		static_assert(std::is_same<id_type, typename I::id_type>::value, 
 			      "Index and Port unique ID types don't match");
 		static_assert(std::is_same<I, typename O::complement_type>::value,
@@ -139,7 +126,7 @@ namespace ben {
 		input_iterator  iend() 	 { return inputs.end(); }
 		output_iterator obegin() { return outputs.begin(); }
 		output_iterator oend() 	 { return outputs.end(); }
-		
+		//is there a way to provide begin() and end() compatible with range-based for loops?
 	}; //Node
 	
 	//typedef to hide default Port and Link choices
@@ -167,6 +154,7 @@ namespace ben {
 	
 	template<typename I, typename O>
 	bool Node<I,O>::clone_links(const self_type& other) {
+	//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
 		if(&(get_index()) == &(other.get_index())) {
 			clear();
 			id_type currentID;
@@ -185,6 +173,10 @@ namespace ben {
 
 	template<typename I, typename O>	
 	void Node<I,O>::clean_up_input(const typename Node<I,O>::id_type address) { 
+		//Since the cleanup methods are called by remove, delegating doesn't work.
+		//The possibility of copying ports means that reference counting the links
+		//does not necessarily work for identifying ghost links. Would there be a
+		//performance hit for using weak_ptr in the copies? Is this safe?
 		auto iter = find_input(address);
 		if(iter != iend()) inputs.erase(iter);
 	}
