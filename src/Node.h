@@ -47,8 +47,8 @@ namespace ben {
 	class Node : public Singleton { 
 	public:
 		typedef Graph<Node> 		index_type;
-		typedef I 			input_port_type;
-		typedef O 			output_port_type;
+		typedef I 			input_type;
+		typedef O 			output_type;
 		typedef typename std::vector<I>::iterator input_iterator;
 		typedef typename std::vector<O>::iterator output_iterator;
 		typedef typename I::signal_type	signal_type;
@@ -70,8 +70,8 @@ namespace ben {
 		static_assert(std::is_same<typename I::id_type, typename O::id_type>::value, 
 			      "Ports using different unique ID types");
 	
-		std::vector<input_port_type> inputs; 
-		std::vector<output_port_type> outputs;
+		std::vector<input_type> inputs; 
+		std::vector<output_type> outputs;
 		//std::mutex node_mutex;
 		
 		void clean_up_input(const id_type address);
@@ -158,12 +158,12 @@ namespace ben {
 		if(&(get_index()) == &(other.get_index())) {
 			clear();
 			id_type currentID;
-			for(const input_port_type& x : other.inputs) {
+			for(const input_type& x : other.inputs) {
 				currentID = x.source();
 				if(currentID != ID()) add_input(currentID);
 			}
 		
-			for(const output_port_type& x : other.outputs) {
+			for(const output_type& x : other.outputs) {
 				currentID = x.target();
 				if(currentID != ID()) add_output(currentID);
 			}
@@ -209,8 +209,8 @@ namespace ben {
 	bool Node<I,O>::add_input(const id_type address) {
 		if( get_index().contains(address) ) {
 			if( contains_input(address) ) return false;
-			inputs.push_back( input_port_type(address) );
-			get_index().elem(address).outputs.push_back( output_port_type(inputs.back(), ID()) );
+			inputs.push_back( input_type(address) );
+			get_index().elem(address).outputs.push_back( output_type(inputs.back(), ID()) );
 			return true;
 		} else return false;
 	}
@@ -219,8 +219,8 @@ namespace ben {
 	bool Node<I,O>::add_output(const id_type address) {
 		if( get_index().contains(address) ) {
 			if( contains_output(address) ) return false;
-			outputs.push_back( output_port_type(address) );
-			get_index().elem(address).inputs.push_back( input_port_type(outputs.back(), ID()) );
+			outputs.push_back( output_type(address) );
+			get_index().elem(address).inputs.push_back( input_type(outputs.back(), ID()) );
 			return true;
 		} else return false;
 	}
@@ -253,13 +253,13 @@ namespace ben {
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_inputs() {
-		for(input_port_type& x : inputs) get_index().elem(x.source()).clean_up_output(ID());
+		for(input_type& x : inputs) get_index().elem(x.source()).clean_up_output(ID());
 		inputs.clear();
 	}
 	
 	template<typename I, typename O>
 	void Node<I,O>::clear_outputs() {
-		for(output_port_type& x : outputs) get_index().elem(x.target()).clean_up_input(ID());
+		for(output_type& x : outputs) get_index().elem(x.target()).clean_up_input(ID());
 		outputs.clear();
 	}
 	
