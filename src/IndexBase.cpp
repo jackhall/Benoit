@@ -51,9 +51,9 @@ namespace ben {
 	//begins tracking x, removing it from its existing Index if necessary
 	//returns false if this Index is already tracking a Singleton with x's ID, true otherwise
 		if( index.insert(std::make_pair(x.ID(), &x)).second ) {
-			if(!x.managed()) x.update_index(this);
+			if(!x.is_managed()) x.update_index(this);
 			else {
-				if(!x.managed_by(*this)) {
+				if(!x.is_managed_by(*this)) {
 					x.index->remove(x.ID());
 					x.update_index(this);
 				}
@@ -68,7 +68,7 @@ namespace ben {
 	//returns false it this Index is not tracking a Singleton with ID=address, true otherwise
 		auto iter = index.find(address);
 		if( iter != index.end() ) { 
-			if(iter->second->managed_by(*this)) iter->second->update_index(nullptr); 
+			if(iter->second->is_managed_by(*this)) iter->second->update_index(nullptr); 
 			index.erase(iter);
 			return true;
 		} else return false;

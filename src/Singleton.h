@@ -54,8 +54,6 @@ namespace ben {
 	protected:
 		friend class IndexBase; 
 	
-		bool switch_index(index_type* ptr) { return ptr->add(*this); } //should be hidden by children
-		
 		Singleton(const id_type id=get_new_ID())
 			: uniqueID(id), index(nullptr) {}
 		Singleton(index_type& x, const id_type id=get_new_ID()) 
@@ -79,9 +77,9 @@ namespace ben {
 			return *this;
 		}
 		virtual ~Singleton() { if(managed()) index->remove(uniqueID); }
-		
-		bool managed() const { return index != nullptr; }
-		bool managed_by(const index_type& x) const { return index == &x; }
+	
+		bool is_managed() const { return index != nullptr; }
+		bool is_managed_by(const index_type& x) const { return index == &x; }
 		id_type ID() const { return uniqueID; }
 		//resetID method? not for now
 		const index_type& get_index() const { return *index; }

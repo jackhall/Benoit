@@ -1,5 +1,5 @@
-#ifndef BenoitNode_h
-#define BenoitNode_h
+#ifndef BenoitUndirectedNode_h
+#define BenoitUndirectedNode_h
 
 /*
     Benoit: a flexible framework for distributed graphs and spaces
@@ -21,6 +21,9 @@
     e-mail: jackwhall7@gmail.com
 */
 
+#include <vector>
+#include "Path.h"
+
 namespace ben {
 	
 	template<typename V>
@@ -28,49 +31,72 @@ namespace ben {
 	private:
 		typedef UndirectedNode self_type;
 		typedef Singleton base_type;
-		
-		struct PairedLink; //should not be exposed
 	
 	public:
 		typedef Graph<UndirectedNode> index_type;
 		typedef V value_type;
-		typedef typename std::vector<PairedLink>::iterator iterator; //need custom iterator
+		typedef Path<value_type> link_type;
+		typedef typename std::vector<link_type>::iterator iterator; 
 		
 	private:
-		std::vector<PairedLink> links;
+		std::vector<link_type> links;
 		
-		void add(const id_type address, const PairedLink& x); //not implemented
-		bool clone_links(const self_type& other); //not implemented
-		bool clean_up(const id_type address); //not implemented
+		void clean_up(const id_type address); 
 	
 	public:
 		iterator find(const id_type address); //not implemented
 	
 		bool add(const id_type address, const value_type value); //not implemented
-		void remove(const iterator iter) { links.erase(iter); }
+		bool clone_links(const self_type& other); //not implemented
+		void remove(const iterator iter);
 		void remove(const id_type address) { remove(find(address)); }
-		void clear() { links.clear(); }
+		void clear();
 		
 		size_t size() const { return links.size(); }
+
+		bool contains(const id_type address) const { return links.end() != find(address); }
 		
+		self_type& walk(const iterator iter) const { return get_index().elem(iter->get_address()); }
 		iterator begin() { return links.begin(); }
 		iterator end() { return links.end(); }
-		
 	}; //class UndirectedNode
-	
-	
-	template<typename V>
-	struct UndirectedNode<V>::PairedLink {
-		shared_ptr<value_type> ptr; 
-		id_type otherID;
-	}; //struct PairedLink
+
 	
 	template<typename V>
-	struct UndirectedNode<V[]>::PairedLink {
-		shared_ptr<value_type[]> ptr; //use templates to specialize for array types
-		id_type otherID;
-	}; //struct PairedLink, array specialization
-} 
+	void UndirectedNode<V>::clean_up(const id_type address) {
+		auto iter = find(address);
+		if(iter != end()) links.erase(iter);
+	}
+
+	template<typename V>
+	typename UndirectedNode<V>::iterator UndirectedNode<V>::find(const id_type address) {
+		auto it = begin();
+		for(auto ite=end(); it!=ite; ++it) 
+			if(it->get_address() == address) break;
+		return it;
+	}
+
+	template<typename V>
+	bool UndirectedNode<V>::add(const typename UndirectedNode<V>::id_type address) {
+		
+	}
+
+	template<typename V>
+	bool UndirectedNode<V>::clone_links(const self_type& other) {
+
+	}
+
+	template<typename V>
+	void UndirectedNode<V>::remove(const iterator iter) {
+
+	}
+
+	template<typename V>
+	void UndirectedNode<V>::clear() {
+
+	}
+
+} //namespace ben
 
 #endif
 

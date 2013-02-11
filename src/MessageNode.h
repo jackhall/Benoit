@@ -1,5 +1,5 @@
-#ifndef BenoitNode_h
-#define BenoitNode_h
+#ifndef BenoitMessageNode_h
+#define BenoitMessageNode_h
 
 /*
     Benoit: a flexible framework for distributed graphs and spaces
@@ -31,22 +31,22 @@
 #include "Port.h"
 
 namespace ben {	
-/* A Node is the vertex of a distributed directed graph structure. Each is managed by an Index, 
- * but it is designed to be owned by any object the programmer wishes. The Nodes are connected by 
+/* A MessageNode is the vertex of a distributed directed graph structure. Each is managed by an Index, 
+ * but it is designed to be owned by any object the programmer wishes. The MessageNodes are connected by 
  * Links, which are abstracted away through Ports. These port objects are accessed by bidirectional 
- * iterators. Would there be problems treating them as streams? An owning object treats the Node as a 
+ * iterators. Would there be problems treating them as streams? An owning object treats the MessageNode as a 
  * message passer; handling the Links is abstracted away from the user as well.
  *
  * Ports are stored in vectors for good cache optimization; copying them is designed to be cheap. There
- * are two layers of indirection between a Node and its links: one to access ports in their vector, and
+ * are two layers of indirection between a MessageNode and its links: one to access ports in their vector, and
  * one to dereference the shared_ptr in each link. The first is necessary because the number of links
- * can't be known at compile-time, and the second because if links are actually stored in a Node, 
+ * can't be known at compile-time, and the second because if links are actually stored in a MessageNode, 
  * thread safety is impossible. 
  */
 	template<typename I, typename O>
-	class Node : public Singleton { 
+	class MessageNode : public Singleton { 
 	public:
-		typedef Graph<Node> 		index_type;
+		typedef Graph<MessageNode> 	index_type;
 		typedef I 			input_type;
 		typedef O 			output_type;
 		typedef typename std::vector<I>::iterator input_iterator;
@@ -54,7 +54,7 @@ namespace ben {
 		typedef typename I::signal_type	signal_type;
 		
 	private:
-		typedef Node 		self_type;
+		typedef MessageNode 	self_type;
 		typedef Singleton 	base_type;
 	
 		//Benoit would probably not compile anyway, but these assertions should
@@ -78,15 +78,15 @@ namespace ben {
 		void clean_up_output(const id_type address);
 		
 	public:
-		Node() = default;
-		explicit Node(const id_type id) : base_type(id) {}
-		explicit Node(index_type& graph) : base_type(graph) {}
-		Node(index_type& graph, const id_type id) : base_type(graph, id) {}
-		Node(const self_type& rhs) = delete;
-		Node(self_type&& rhs); 
-		Node& operator=(const self_type& rhs) = delete;
-		Node& operator=(self_type&& rhs);
-		virtual ~Node(); 
+		MessageNode() = default;
+		explicit MessageNode(const id_type id) : base_type(id) {}
+		explicit MessageNode(index_type& graph) : base_type(graph) {}
+		MessageNode(index_type& graph, const id_type id) : base_type(graph, id) {}
+		MessageNode(const self_type& rhs) = delete;
+		MessageNode(self_type&& rhs); 
+		MessageNode& operator=(const self_type& rhs) = delete;
+		MessageNode& operator=(self_type&& rhs);
+		virtual ~MessageNode(); 
 		
 		//void lock() { node_mutex.lock(); }
 		//bool try_lock() { return node_mutex.try_lock(); }
@@ -95,7 +95,8 @@ namespace ben {
 		using base_type::ID;
 		const index_type& get_index() const 
 			{ return static_cast<const index_type&>(base_type::get_index()); }
-		bool is_managed() const { return base_type::managed(); }
+		using base_type::is_managed;
+		bool is_managed_by(const index_type& x) const { return base_type::is_managed_by(x); }
 
 		input_iterator  find_input(const id_type address);
 		output_iterator find_output(const id_type address);
@@ -127,20 +128,20 @@ namespace ben {
 		output_iterator obegin() { return outputs.begin(); }
 		output_iterator oend() 	 { return outputs.end(); }
 		//is there a way to provide begin() and end() compatible with range-based for loops?
-	}; //Node
+	}; //MessageNode
 	
 	//typedef to hide default Port and Link choices
 	template<typename S>
-	using stdNode = Node< InPort< Link<S,1> >, OutPort< Link<S,1> > >;
+	using stdMessageNode = MessageNode< InPort< Link<S,1> >, OutPort< Link<S,1> > >;
 	
 	//methods - constructors
 	template<typename I, typename O>
-	Node<I,O>::Node(Node&& rhs) : base_type( std::move(rhs) ), inputs( std::move(rhs.inputs) ), 
+	MessageNode<I,O>::MessageNode(MessageNode&& rhs) : base_type( std::move(rhs) ), inputs( std::move(rhs.inputs) ), 
 		  		      outputs( std::move(rhs.outputs) ) {}
 	
 	//methods - assignment
 	template<typename I, typename O>
-	Node<I,O>&  Node<I,O>::operator=(Node&& rhs) {
+	MessageNode<I,O>&  MessageNode<I,O>::operator=(MessageNode&& rhs) {
 		if(this != &rhs) {
 			base_type::operator=( std::move(rhs) );
 			inputs = std::move(rhs.inputs);
@@ -150,10 +151,10 @@ namespace ben {
 	
 	//methods - destructor
 	template<typename I, typename O>
-	Node<I,O>::~Node() { clear(); } //might want to lock the node while deleting links
+	MessageNode<I,O>::~MessageNode() { clear(); } //might want to lock the node while deleting links
 	
 	template<typename I, typename O>
-	bool Node<I,O>::clone_links(const self_type& other) {
+	bool MessageNode<I,O>::clone_links(const self_type& other) {
 	//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
 		if(&(get_index()) == &(other.get_index())) {
 			clear();
@@ -172,7 +173,7 @@ namespace ben {
 	}
 
 	template<typename I, typename O>	
-	void Node<I,O>::clean_up_input(const typename Node<I,O>::id_type address) { 
+	void MessageNode<I,O>::clean_up_input(const typename MessageNode<I,O>::id_type address) { 
 		//Since the cleanup methods are called by remove, delegating doesn't work.
 		//The possibility of copying ports means that reference counting the links
 		//does not necessarily work for identifying ghost links. Would there be a
@@ -182,13 +183,13 @@ namespace ben {
 	}
 
 	template<typename I, typename O>
-	void Node<I,O>::clean_up_output(const typename Node<I,O>::id_type address) { 
+	void MessageNode<I,O>::clean_up_output(const typename MessageNode<I,O>::id_type address) { 
 		auto iter = find_output(address);
 		if(iter != oend()) outputs.erase(iter);
 	}
 
 	template<typename I, typename O>
-	typename Node<I,O>::input_iterator Node<I,O>::find_input(const id_type address) {
+	typename MessageNode<I,O>::input_iterator MessageNode<I,O>::find_input(const id_type address) {
 		auto it = ibegin();
 		for(auto ite=iend(); it!=ite; ++it) 
 			if(it->source() == address) break;
@@ -197,7 +198,7 @@ namespace ben {
 	}
 	
 	template<typename I, typename O>
-	typename Node<I,O>::output_iterator Node<I,O>::find_output(const id_type address) {
+	typename MessageNode<I,O>::output_iterator MessageNode<I,O>::find_output(const id_type address) {
 		auto it = obegin();
 		for(auto ite=oend(); it!=ite; ++it) 
 			if(it->target() == address) break;
@@ -206,7 +207,7 @@ namespace ben {
 	}
 	
 	template<typename I, typename O>
-	bool Node<I,O>::add_input(const id_type address) {
+	bool MessageNode<I,O>::add_input(const id_type address) {
 		if( get_index().contains(address) ) {
 			if( contains_input(address) ) return false;
 			inputs.push_back( input_type(address) );
@@ -216,7 +217,7 @@ namespace ben {
 	}
 	
 	template<typename I, typename O>
-	bool Node<I,O>::add_output(const id_type address) {
+	bool MessageNode<I,O>::add_output(const id_type address) {
 		if( get_index().contains(address) ) {
 			if( contains_output(address) ) return false;
 			outputs.push_back( output_type(address) );
@@ -226,39 +227,39 @@ namespace ben {
 	}
 
 	template<typename I, typename O>
-	void Node<I,O>::remove_input(const id_type address) {
+	void MessageNode<I,O>::remove_input(const id_type address) {
 		auto iter = find_input(address);
 		if(iter != iend()) remove_input(iter);
 	}
 	
 	template<typename I, typename O>
-	void Node<I,O>::remove_input(const input_iterator iter) {
+	void MessageNode<I,O>::remove_input(const input_iterator iter) {
 		auto address = iter->source();
 		inputs.erase(iter);
 		get_index().elem(address).clean_up_output(ID());
 	}
 
 	template<typename I, typename O>
-	void Node<I,O>::remove_output(const id_type address) {
+	void MessageNode<I,O>::remove_output(const id_type address) {
 		auto iter = find_output(address);
 		if(iter != oend()) remove_output(iter);
 	}
 	
 	template<typename I, typename O>
-	void Node<I,O>::remove_output(const output_iterator iter) {
+	void MessageNode<I,O>::remove_output(const output_iterator iter) {
 		auto address = iter->target();
 		outputs.erase(iter);
 		get_index().elem(address).clean_up_input(ID());
 	}
 	
 	template<typename I, typename O>
-	void Node<I,O>::clear_inputs() {
+	void MessageNode<I,O>::clear_inputs() {
 		for(input_type& x : inputs) get_index().elem(x.source()).clean_up_output(ID());
 		inputs.clear();
 	}
 	
 	template<typename I, typename O>
-	void Node<I,O>::clear_outputs() {
+	void MessageNode<I,O>::clear_outputs() {
 		for(output_type& x : outputs) get_index().elem(x.target()).clean_up_input(ID());
 		outputs.clear();
 	}
