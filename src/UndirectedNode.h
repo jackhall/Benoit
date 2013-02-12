@@ -44,12 +44,12 @@ namespace ben {
 		void clean_up(const id_type address); 
 	
 	public:
-		iterator find(const id_type address); //not implemented
+		iterator find(const id_type address); 
 	
-		bool add(const id_type address, const value_type value); //not implemented
-		bool clone_links(const self_type& other); //not implemented
+		bool add(const id_type address, const value_type value); 
+		bool clone_links(const self_type& other); 
 		void remove(const iterator iter);
-		void remove(const id_type address) { remove(find(address)); }
+		void remove(const id_type address);
 		void clear();
 		
 		size_t size() const { return links.size(); }
@@ -77,23 +77,47 @@ namespace ben {
 	}
 
 	template<typename V>
-	bool UndirectedNode<V>::add(const typename UndirectedNode<V>::id_type address) {
-		
+	bool UndirectedNode<V>::add(const id_type address, const value_type v) {
+		if( get_index().contains(address) ) {
+			if( contains(address) ) return false;
+			links.push_back( link_type(address, v) );
+			get_index().elem(address).links.push_back( link_type(links.back(), ID()) );
+			return true;
+		} else return false;
 	}
 
 	template<typename V>
 	bool UndirectedNode<V>::clone_links(const self_type& other) {
+	//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
+		if( other.is_managed_by(get_index()) ) { 
+			clear();
+			id_type currentID;
+			for(const link_type& x : other.links) {
+				currentID = x.get_address();
+				if(currentID != ID()) add(currentID, x.get_value());
+			}
+			return true;
+		} else return false;
+	}
 
+	template<typename V>
+	void remove(const id_type address) {
+		auto iter = find(address);
+		if(iter != end()) remove(iter);
 	}
 
 	template<typename V>
 	void UndirectedNode<V>::remove(const iterator iter) {
+		auto address = iter->get_address();
+		links.erase(iter);
+		get_index().elem(address).clean_up(ID());
 
 	}
 
 	template<typename V>
 	void UndirectedNode<V>::clear() {
-
+		for(link_type& x : links) get_index().elem(x.get_address()).clean_up(ID());
+		links.clear();
 	}
 
 } //namespace ben
