@@ -37,8 +37,9 @@ namespace ben {
 	
 	public:
 		iterator find(const id_type address); 
-	
-		bool add(const id_type address, const value_type value); 
+
+		template<typename... Args>	
+		bool add(const id_type address, const Args... args); 
 		bool clone(const self_type& other); 
 		void remove(const iterator iter);
 		void remove(const id_type address);
@@ -52,32 +53,32 @@ namespace ben {
 	}; //class LinkManager
 
 	
-	template<typename V>
-	void LinkManager<V>::clean_up(const id_type address) {
+	template<typename P>
+	void LinkManager<P>::clean_up(const id_type address) {
 		auto iter = find(address);
 		if(iter != end()) links.erase(iter);
 	}
 
-	template<typename V>
-	typename LinkManager<V>::iterator LinkManager<V>::find(const id_type address) {
+	template<typename P>
+	typename LinkManager<P>::iterator LinkManager<P>::find(const id_type address) {
 		auto it = begin();
 		for(auto ite=end(); it!=ite; ++it) 
 			if(it->get_address() == address) break;
 		return it;
 	}
 
-	template<typename V>
-	bool LinkManager<V>::add(const id_type address, const value_type v) {
+	template<typename P>
+	bool LinkManager<P>::add(const id_type address, const Args... args) {
 		if( get_index().contains(address) ) {
 			if( contains(address) ) return false;
-			links.push_back( link_type(address, v) );
+			links.push_back( link_type(address, args) );
 			get_index().elem(address).links.push_back( link_type(links.back(), ID()) );
 			return true;
 		} else return false;
 	}
 
-	template<typename V>
-	bool LinkManager<V>::clone(const self_type& other) {
+	template<typename P>
+	bool LinkManager<P>::clone(const self_type& other) {
 	//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
 		if( other.is_managed_by(get_index()) ) { 
 			clear();
@@ -90,14 +91,14 @@ namespace ben {
 		} else return false;
 	}
 
-	template<typename V>
+	template<typename P>
 	void remove(const id_type address, complement_type& other) {
 		auto iter = find(address);
 		if(iter != end()) remove(iter, other);
 	}
 
-	template<typename V>
-	void LinkManager<V>::remove(const iterator iter, complement_type& other) {
+	template<typename P>
+	void LinkManager<P>::remove(const iterator iter, complement_type& other) {
 		auto address = iter->get_address();
 		links.erase(iter);
 		other.clean_up(ID());

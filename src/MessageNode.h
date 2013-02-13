@@ -27,15 +27,15 @@
 #include <atomic>
 #include <mutex>
 #include "Singleton.h"
-#include "Link.h"
+#include "Buffer.h"
 #include "Port.h"
 
 namespace ben {	
 /* A MessageNode is the vertex of a distributed directed graph structure. Each is managed by an Index, 
  * but it is designed to be owned by any object the programmer wishes. The MessageNodes are connected by 
- * Links, which are abstracted away through Ports. These port objects are accessed by bidirectional 
+ * Buffers, which are abstracted away through Ports. These port objects are accessed by bidirectional 
  * iterators. Would there be problems treating them as streams? An owning object treats the MessageNode as a 
- * message passer; handling the Links is abstracted away from the user as well.
+ * message passer; handling the Buffers is abstracted away from the user as well.
  *
  * Ports are stored in vectors for good cache optimization; copying them is designed to be cheap. There
  * are two layers of indirection between a MessageNode and its links: one to access ports in their vector, and
@@ -130,9 +130,9 @@ namespace ben {
 		//is there a way to provide begin() and end() compatible with range-based for loops?
 	}; //MessageNode
 	
-	//typedef to hide default Port and Link choices
+	//typedef to hide default Port and Buffer choices
 	template<typename S>
-	using stdMessageNode = MessageNode< InPort< Link<S,1> >, OutPort< Link<S,1> > >;
+	using stdMessageNode = MessageNode< InPort< Buffer<S,1> >, OutPort< Buffer<S,1> > >;
 	
 	//methods - constructors
 	template<typename I, typename O>

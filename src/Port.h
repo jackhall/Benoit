@@ -25,64 +25,64 @@
 
 namespace ben {
 	
-/* Both the user and Node use port objects to handle Links. Ports serve two main 
- * purposes. The first is to abstract away Link handling from Nodes, making both
+/* Both the user and Node use port objects to handle Buffers. Ports serve two main 
+ * purposes. The first is to abstract away Buffer handling from Nodes, making both
  * classes easier to maintain. The second is to enforce the directedness of a link
  * by only allowing outputs to push data and inputs to pull. 
  *
  * These default implementations of the Port classes provide simple pass-throughs 
- * for Link method calls. More complex implementations could be written to store
- * extra data, check validity of pull operations or deal with custom Link classes
+ * for Buffer method calls. More complex implementations could be written to store
+ * extra data, check validity of pull operations or deal with custom Buffer classes
  * in a special way. 
  */
 	
-	template<typename L, typename I=unsigned int>
+	template<typename B, typename I=unsigned int>
 	class Port {
 	public:
-		typedef L 			link_type;
-		typedef typename L::signal_type signal_type;
+		typedef B 			buffer_type;
+		typedef typename B::signal_type signal_type;
 		typedef I 			id_type;
 	
 	protected:
-		std::shared_ptr<link_type> link_ptr;//reference-counted smart pointer
-		Port(link_type* ptr) : link_ptr(ptr) {}
+		std::shared_ptr<buffer_type> buffer_ptr;//reference-counted smart pointer
+		Port(buffer_type* ptr) : buffer_ptr(ptr) {}
 		
 		Port() = delete;
-		Port(const Port& rhs) : link_ptr(rhs.link_ptr) {}
-		Port(Port&& rhs) : link_ptr( std::move(rhs.link_ptr) ) {}
-		Port& operator=(const Port& rhs) { link_ptr = rhs.link_ptr; return *this; }
+		Port(const Port& rhs) : buffer_ptr(rhs.buffer_ptr) {}
+		Port(Port&& rhs) : buffer_ptr( std::move(rhs.buffer_ptr) ) {}
+		Port& operator=(const Port& rhs) { buffer_ptr = rhs.buffer_ptr; return *this; }
 		Port& operator=(Port&& rhs) { 
 			//check for sameness would be redundant because Port
 			//assignment is only called by InPort or OutPort assignment
-			link_ptr = std::move( rhs.link_ptr );
+			buffer_ptr = std::move( rhs.buffer_ptr );
 			return *this;
 		}
 		virtual ~Port() = default;
 	
 	public:
-		inline bool is_ready() const { return link_ptr->is_ready(); }
-		inline bool is_ghost() const { return link_ptr.use_count() < 2; }
+		inline bool is_ready() const { return buffer_ptr->is_ready(); }
+		inline bool is_ghost() const { return buffer_ptr.use_count() < 2; }
 	}; //class Port
 	
 
-	template<typename L> class OutPort;
+	template<typename B> class OutPort;
 
-	template<typename L>
-	class InPort : public Port<L> {
+	template<typename B>
+	class InPort : public Port<B> {
 	private:
-		typedef Port<L> base_type;
+		typedef Port<B> base_type;
 		typedef InPort self_type;
-		using base_type::link_ptr;
+		using base_type::buffer_ptr;
 		
 	public:
 		typedef typename base_type::id_type id_type;
-		typedef typename L::signal_type signal_type;
-		typedef OutPort<L> complement_type;
-		typedef L link_type;
+		typedef typename B::signal_type signal_type;
+		typedef OutPort<B> complement_type;
+		typedef L buffer_type;
 	
 		id_type sourceID;
 	
-		InPort(id_type nSource) : base_type(new link_type()), sourceID(nSource) {}
+		InPort(id_type nSource) : base_type(new buffer_type()), sourceID(nSource) {}
 		InPort(const complement_type& other, id_type nSource) : base_type(other), sourceID(nSource) {}
 		InPort(const self_type& rhs) : base_type(rhs), sourceID(rhs.sourceID) {} //necessary for stl internals
 		InPort(self_type&& rhs) : base_type( std::move(rhs) ), sourceID(rhs.sourceID) {}
@@ -102,26 +102,26 @@ namespace ben {
 		}
 		
 		inline id_type source() const { return sourceID; }
-		inline signal_type pull() const { return link_ptr->pull(); }
+		inline signal_type pull() const { return buffer_ptr->pull(); }
 	}; //struct InPort
 	
 	
-	template<typename L>
-	class OutPort : public Port<L> {
+	template<typename B>
+	class OutPort : public Port<B> {
 	private:
-		typedef Port<L> base_type;
+		typedef Port<B> base_type;
 		typedef OutPort self_type;
-		using base_type::link_ptr;
+		using base_type::buffer_ptr;
 		
 	public:
 		typedef typename base_type::id_type id_type;
-		typedef typename L::signal_type signal_type;
-		typedef InPort<L> complement_type;
-		typedef L link_type;
+		typedef typename B::signal_type signal_type;
+		typedef InPort<B> complement_type;
+		typedef L buffer_type;
 		
 		id_type targetID;
 	
-		OutPort(id_type nTarget) : base_type(new link_type()), targetID(nTarget) {}
+		OutPort(id_type nTarget) : base_type(new buffer_type()), targetID(nTarget) {}
 		OutPort(const complement_type& other, id_type nTarget) : base_type(other), targetID(nTarget) {}
 		OutPort(const self_type& rhs) : base_type(rhs), targetID(rhs.targetID) {}
 		OutPort(self_type&& rhs) : base_type( std::move(rhs) ), targetID(rhs.targetID) {}
@@ -141,7 +141,7 @@ namespace ben {
 		}
 		
 		inline id_type target() const { return targetID; }
-		inline bool push(const signal_type& signal) { return link_ptr->push(signal); } //take another look at const requirements
+		inline bool push(const signal_type& signal) { return buffer_ptr->push(signal); } //take another look at const requirements
 	}; //struct OutPort
 
 } //namespace ben
