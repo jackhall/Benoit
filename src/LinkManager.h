@@ -43,29 +43,58 @@ namespace ben {
 		
 	private:
 		typedef LinkManagerHelper self_type;
-		id_type nodeID;
 		std::vector<link_type> links;
-		void clean_up(const id_type address); 
+		void clean_up(const id_type address) {
+			auto iter = find(address);
+			if(iter != end()) links.erase(iter);
+		}
 	
 	public:
-		LinkManagerHelper() = delete;
+		id_type nodeID;
+
+		LinkManagerHelper() = default;
 		LinkManagerHelper(const id_type id) : nodeID(id) {}
 		LinkManagerHelper(const self_type& rhs) = delete;
 		self_type& operator=(const self_type& rhs) = delete;
+		LinkManagerHelper(self_type&& rhs) : nodeID(rhs.nodeID), links(std::move(rhs.links)) {}
 		self_type& operator=(self_type&& rhs) {
 			if(this != &rhs) {
 				nodeID = rhs.nodeID;
 				links = std::move(rhs.links);
 			}
 		} 
-		LinkManagerHelper(self_type&& rhs) : nodeID(rhs.nodeID), links(std::move(rhs.links)) {}
 		~LinkManagerHelper() = default;
 
-		iterator find(const id_type address); 
+		iterator find(const id_type address) {
+			auto it = begin();
+			for(auto& x : *this)
+				if(it->get_address() == address) break;
+			return it;
+		}
 
-		bool add(complement_type& other, const id_type address, const ARGS... args); 
-		void remove(complement_type& other, const iterator iter);
-		void remove(complement_type& other, const id_type address);
+		bool add(complement_type& other, const id_type address, const ARGS... args) {
+			if( contains(address) ) return false;
+			links.push_back( link_type(address, args...) );
+			other.links.push_back( link_type(links.back(), nodeID) );
+			return true;
+		}
+
+		void add_clone_of(complement_type& other, link_type& x) {
+			links.push_back(x.clone());
+			other.links.push_back(link_type(links.back(), nodeID));
+		}
+
+		void remove(complement_type& other, const iterator iter) {
+			auto address = iter->get_address();
+			links.erase(iter);
+			other.clean_up(nodeID);
+		}
+
+		void remove(complement_type& other, const id_type address) {
+			auto iter = find(address);
+			if(iter != end()) remove(iter, other);
+		}
+
 		void clear() { links.clear(); } //does not clean up after links!
 		
 		size_t size() const { return links.size(); }
@@ -78,41 +107,6 @@ namespace ben {
 	//this alias significantly cleans up the interface, and makes it safer
 	template<typename P>
 	using LinkManager = LinkManagerHelper<P, typename P::construction_types>;
-	
-	template<typename P, typename... ARGS>
-	void LinkManager<P>::clean_up(const id_type address) {
-		auto iter = find(address);
-		if(iter != end()) links.erase(iter);
-	}
-
-	template<typename P, typename... ARGS>
-	typename LinkManager<P>::iterator LinkManager<P>::find(const id_type address) {
-		auto it = begin();
-		for(auto ite=end(); it!=ite; ++it) 
-			if(it->get_address() == address) break;
-		return it;
-	}
-
-	template<typename P, typename... ARGS>
-	bool LinkManager<P>::add(complement_type& other, const id_type address, const ARGS... args) { //should add have index access?
-		if( contains(address) ) return false;
-		links.push_back( link_type(address, args...) );
-		other.links.push_back( link_type(links.back(), ID()) );
-		return true;
-	}
-
-	template<typename P, typename... ARGS>
-	void remove(complement_type& other, const id_type address) {
-		auto iter = find(address);
-		if(iter != end()) remove(iter, other);
-	}
-
-	template<typename P, typename... ARGS>
-	void LinkManager<P>::remove(complement_type& other, const iterator iter) {
-		auto address = iter->get_address();
-		links.erase(iter);
-		other.clean_up(ID());
-	}
 
 } //namespace ben
 

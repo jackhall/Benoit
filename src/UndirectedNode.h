@@ -23,10 +23,11 @@
 
 #include <vector>
 #include "Path.h"
+#include "LinkManager.h"
 
 namespace ben {
 	
-	template<typename V>
+	template<typename P>
 	class UndirectedNode : public Singleton { 
 	private:
 		typedef UndirectedNode self_type;
@@ -34,14 +35,33 @@ namespace ben {
 	
 	public:
 		typedef Graph<UndirectedNode> index_type;
-		typedef V value_type;
-		typedef Path<value_type> link_type;
+		typedef P link_type;
 		typedef typename LinkManager<link_type>::iterator iterator; 
 		
 	private:
 		LinkManager<link_type> links;
 	
 	public:
+		UndirectedNode() = default;
+		explicit UndirectedNode(const id_type id) : base_type(id), links(id) {}
+		explicit UndirectedNode(index_type& graph) : base_type(graph) {}
+		UndirectedNode(index_type& graph, const id_type id) : base_type(graph, id), links(id) {}
+		UndirectedNode(const self_type& rhs) = delete;
+		UndirectedNode& operator=(const self_type& rhs) = delete;
+		UndirectedNode(self_type&& rhs) : base_type(std::move(rhs)), links(std::move(rhs.links)) {}
+		UndirectedNode& operator=(self_type&& rhs) {
+			if(this != &rhs) {
+				base_type::operator=(std::move(rhs));
+				links = std::move(rhs.links);
+			}
+		}
+		virtual ~UndirectedNode() { clear(); } //might want to lock while deleting links
+
+		using base_type::ID;
+		const index_type& get_index() const 
+			{ return static_cast<const index_type&>(base_type::get_index()); }
+		using base_type::is_managed;
+		bool is_managed_by(const index_type& x) const { return base_type::is_managed_by(x); }
 		iterator find(const id_type address) { return links.find(address); } 
 
 		template<typename... Args>
@@ -58,9 +78,12 @@ namespace ben {
 			if( other.is_managed_by(get_index()) ) { 
 				clear();
 				id_type currentID;
-				for(const link_type& x : other.links) {
+				for(const auto& x : other.links) {
 					currentID = x.get_address();
-					if(currentID != ID()) add(currentID, x.get_value());
+					if(currentID != ID()) {	
+						auto& target = get_index().elem(currentID).links;
+						links.add_clone_of(target, x)
+					}
 				}
 				return true;
 			} else return false;
@@ -77,7 +100,7 @@ namespace ben {
 		}
 
 		void clear() {
-			for(link_type& x : links) get_index().elem(x.get_address()).links.clean_up(ID());
+			for(auto& x : links) get_index().elem(x.get_address()).links.clean_up(ID());
 			links.clear();
 		}
 		
@@ -89,6 +112,9 @@ namespace ben {
 		iterator begin() { return links.begin(); }
 		iterator end() { return links.end(); }
 	}; //class UndirectedNode
+
+	template<typename V>
+	using stdUndirectedNode = UndirectedNode< Path<V> >;
 
 } //namespace ben
 
