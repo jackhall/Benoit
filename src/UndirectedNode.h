@@ -36,89 +36,59 @@ namespace ben {
 		typedef Graph<UndirectedNode> index_type;
 		typedef V value_type;
 		typedef Path<value_type> link_type;
-		typedef typename std::vector<link_type>::iterator iterator; 
+		typedef typename LinkManager<link_type>::iterator iterator; 
 		
 	private:
-		std::vector<link_type> links;
-		
-		void clean_up(const id_type address); 
+		LinkManager<link_type> links;
 	
 	public:
-		iterator find(const id_type address); 
+		iterator find(const id_type address) { return links.find(address); } 
+
+		template<typename... Args>
+		bool add(const id_type address, Args... args) {
+			static_assert(std::is_same< typename link_type::construction_types, ConstructionTypes<Args...> >::value,
+					"extra arguments for UndirectedNode::add must match link_type::construction_types");
+			auto node_iter = get_index().find(address);
+			if(node_iter != get_index().end()) return links.add(node_iter->links, address, args...);
+			else return false;
+		}
 	
-		bool add(const id_type address, const value_type value); 
-		bool clone_links(const self_type& other); 
-		void remove(const iterator iter);
-		void remove(const id_type address);
-		void clear();
+		bool clone_links(const self_type& other) { //need a way to clone links
+			//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
+			if( other.is_managed_by(get_index()) ) { 
+				clear();
+				id_type currentID;
+				for(const link_type& x : other.links) {
+					currentID = x.get_address();
+					if(currentID != ID()) add(currentID, x.get_value());
+				}
+				return true;
+			} else return false;
+		}
+
+		void remove(const iterator iter) {
+			auto node_iter = get_index.find(iter->get_address());
+			links.remove(node_iter->links, iter);
+		}
+
+		void remove(const id_type address) {
+			auto iter = find(address);
+			if(iter != end()) remove(iter);
+		}
+
+		void clear() {
+			for(link_type& x : links) get_index().elem(x.get_address()).links.clean_up(ID());
+			links.clear();
+		}
 		
 		size_t size() const { return links.size(); }
 
-		bool contains(const id_type address) const { return links.end() != find(address); }
+		bool contains(const id_type address) const { return links.contains(address); }
 		
 		self_type& walk(const iterator iter) const { return get_index().elem(iter->get_address()); }
 		iterator begin() { return links.begin(); }
 		iterator end() { return links.end(); }
 	}; //class UndirectedNode
-
-	
-	template<typename V>
-	void UndirectedNode<V>::clean_up(const id_type address) {
-		auto iter = find(address);
-		if(iter != end()) links.erase(iter);
-	}
-
-	template<typename V>
-	typename UndirectedNode<V>::iterator UndirectedNode<V>::find(const id_type address) {
-		auto it = begin();
-		for(auto ite=end(); it!=ite; ++it) 
-			if(it->get_address() == address) break;
-		return it;
-	}
-
-	template<typename V>
-	bool UndirectedNode<V>::add(const id_type address, const value_type v) {
-		if( get_index().contains(address) ) {
-			if( contains(address) ) return false;
-			links.push_back( link_type(address, v) );
-			get_index().elem(address).links.push_back( link_type(links.back(), ID()) );
-			return true;
-		} else return false;
-	}
-
-	template<typename V>
-	bool UndirectedNode<V>::clone_links(const self_type& other) {
-	//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
-		if( other.is_managed_by(get_index()) ) { 
-			clear();
-			id_type currentID;
-			for(const link_type& x : other.links) {
-				currentID = x.get_address();
-				if(currentID != ID()) add(currentID, x.get_value());
-			}
-			return true;
-		} else return false;
-	}
-
-	template<typename V>
-	void remove(const id_type address) {
-		auto iter = find(address);
-		if(iter != end()) remove(iter);
-	}
-
-	template<typename V>
-	void UndirectedNode<V>::remove(const iterator iter) {
-		auto address = iter->get_address();
-		links.erase(iter);
-		get_index().elem(address).clean_up(ID());
-
-	}
-
-	template<typename V>
-	void UndirectedNode<V>::clear() {
-		for(link_type& x : links) get_index().elem(x.get_address()).clean_up(ID());
-		links.clear();
-	}
 
 } //namespace ben
 

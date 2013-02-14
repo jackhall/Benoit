@@ -43,17 +43,30 @@ namespace ben {
 		
 	private:
 		typedef LinkManagerHelper self_type;
+		id_type nodeID;
 		std::vector<link_type> links;
 		void clean_up(const id_type address); 
 	
 	public:
+		LinkManagerHelper() = delete;
+		LinkManagerHelper(const id_type id) : nodeID(id) {}
+		LinkManagerHelper(const self_type& rhs) = delete;
+		self_type& operator=(const self_type& rhs) = delete;
+		self_type& operator=(self_type&& rhs) {
+			if(this != &rhs) {
+				nodeID = rhs.nodeID;
+				links = std::move(rhs.links);
+			}
+		} 
+		LinkManagerHelper(self_type&& rhs) : nodeID(rhs.nodeID), links(std::move(rhs.links)) {}
+		~LinkManagerHelper() = default;
+
 		iterator find(const id_type address); 
 
-		bool add(const id_type address, const ARGS... args); 
-		bool clone(const self_type& other); 
-		void remove(const iterator iter, complement_type& other);
-		void remove(const id_type address, complement_type& other);
-		void clear() { links.clear(); }
+		bool add(complement_type& other, const id_type address, const ARGS... args); 
+		void remove(complement_type& other, const iterator iter);
+		void remove(complement_type& other, const id_type address);
+		void clear() { links.clear(); } //does not clean up after links!
 		
 		size_t size() const { return links.size(); }
 		bool contains(const id_type address) const { return links.end() != find(address); }
@@ -81,42 +94,25 @@ namespace ben {
 	}
 
 	template<typename P, typename... ARGS>
-	bool LinkManager<P>::add(const id_type address, const ARGS... args) { //should add have index access?
-		if( get_index().contains(address) ) {
-			if( contains(address) ) return false;
-			links.push_back( link_type(address, args...) );
-			get_index().elem(address).links.push_back( link_type(links.back(), ID()) );
-			return true;
-		} else return false;
+	bool LinkManager<P>::add(complement_type& other, const id_type address, const ARGS... args) { //should add have index access?
+		if( contains(address) ) return false;
+		links.push_back( link_type(address, args...) );
+		other.links.push_back( link_type(links.back(), ID()) );
+		return true;
 	}
 
 	template<typename P, typename... ARGS>
-	bool LinkManager<P>::clone(const self_type& other) { //how does clone know how to copy links?
-	//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
-		if( other.is_managed_by(get_index()) ) { 
-			clear();
-			id_type currentID;
-			for(const link_type& x : other) {
-				currentID = x.get_address();
-				if(currentID != ID()) add(currentID, x.get_value());
-			}
-			return true;
-		} else return false;
-	}
-
-	template<typename P, typename... ARGS>
-	void remove(const id_type address, complement_type& other) {
+	void remove(complement_type& other, const id_type address) {
 		auto iter = find(address);
 		if(iter != end()) remove(iter, other);
 	}
 
 	template<typename P, typename... ARGS>
-	void LinkManager<P>::remove(const iterator iter, complement_type& other) {
+	void LinkManager<P>::remove(complement_type& other, const iterator iter) {
 		auto address = iter->get_address();
 		links.erase(iter);
 		other.clean_up(ID());
 	}
-
 
 } //namespace ben
 
