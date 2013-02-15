@@ -28,6 +28,7 @@
 #include <mutex>
 #include "Singleton.h"
 #include "Buffer.h"
+#include "Path.h"
 #include "Port.h"
 #include "LinkManager.h"
 
@@ -195,7 +196,7 @@ namespace ben {
 		//other std::vector methods - assign, swap
 
 		self_type& walk(const input_iterator iter) { return get_index().elem(iter->get_address()); }//template this? const version?
-		self_Type& walk(const output_iterator iter) { return get_index().elem(iter->get_address()); }
+		self_type& walk(const output_iterator iter) { return get_index().elem(iter->get_address()); }
 		input_iterator  ibegin() { return inputs.begin(); }
 		input_iterator  iend() 	 { return inputs.end(); }
 		output_iterator obegin() { return outputs.begin(); }

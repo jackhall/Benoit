@@ -22,6 +22,8 @@
 */
 
 #include <memory>
+#include <atomic>
+#include "LinkManager.h"
 
 namespace ben {
 
@@ -32,10 +34,11 @@ namespace ben {
 		typedef Path self_type;
 		typedef Path complement_type;
 		typedef unsigned int id_type;
+		typedef ConstructionTypes<value_type> construction_types;
 		
 	private:
 		id_type otherID;
-		std::shared_ptr<std:atomic<value_type>> value_ptr;
+		std::shared_ptr< std::atomic<value_type> > value_ptr;
 
 	public:
 		Path() = delete;

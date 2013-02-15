@@ -31,7 +31,7 @@ namespace ben {
 
 	template<typename P, typename... ARGS>
 	struct LinkManagerHelper {
-		static_assert(!std::is_same<typename P::construction_types, Args...>::value, 
+		static_assert(!std::is_same<typename P::construction_types, ARGS...>::value, 
 				"LinkManagerHelper needs an instance of ConstructionTypes; use LinkManager");
 	};
 

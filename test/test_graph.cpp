@@ -26,18 +26,18 @@
 #include <vector>
 #include <random>
 #include "gtest/gtest.h"
-#include "Link.h"
+#include "Buffer.h"
 #include "Port.h"
 #include "Graph.h"
-#include "Node.h"
+#include "DirectedNode.h"
 
 namespace {
 
-	class Links : public ::testing::Test {
+	class Buffers : public ::testing::Test {
 	protected:
 		std::vector<double> signals;
 		
-		Links() {}
+		Buffers() {}
 		
 		void PrepareSignals(const unsigned int n) {
 			std::default_random_engine gen;
@@ -47,7 +47,7 @@ namespace {
 		}
 		
 		template<unsigned int N>
-		void TestLink(ben::Link<double, N>& link) {
+		void TestBuffer(ben::Buffer<double, N>& link) {
 			link.flush(); 
 			EXPECT_FALSE(link.is_ready());
 			PrepareSignals(N);
@@ -89,27 +89,27 @@ namespace {
 		}
 	};
 
-	TEST_F(Links, All) {
+	TEST_F(Buffers, All) {
 		using namespace ben;
 
 		//this mostly just has to compile
-		//Link<std::vector<double>,3> vector_link;
+		//Buffer<std::vector<double>,3> vector_link;
 		
 		//these will actually be used	
-		Link<double, 1> link1;
-		Link<double, 2> link2;
-		Link<double, 4> link4;
+		Buffer<double, 1> link1;
+		Buffer<double, 2> link2;
+		Buffer<double, 4> link4;
 		
-		//Link
-		TestLink<1>(link1); 
-		TestLink<2>(link2);
-		TestLink<4>(link4);
+		//Buffer
+		TestBuffer<1>(link1); 
+		TestBuffer<2>(link2);
+		TestBuffer<4>(link4);
 	}
 
 	TEST(Ports, Construction) {
 		using namespace ben;
-		typedef InPort<Link<double, 2>>  input_port_type;
-		typedef OutPort<Link<double, 2>> output_port_type;
+		typedef InPort<Buffer<double, 2>>  input_port_type;
+		typedef OutPort<Buffer<double, 2>> output_port_type;
 		
 		//normal construction
 		auto input_port_ptr = new input_port_type(5);
@@ -194,8 +194,8 @@ namespace {
 	TEST(Ports, Data) {
 		//sending and receiving data
 		using namespace ben;
-		InPort<Link<double,2>> input_port(3);
-		OutPort<Link<double,2>> output_port(input_port, 5);
+		InPort<Buffer<double,2>> input_port(3);
+		OutPort<Buffer<double,2>> output_port(input_port, 5);
 		
 		double signal1(1.23), signal2(4.56), signal3(7.89);
 
@@ -212,8 +212,8 @@ namespace {
 
 	TEST(Nodes, Construction) {
 		using namespace ben;
-		typedef Link<double,1> link_type;
-		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		typedef Buffer<double,1> link_type;
+		typedef stdMessageNode<double, 1> node_type;
 		Graph<node_type> graph1;
 		
 		auto node1_ptr = new node_type(graph1);
@@ -232,8 +232,8 @@ namespace {
 
 	TEST(Graphs, Add_Remove) {
 		using namespace ben;
-		typedef Link<double,1> link_type;
-		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		typedef Buffer<double,1> link_type;
+		typedef stdMessageNode<double, 1> node_type;
 		Graph<node_type> graph1, graph2;
 		
 		auto node1_ptr = new node_type(graph1, 3);
@@ -263,8 +263,8 @@ namespace {
 
 	TEST(Graphs, Merge_Move_Destruction) {		
 		using namespace ben;
-		typedef Link<double,1> link_type;
-		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		typedef Buffer<double,1> link_type;
+		typedef stdMessageNode<double, 1> node_type;
 		Graph<node_type> graph1, graph2;
 		auto graph2_ptr = new Graph<node_type>();
 		
@@ -300,8 +300,8 @@ namespace {
 
 	TEST(Graphs, Content) {
 		using namespace ben;
-		typedef Link<double,1> link_type;
-		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		typedef Buffer<double,1> link_type;
+		typedef stdMessageNode<double, 1> node_type;
 		Graph<node_type> graph1, graph2;
 		
 		auto node1_ptr = new node_type(graph1, 3);
@@ -329,8 +329,8 @@ namespace {
 
 	TEST(Nodes, Add_Remove) {
 		using namespace ben;
-		typedef Link<double,1> link_type;
-		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		typedef Buffer<double,1> link_type;
+		typedef stdMessageNode<double, 1> node_type;
 		auto graph1_ptr = new Graph<node_type>();
 
 		node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
@@ -391,8 +391,8 @@ namespace {
 
 	TEST(Nodes, Iteration) {
 		using namespace ben;
-		typedef Link<double,1> link_type;
-		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		typedef Buffer<double,1> link_type;
+		typedef stdMessageNode<double, 1> node_type;
 		auto graph1_ptr = new Graph<node_type>();
 
 		node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
@@ -426,8 +426,8 @@ namespace {
 
 	TEST(Nodes, Move_Destruction) {
 		using namespace ben;
-		typedef Link<double,1> link_type;
-		typedef Node<InPort<link_type>, OutPort<link_type>> node_type;
+		typedef Buffer<double,1> link_type;
+		typedef stdMessageNode<double, 1> node_type;
 		auto graph1_ptr = new Graph<node_type>();
 
 		node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7);

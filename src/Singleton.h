@@ -61,7 +61,7 @@ namespace ben {
 		Singleton(const self_type& rhs) = delete;
 		Singleton(self_type&& rhs) 
 			: uniqueID(rhs.uniqueID), index(rhs.index) { 
-			if( managed() && !(index->update_singleton(this)) ) throw; //define a custom exception?
+			if( is_managed() && !(index->update_singleton(this)) ) throw; //define a custom exception?
 			rhs.index = nullptr;
 		}
 		self_type& operator=(const self_type& rhs) = delete;
@@ -70,13 +70,13 @@ namespace ben {
 				if(index != nullptr) 
 					if( !(index->remove(uniqueID)) ) throw; //need to catch this?
 				uniqueID = rhs.uniqueID;
-				index = rhs.index; //haven't checked rhs.managed() yet
-				if( managed() && !(index->update_singleton(this)) ) throw; //define a custom exception?
+				index = rhs.index; //haven't checked rhs.is_managed() yet
+				if( is_managed() && !(index->update_singleton(this)) ) throw; //define a custom exception?
 				rhs.index = nullptr; 
 			} 
 			return *this;
 		}
-		virtual ~Singleton() { if(managed()) index->remove(uniqueID); }
+		virtual ~Singleton() { if(is_managed()) index->remove(uniqueID); }
 	
 		bool is_managed() const { return index != nullptr; }
 		bool is_managed_by(const index_type& x) const { return index == &x; }

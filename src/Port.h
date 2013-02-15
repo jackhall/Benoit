@@ -22,6 +22,7 @@
 */
 
 #include <memory>
+#include "LinkManager.h"
 
 namespace ben {
 	
@@ -42,6 +43,7 @@ namespace ben {
 		typedef B 			buffer_type;
 		typedef typename B::signal_type signal_type;
 		typedef I 			id_type;
+		typedef ConstructionTypes<>	construction_types;
 	
 	protected:
 		std::shared_ptr<buffer_type> buffer_ptr;//reference-counted smart pointer
@@ -75,10 +77,11 @@ namespace ben {
 		using base_type::buffer_ptr;
 		
 	public:
+		typedef typename base_type::construction_types construction_types;
 		typedef typename base_type::id_type id_type;
 		typedef typename B::signal_type signal_type;
 		typedef OutPort<B> complement_type;
-		typedef L buffer_type;
+		typedef B buffer_type;
 	
 		id_type sourceID;
 	
@@ -114,10 +117,11 @@ namespace ben {
 		using base_type::buffer_ptr;
 		
 	public:
+		typedef typename base_type::construction_types construction_types;
 		typedef typename base_type::id_type id_type;
 		typedef typename B::signal_type signal_type;
 		typedef InPort<B> complement_type;
-		typedef L buffer_type;
+		typedef B buffer_type;
 		
 		id_type targetID;
 	
