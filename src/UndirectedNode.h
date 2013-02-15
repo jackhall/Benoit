@@ -21,7 +21,6 @@
     e-mail: jackwhall7@gmail.com
 */
 
-#include <vector>
 #include "Path.h"
 #include "LinkManager.h"
 
@@ -39,6 +38,9 @@ namespace ben {
 		typedef typename LinkManager<link_type>::iterator iterator; 
 		
 	private:
+		static_assert(std::is_same<id_type, typename P::id_type>::value, 
+			      "Index and Port unique ID types don't match");
+
 		LinkManager<link_type> links;
 	
 	public:
@@ -73,7 +75,7 @@ namespace ben {
 			else return false;
 		}
 	
-		bool clone_links(const self_type& other) { //need a way to clone links
+		bool clone_links(const self_type& other) { 
 			//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
 			if( other.is_managed_by(get_index()) ) { 
 				clear();
@@ -82,7 +84,7 @@ namespace ben {
 					currentID = x.get_address();
 					if(currentID != ID()) {	
 						auto& target = get_index().elem(currentID).links;
-						links.add_clone_of(target, x)
+						links.add_clone_of(x, target)
 					}
 				}
 				return true;

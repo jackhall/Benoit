@@ -21,6 +21,9 @@
     e-mail: jackwhall7@gmail.com
 */
 
+#include <vector>
+#include <cassert>
+
 namespace ben {
 
 	template<typename... args> struct ConstructionTypes {};
@@ -72,26 +75,27 @@ namespace ben {
 			return it;
 		}
 
-		bool add(complement_type& other, const id_type address, const ARGS... args) {
-			if( contains(address) ) return false;
-			links.push_back( link_type(address, args...) );
+		bool add(complement_type& other, const ARGS... args) {
+			if( contains(other.nodeID) ) return false;
+			links.push_back( link_type(other.nodeID, args...) );
 			other.links.push_back( link_type(links.back(), nodeID) );
 			return true;
 		}
 
-		void add_clone_of(complement_type& other, link_type& x) {
+		void add_clone_of(link_type& x, complement_type& other) {
 			links.push_back(x.clone());
 			other.links.push_back(link_type(links.back(), nodeID));
 		}
 
 		void remove(complement_type& other, const iterator iter) {
 			auto address = iter->get_address();
+			assert(other.nodeID == address); //throw an exception?
 			links.erase(iter);
 			other.clean_up(nodeID);
 		}
 
-		void remove(complement_type& other, const id_type address) {
-			auto iter = find(address);
+		void remove(complement_type& other) {
+			auto iter = find(other.nodeID);
 			if(iter != end()) remove(iter, other);
 		}
 
