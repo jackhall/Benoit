@@ -337,16 +337,16 @@ namespace {
 		EXPECT_TRUE(node1.add_input(3));
 		EXPECT_TRUE(node1.contains_input(3));
 		EXPECT_TRUE(node1.contains_output(3));
-		EXPECT_TRUE(node1.add_input(5)); //fails
+		EXPECT_TRUE(node1.add_input(5)); 
 		EXPECT_TRUE(node1.contains_input(5));
-		EXPECT_TRUE(node2.contains_output(3)); //fails
+		EXPECT_TRUE(node2.contains_output(3));
 		EXPECT_FALSE(node1.add_input(5));
-		EXPECT_TRUE(node1.add_output(7)); //fails
+		EXPECT_TRUE(node1.add_output(7)); 
 		EXPECT_TRUE(node1.contains_output(7));
-		EXPECT_TRUE(node3.contains_input(3)); //fails
-		EXPECT_FALSE(node1.contains_input(11)); //fails
-		EXPECT_FALSE(node1.contains_output(5)); //fails
-		//segfault after this...
+		EXPECT_TRUE(node3.contains_input(3));
+		EXPECT_FALSE(node1.contains_input(11)); 
+		EXPECT_FALSE(node1.contains_output(5)); 
+		
 		EXPECT_TRUE(node4.clone_links(node1));
 		EXPECT_TRUE(node4.contains_input(3));
 		EXPECT_TRUE(node1.contains_output(11));

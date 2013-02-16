@@ -76,14 +76,14 @@ namespace ben {
 		typedef InPort self_type;
 		using base_type::buffer_ptr;
 		
+		typename base_type::id_type sourceID;
+
 	public:
 		typedef typename base_type::construction_types construction_types;
 		typedef typename base_type::id_type id_type;
 		typedef typename B::signal_type signal_type;
 		typedef OutPort<B> complement_type;
 		typedef B buffer_type;
-	
-		id_type sourceID;
 	
 		InPort(id_type nSource) : base_type(new buffer_type()), sourceID(nSource) {}
 		InPort(const complement_type& other, id_type nSource) : base_type(other), sourceID(nSource) {}
@@ -118,14 +118,14 @@ namespace ben {
 		typedef OutPort self_type;
 		using base_type::buffer_ptr;
 		
+		typename base_type::id_type targetID;
+
 	public:
 		typedef typename base_type::construction_types construction_types;
 		typedef typename base_type::id_type id_type;
 		typedef typename B::signal_type signal_type;
 		typedef InPort<B> complement_type;
 		typedef B buffer_type;
-		
-		id_type targetID;
 	
 		OutPort(id_type nTarget) : base_type(new buffer_type()), targetID(nTarget) {}
 		OutPort(const complement_type& other, id_type nTarget) : base_type(other), targetID(nTarget) {}

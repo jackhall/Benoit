@@ -90,9 +90,9 @@ namespace ben {
 		
 	public:
 		DirectedNode() = default;
-		explicit DirectedNode(const id_type id) : base_type(id) {}
+		explicit DirectedNode(const id_type id) : base_type(id), inputs(id), outputs(id) {}
 		explicit DirectedNode(index_type& graph) : base_type(graph) {}
-		DirectedNode(index_type& graph, const id_type id) : base_type(graph, id) {}
+		DirectedNode(index_type& graph, const id_type id) : base_type(graph, id), inputs(id), outputs(id) {}
 		DirectedNode(const self_type& rhs) = delete;
 		DirectedNode& operator=(const self_type& rhs) = delete;
 		DirectedNode(self_type&& rhs) : base_type(std::move(rhs)), inputs(std::move(rhs.inputs)),
@@ -124,17 +124,13 @@ namespace ben {
 		template<typename... ARGS>	
 		bool add_input(const id_type address, ARGS... args) {
 			if( get_index().contains(address) ) {
-				if( contains_input(address) ) return false;
-				inputs.add(get_index().elem(address).outputs, args...);
-				return true;
+				return inputs.add(get_index().elem(address).outputs, args...);
 			} else return false;
 		}
 		template<typename... ARGS>
 		bool add_output(const id_type address, ARGS... args) {
 			if( get_index().contains(address) ) {
-				if( contains_output(address) ) return false;
-				outputs.add(get_index().elem(address).inputs, args...);
-				return true;
+				return outputs.add(get_index().elem(address).inputs, args...);
 			} else return false;
 		}
 		bool clone_links(const self_type& other) {
@@ -187,10 +183,8 @@ namespace ben {
 		size_t size_inputs() const { return inputs.size(); }
 		size_t size_outputs() const { return outputs.size(); }
 		
-		bool contains_input(const id_type address) const 
-			{ return inputs.end() != const_cast<self_type*>(this)->find_input(address); }
-		bool contains_output(const id_type address) const 
-			{ return outputs.end() != const_cast<self_type*>(this)->find_output(address); }
+		bool contains_input(const id_type address) const { return inputs.contains(address); }
+		bool contains_output(const id_type address) const { return outputs.contains(address); }
 		//other std::vector methods - assign, swap
 
 		self_type& walk(const input_iterator iter) const { return get_index().elem(iter->get_address()); }//template this? const version?

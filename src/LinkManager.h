@@ -69,7 +69,7 @@ namespace ben {
 
 		iterator find(const id_type address) {
 			auto it = begin();
-			for(auto& x : *this)
+			for(; it!=end(); ++it)
 				if(it->get_address() == address) break;
 			return it;
 		}
