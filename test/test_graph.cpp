@@ -113,37 +113,37 @@ namespace {
 		
 		//normal construction
 		auto input_port_ptr = new input_port_type(5);
-		EXPECT_EQ(5, input_port_ptr->source());
+		EXPECT_EQ(5, input_port_ptr->get_address());
 		EXPECT_FALSE(input_port_ptr->is_ready());
 		EXPECT_TRUE(input_port_ptr->is_ghost());
 		
 		auto output_port_ptr = new output_port_type(11);
-		EXPECT_EQ(11, output_port_ptr->target());
+		EXPECT_EQ(11, output_port_ptr->get_address());
 		EXPECT_FALSE(output_port_ptr->is_ready());
 		EXPECT_TRUE(output_port_ptr->is_ghost());
 	
 		//complement constructors
 		input_port_type input_port2(*output_port_ptr, 17);
-		EXPECT_EQ(17, input_port2.source());
+		EXPECT_EQ(17, input_port2.get_address());
 		EXPECT_FALSE(input_port2.is_ready());
 		EXPECT_FALSE(output_port_ptr->is_ghost());
 		EXPECT_FALSE(input_port2.is_ghost());
 		
 		output_port_type output_port2(*input_port_ptr, 19);
-		EXPECT_EQ(19, output_port2.target());
+		EXPECT_EQ(19, output_port2.get_address());
 		EXPECT_FALSE(output_port2.is_ready());
 		EXPECT_FALSE(input_port_ptr->is_ghost());
 		EXPECT_FALSE(output_port2.is_ghost());
 	
 		//copy constructor
 		input_port_type input_port3(*input_port_ptr);
-		EXPECT_EQ(5, input_port3.source());
+		EXPECT_EQ(5, input_port3.get_address());
 		EXPECT_FALSE(input_port3.is_ready());
 		EXPECT_FALSE(input_port3.is_ghost());
 		EXPECT_FALSE(input_port_ptr->is_ghost());
 
 		output_port_type output_port3(*output_port_ptr);
-		EXPECT_EQ(11, output_port3.target());
+		EXPECT_EQ(11, output_port3.get_address());
 		EXPECT_FALSE(output_port3.is_ready());
 		EXPECT_FALSE(output_port3.is_ghost());
 		EXPECT_FALSE(output_port_ptr->is_ghost());
@@ -159,34 +159,34 @@ namespace {
 
 		//move constructor
 		input_port_type input_port4(std::move(input_port2));
-		EXPECT_EQ(17, input_port4.source());
+		EXPECT_EQ(17, input_port4.get_address());
 		EXPECT_FALSE(input_port4.is_ghost());
 		EXPECT_TRUE(input_port2.is_ghost());
 
 		output_port_type output_port4(std::move(output_port2));
-		EXPECT_EQ(19, output_port4.target());
+		EXPECT_EQ(19, output_port4.get_address());
 		EXPECT_FALSE(output_port4.is_ghost());
 		EXPECT_TRUE(output_port2.is_ghost());
 
 		//move assignment
 		input_port2 = std::move(input_port4);
-		EXPECT_EQ(17, input_port2.source());
+		EXPECT_EQ(17, input_port2.get_address());
 		EXPECT_FALSE(input_port2.is_ghost());
 		EXPECT_TRUE(input_port4.is_ghost());
 
 		output_port2 = std::move(output_port4);
-		EXPECT_EQ(19, output_port2.target());
+		EXPECT_EQ(19, output_port2.get_address());
 		EXPECT_FALSE(output_port2.is_ghost());
 		EXPECT_TRUE(output_port4.is_ghost());
 	
 		//assignment
 		input_port4 = input_port2;
-		EXPECT_EQ(17, input_port4.source());
+		EXPECT_EQ(17, input_port4.get_address());
 		EXPECT_FALSE(input_port2.is_ghost());
 		EXPECT_FALSE(input_port4.is_ghost());
 
 		output_port4 = output_port2;
-		EXPECT_EQ(19, output_port4.target());
+		EXPECT_EQ(19, output_port4.get_address());
 		EXPECT_FALSE(output_port2.is_ghost());
 		EXPECT_FALSE(output_port4.is_ghost());
 	}
@@ -337,16 +337,16 @@ namespace {
 		EXPECT_TRUE(node1.add_input(3));
 		EXPECT_TRUE(node1.contains_input(3));
 		EXPECT_TRUE(node1.contains_output(3));
-		EXPECT_TRUE(node1.add_input(5));
+		EXPECT_TRUE(node1.add_input(5)); //fails
 		EXPECT_TRUE(node1.contains_input(5));
-		EXPECT_TRUE(node2.contains_output(3));
+		EXPECT_TRUE(node2.contains_output(3)); //fails
 		EXPECT_FALSE(node1.add_input(5));
-		EXPECT_TRUE(node1.add_output(7));
+		EXPECT_TRUE(node1.add_output(7)); //fails
 		EXPECT_TRUE(node1.contains_output(7));
-		EXPECT_TRUE(node3.contains_input(3));
-		EXPECT_FALSE(node1.contains_input(11));
-		EXPECT_FALSE(node1.contains_output(5));
-		
+		EXPECT_TRUE(node3.contains_input(3)); //fails
+		EXPECT_FALSE(node1.contains_input(11)); //fails
+		EXPECT_FALSE(node1.contains_output(5)); //fails
+		//segfault after this...
 		EXPECT_TRUE(node4.clone_links(node1));
 		EXPECT_TRUE(node4.contains_input(3));
 		EXPECT_TRUE(node1.contains_output(11));
@@ -403,11 +403,11 @@ namespace {
 		node4.clone_links(node1);
 		
 		for(auto iter = node1.ibegin(); iter != node1.iend(); ++iter) {
-			EXPECT_TRUE(graph1_ptr->elem(iter->source()).contains_output(3));
+			EXPECT_TRUE(graph1_ptr->elem(iter->get_address()).contains_output(3));
 		}
 
 		for(auto iter = node1.obegin(); iter != node1.oend(); ++iter) {
-			EXPECT_TRUE(graph1_ptr->elem(iter->target()).contains_input(3));
+			EXPECT_TRUE(graph1_ptr->elem(iter->get_address()).contains_input(3));
 		}
 		
 		node4.remove_input(node4.find_input(5));

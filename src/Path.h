@@ -48,6 +48,8 @@ namespace ben {
 		self_type& operator=(const self_type& rhs) = default;
 		~Path() = default;
 
+		self_type clone() const { return self_type(otherID, value_ptr->load()); }
+
 		id_type get_address() const { return otherID; }
 		value_type get_value() const { return value_ptr->load(); }
 		void set_value(const value_type& v) { value_ptr->store(v); }

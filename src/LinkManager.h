@@ -26,7 +26,7 @@
 
 namespace ben {
 
-	template<typename... args> struct ConstructionTypes {};
+	template<typename... ARGS> struct ConstructionTypes {};
 
 
 	template<typename P, typename... ARGS>
@@ -40,17 +40,16 @@ namespace ben {
 	struct LinkManagerHelper< P, ConstructionTypes<ARGS...> > { 
 	public:
 		typedef P link_type;
+		typedef typename link_type::complement_type link_complement_type;
 		typedef typename P::id_type id_type;
-		typedef LinkManagerHelper<typename link_type::complement_type> complement_type;
+		typedef LinkManagerHelper<typename link_type::complement_type, ConstructionTypes<ARGS...> > complement_type;
 		typedef typename std::vector<link_type>::iterator iterator; 
+		typedef typename std::vector<link_type>::const_iterator const_iterator;
 		
 	private:
 		typedef LinkManagerHelper self_type;
+		friend class LinkManagerHelper<typename link_type::complement_type, ConstructionTypes<ARGS...> >;
 		std::vector<link_type> links;
-		void clean_up(const id_type address) {
-			auto iter = find(address);
-			if(iter != end()) links.erase(iter);
-		}
 	
 	public:
 		id_type nodeID;
@@ -74,29 +73,32 @@ namespace ben {
 				if(it->get_address() == address) break;
 			return it;
 		}
-
+		const_iterator find(const id_type address) const {
+			return const_cast<self_type*>(this)->find(address);
+		}
 		bool add(complement_type& other, const ARGS... args) {
 			if( contains(other.nodeID) ) return false;
 			links.push_back( link_type(other.nodeID, args...) );
-			other.links.push_back( link_type(links.back(), nodeID) );
+			other.links.push_back( link_complement_type(links.back(), nodeID) );
 			return true;
 		}
-
-		void add_clone_of(link_type& x, complement_type& other) {
+		void add_clone_of(const link_type& x, complement_type& other) {
 			links.push_back(x.clone());
-			other.links.push_back(link_type(links.back(), nodeID));
+			other.links.push_back( link_complement_type(links.back(), nodeID) );
 		}
-
 		void remove(complement_type& other, const iterator iter) {
 			auto address = iter->get_address();
 			assert(other.nodeID == address); //throw an exception?
 			links.erase(iter);
 			other.clean_up(nodeID);
 		}
-
 		void remove(complement_type& other) {
 			auto iter = find(other.nodeID);
-			if(iter != end()) remove(iter, other);
+			if(iter != end()) remove(other, iter);
+		}
+		void clean_up(const id_type address) {
+			auto iter = find(address);
+			if(iter != end()) links.erase(iter);
 		}
 
 		void clear() { links.clear(); } //does not clean up after links!
@@ -105,7 +107,9 @@ namespace ben {
 		bool contains(const id_type address) const { return links.end() != find(address); }
 		
 		iterator begin() { return links.begin(); }
+		const_iterator begin() const { return links.begin(); }
 		iterator end() { return links.end(); }
+		const_iterator end() const { return links.end(); }
 	}; //class LinkManager
 
 	//this alias significantly cleans up the interface, and makes it safer

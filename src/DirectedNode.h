@@ -52,7 +52,9 @@ namespace ben {
 		typedef I 			input_type;
 		typedef O 			output_type;
 		typedef typename LinkManager<input_type>::iterator input_iterator;
+		typedef typename LinkManager<input_type>::const_iterator const_input_iterator;
 		typedef typename LinkManager<output_type>::iterator output_iterator;
+		typedef typename LinkManager<output_type>::const_iterator const_output_iterator;
 		
 	private:
 		typedef DirectedNode 	self_type;
@@ -114,19 +116,21 @@ namespace ben {
 		using base_type::is_managed;
 		bool is_managed_by(const index_type& x) const { return base_type::is_managed_by(x); }
 
-		input_iterator  find_input(const id_type address) { return inputs.find(address); }
+		input_iterator find_input(const id_type address) { return inputs.find(address); }
+		const_input_iterator find_input(const id_type address) const { return inputs.find(address); }
 		output_iterator find_output(const id_type address) { return outputs.find(address); }
+		const_output_iterator find_output(const id_type address) const { return outputs.find(address); }
 	
-		template<typename... Args>	
-		bool add_input(const id_type address, Args... args) {
+		template<typename... ARGS>	
+		bool add_input(const id_type address, ARGS... args) {
 			if( get_index().contains(address) ) {
 				if( contains_input(address) ) return false;
 				inputs.add(get_index().elem(address).outputs, args...);
 				return true;
 			} else return false;
 		}
-		template<typename... Args>
-		bool add_output(const id_type address, Args... args) {
+		template<typename... ARGS>
+		bool add_output(const id_type address, ARGS... args) {
 			if( get_index().contains(address) ) {
 				if( contains_output(address) ) return false;
 				outputs.add(get_index().elem(address).inputs, args...);
@@ -138,23 +142,17 @@ namespace ben {
 			if( other.is_managed_by(get_index()) ) {
 				clear();
 				id_type currentID;
-				LinkManager<input_type> target;
-				LinkManager<output_type> source;
-
+				
 				for(const auto& x : other.inputs) {
 					currentID = x.get_address();
-					if(currentID != ID()) {
-						source = get_index().elem(currentID).outputs;
-						inputs.add_clone_of(x, source);
-					}
+					if(currentID != ID()) 
+						inputs.add_clone_of(x, get_index().elem(currentID).outputs);
 				}
 		
 				for(const auto& x : other.outputs) {
 					currentID = x.get_address();
-					if(currentID != ID()) {
-						target = get_index().elem(currentID).inputs;
-						outputs.add_clone_of(x, target);
-					}
+					if(currentID != ID()) 
+						outputs.add_clone_of(x, get_index().elem(currentID).inputs);
 				}
 
 				return true;
@@ -169,7 +167,7 @@ namespace ben {
 			inputs.remove(get_index().elem(address).outputs);
 		}
 		void remove_output(const output_iterator iter) {
-			auto address = iter->target();
+			auto address = iter->get_address();
 			outputs.remove(walk(iter).inputs, iter);
 		}
 		void remove_output(const id_type address) {
@@ -195,12 +193,16 @@ namespace ben {
 			{ return outputs.end() != const_cast<self_type*>(this)->find_output(address); }
 		//other std::vector methods - assign, swap
 
-		self_type& walk(const input_iterator iter) { return get_index().elem(iter->get_address()); }//template this? const version?
-		self_type& walk(const output_iterator iter) { return get_index().elem(iter->get_address()); }
+		self_type& walk(const input_iterator iter) const { return get_index().elem(iter->get_address()); }//template this? const version?
+		self_type& walk(const output_iterator iter) const { return get_index().elem(iter->get_address()); }
 		input_iterator  ibegin() { return inputs.begin(); }
+		const_input_iterator ibegin() const { return inputs.begin(); }
 		input_iterator  iend() 	 { return inputs.end(); }
+		const_input_iterator iend() const { return inputs.end(); }
 		output_iterator obegin() { return outputs.begin(); }
+		const_output_iterator obegin() const { return outputs.begin(); }
 		output_iterator oend() 	 { return outputs.end(); }
+		const_output_iterator oend() const { return outputs.end(); }
 		//is there a way to provide begin() and end() compatible with range-based for loops?
 	}; //DirectedNode
 	

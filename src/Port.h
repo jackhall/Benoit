@@ -103,8 +103,10 @@ namespace ben {
 			}
 			return *this;
 		}
-		
-		inline id_type source() const { return sourceID; }
+	
+		self_type clone() const { return self_type(sourceID); }
+	
+		inline id_type get_address() const { return sourceID; }
 		inline signal_type pull() const { return buffer_ptr->pull(); }
 	}; //struct InPort
 	
@@ -143,8 +145,10 @@ namespace ben {
 			}
 			return *this;
 		}
-		
-		inline id_type target() const { return targetID; }
+	
+		self_type clone() const { return self_type(targetID); }
+	
+		inline id_type get_address() const { return targetID; }
 		inline bool push(const signal_type& signal) { return buffer_ptr->push(signal); } //take another look at const requirements
 	}; //struct OutPort
 
