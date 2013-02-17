@@ -187,8 +187,15 @@ namespace ben {
 		bool contains_output(const id_type address) const { return outputs.contains(address); }
 		//other std::vector methods - assign, swap
 
-		self_type& walk(const input_iterator iter) const { return get_index().elem(iter->get_address()); }//template this? const version?
-		self_type& walk(const output_iterator iter) const { return get_index().elem(iter->get_address()); }
+		template<typename T>
+		self_type& walk(const T iter) const { 
+			static_assert(	std::is_same<T, input_iterator>::value or
+					std::is_same<T, const_input_iterator>::value or
+					std::is_same<T, output_iterator>::value or
+					std::is_same<T, const_output_iterator>::value,
+					"cannot call walk without an iterator type");
+			return get_index().elem(iter->get_address()); 
+		}
 		input_iterator  ibegin() { return inputs.begin(); }
 		const_input_iterator ibegin() const { return inputs.begin(); }
 		input_iterator  iend() 	 { return inputs.end(); }
