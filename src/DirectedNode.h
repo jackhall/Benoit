@@ -39,11 +39,11 @@ namespace ben {
  * iterators. Would there be problems treating them as streams? An owning object treats the DirectedNode as a 
  * message passer; handling the Buffers is abstracted away from the user as well.
  *
- * Ports are stored in vectors for good cache optimization; copying them is designed to be cheap. There
+ * Ports are stored in vectors (inside LinkManagers) for good cache optimization; copying them is designed to be cheap. There
  * are two layers of indirection between a DirectedNode and its links: one to access ports in their vector, and
  * one to dereference the shared_ptr in each link. The first is necessary because the number of links
  * can't be known at compile-time, and the second because if links are actually stored in a DirectedNode, 
- * thread safety is impossible. 
+ * thread safety is impossible (simultaneously moving two connected nodes at one time would give undefined behavior).  
  */
 	template<typename I, typename O>
 	class DirectedNode : public Singleton { 
@@ -73,27 +73,16 @@ namespace ben {
 	
 		LinkManager<input_type> inputs; 
 		LinkManager<output_type> outputs;
-		//std::mutex node_mutex;
-		
-		void clean_up_input(const id_type address) {
-			//Since the cleanup methods are called by remove, delegating doesn't work.
-			//The possibility of copying ports means that reference counting the links
-			//does not necessarily work for identifying ghost links. Would there be a
-			//performance hit for using weak_ptr in the copies? Is this safe?
-			auto iter = find_input(address);
-			if(iter != iend()) inputs.erase(iter);
-		}
-		void clean_up_output(const id_type address) {
-			auto iter = find_output(address);
-			if(iter != oend()) outputs.erase(iter);
-		}
+		//std::mutex node_mutex; //would need this to alter graph structure in multiple threads
 		
 	public:
-		DirectedNode() = default;
+		//For the ctors lacking an id_type argument, Singleton automatically generates a unique ID.
+		//This generated ID is only guaranteed to be unique if that generation method is used exclusively.
+		DirectedNode() : base_type(), inputs(ID()), outputs(ID()) {} 
 		explicit DirectedNode(const id_type id) : base_type(id), inputs(id), outputs(id) {}
-		explicit DirectedNode(index_type& graph) : base_type(graph) {}
+		explicit DirectedNode(index_type& graph) : base_type(graph), inputs(ID()), outputs(ID()) {}
 		DirectedNode(index_type& graph, const id_type id) : base_type(graph, id), inputs(id), outputs(id) {}
-		DirectedNode(const self_type& rhs) = delete;
+		DirectedNode(const self_type& rhs) = delete; //identity semantics
 		DirectedNode& operator=(const self_type& rhs) = delete;
 		DirectedNode(self_type&& rhs) : base_type(std::move(rhs)), inputs(std::move(rhs.inputs)),
 					       outputs(std::move(rhs.outputs)) {}
@@ -105,7 +94,8 @@ namespace ben {
 			}
 		}
 		virtual ~DirectedNode() { clear(); } //might want to lock while deleting links 
-		
+	
+		//locking should probably be internal when I do add it...	
 		//void lock() { node_mutex.lock(); }
 		//bool try_lock() { return node_mutex.try_lock(); }
 		//void unlock() { node_mutex.unlock(); }
@@ -123,12 +113,13 @@ namespace ben {
 	
 		template<typename... ARGS>	
 		bool add_input(const id_type address, ARGS... args) {
+			//the type safety for this function comes in LinkManager::add
 			if( get_index().contains(address) ) {
 				return inputs.add(get_index().elem(address).outputs, args...);
 			} else return false;
 		}
 		template<typename... ARGS>
-		bool add_output(const id_type address, ARGS... args) {
+		bool add_output(const id_type address, ARGS... args) {//see add_input
 			if( get_index().contains(address) ) {
 				return outputs.add(get_index().elem(address).inputs, args...);
 			} else return false;
@@ -136,7 +127,7 @@ namespace ben {
 		bool clone_links(const self_type& other) {
 			//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
 			if( other.is_managed_by(get_index()) ) {
-				clear();
+				clear(); //no old links
 				id_type currentID;
 				
 				for(const auto& x : other.inputs) {
@@ -156,25 +147,28 @@ namespace ben {
 		}
 
 		void remove_input(const input_iterator iter) {
+			//O(1); doesn't have to call LinkManager::find first
 			auto address = iter->get_address();
 			inputs.remove(walk(iter).outputs, iter);
 		}
 		void remove_input(const id_type address) {
+			//O(n), must search for the right port
 			inputs.remove(get_index().elem(address).outputs);
 		}
-		void remove_output(const output_iterator iter) {
+		void remove_output(const output_iterator iter) { //see remove_input
 			auto address = iter->get_address();
 			outputs.remove(walk(iter).inputs, iter);
 		}
-		void remove_output(const id_type address) {
+		void remove_output(const id_type address) { //see remove_input
 			outputs.remove(get_index().elem(address).inputs);
 		}
 		
-		void clear_inputs() {
+		void clear_inputs() { 
+			//cleaning up after all links before deleting them prevents iterator invalidation
 			for(auto iter=ibegin(); iter!=iend(); ++iter) walk(iter).outputs.clean_up(ID());
 			inputs.clear();
 		}
-		void clear_outputs() {
+		void clear_outputs() { //see clear_inputs
 			for(auto iter=obegin(); iter!=oend(); ++iter) walk(iter).inputs.clean_up(ID());
 			outputs.clear();
 		}
@@ -189,6 +183,7 @@ namespace ben {
 
 		template<typename T>
 		self_type& walk(const T iter) const { 
+			//returns a reference to the node that iter points to: walks the graph
 			static_assert(	std::is_same<T, input_iterator>::value or
 					std::is_same<T, const_input_iterator>::value or
 					std::is_same<T, output_iterator>::value or
@@ -204,13 +199,18 @@ namespace ben {
 		const_output_iterator obegin() const { return outputs.begin(); }
 		output_iterator oend() 	 { return outputs.end(); }
 		const_output_iterator oend() const { return outputs.end(); }
+		
 		//is there a way to provide begin() and end() compatible with range-based for loops?
+		//template<typename T>
+		//struct IterRange { T::iterator begin(); T::iterator end(); };
+
 	}; //DirectedNode
 	
-	//typedefs to hide default Port and Buffer choices
+	//typedefs to hide default Port and Buffer choices for message-passing graph
 	template<typename S, typename IndexBase::id_type L = 1> 
 	using stdMessageNode = DirectedNode< InPort< Buffer<S,L> >, OutPort< Buffer<S,L> > >;
 
+	//default node for value graphs
 	template<typename V>
 	using stdDirectedNode = DirectedNode< Path<V>, Path<V> >;
 

@@ -28,6 +28,8 @@ namespace ben {
 	
 	template<typename P>
 	class UndirectedNode : public Singleton { 
+/*
+ */
 	private:
 		typedef UndirectedNode self_type;
 		typedef Singleton base_type;
@@ -44,9 +46,9 @@ namespace ben {
 		LinkManager<link_type> links;
 	
 	public:
-		UndirectedNode() = default;
+		UndirectedNode() : base_type(), links(ID()) {}
 		explicit UndirectedNode(const id_type id) : base_type(id), links(id) {}
-		explicit UndirectedNode(index_type& graph) : base_type(graph) {}
+		explicit UndirectedNode(index_type& graph) : base_type(graph), links(ID()) {}
 		UndirectedNode(index_type& graph, const id_type id) : base_type(graph, id), links(id) {}
 		UndirectedNode(const self_type& rhs) = delete;
 		UndirectedNode& operator=(const self_type& rhs) = delete;
@@ -74,7 +76,6 @@ namespace ben {
 			if(node_iter != get_index().end()) return links.add(node_iter->links, address, args...);
 			else return false;
 		}
-	
 		bool clone_links(const self_type& other) { 
 			//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
 			if( other.is_managed_by(get_index()) ) { 
@@ -90,17 +91,14 @@ namespace ben {
 				return true;
 			} else return false;
 		}
-
 		void remove(const iterator iter) {
 			auto node_iter = get_index.find(iter->get_address());
 			links.remove(node_iter->links, iter);
 		}
-
 		void remove(const id_type address) {
 			auto iter = find(address);
 			if(iter != end()) remove(iter);
 		}
-
 		void clear() {
 			for(auto& x : links) get_index().elem(x.get_address()).links.clean_up(ID());
 			links.clear();
