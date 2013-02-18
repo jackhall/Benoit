@@ -29,28 +29,41 @@ namespace ben {
 
 	template<typename V>
 	class Path {
+/* Value-storing counterpart to Ports. Directionality is given only by the Node-level interface.
+ * Any replacement must have:
+ * 	id_type typedef
+ * 	complement_type typedef
+ * 	construction_types typedef
+ * 	get_address() method
+ * 	clone() method
+ * 	Constructor(id_type, construction_types...)
+ * 	Constructor(complement_type, id_type)
+ * 	copy construction/assignment (for the STL)
+ */
 	public:	
 		typedef V value_type;
-		typedef Path self_type;
-		typedef Path complement_type;
+		typedef Path complement_type; //even for directed graphs, value links are symmetric
 		typedef unsigned int id_type;
-		typedef ConstructionTypes<value_type> construction_types;
+		typedef ConstructionTypes<value_type> construction_types; //tells LinkManager how to construct it
 		
 	private:
+		typedef Path self_type;
 		id_type otherID;
 		std::shared_ptr< std::atomic<value_type> > value_ptr;
 
 	public:
 		Path() = delete;
-		Path(const id_type address, const value_type v) : otherID(address), value_ptr(new value_type(v)) {}
+		//1st ctor: new link, new shared_ptr
+		//2nd ctor: matches existing complement, old shared_ptr
+		Path(const id_type address, const value_type v) : otherID(address), value_ptr(new value_type(v)) {} 
 		Path(complement_type& other, const id_type address) : otherID(address), value_ptr(other.value_ptr) {}
 		Path(const self_type& rhs) = default;
 		self_type& operator=(const self_type& rhs) = default;
 		~Path() = default;
 
-		self_type clone() const { return self_type(otherID, value_ptr->load()); }
+		self_type clone() const { return self_type(otherID, value_ptr->load()); } //how to get a link w/new shared_ptr
 
-		id_type get_address() const { return otherID; }
+		id_type get_address() const { return otherID; } //required by all Port or Path types
 		value_type get_value() const { return value_ptr->load(); }
 		void set_value(const value_type& v) { value_ptr->store(v); }
 	}; //class Path

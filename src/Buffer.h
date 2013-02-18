@@ -37,6 +37,8 @@ namespace ben {
  * in the rest of the buffer are avoided, and Buffer B=1 encapsulates all atomic operations. 
  *
  * B=2 is special because it also needs no indexing. Larger Buffers are implemented as circular buffers. 
+ *
+ * Any replacement must match the public interface, which is the same for all specializations. 
  */
 	template<typename S> 
 	struct Frame {
@@ -55,7 +57,9 @@ namespace ben {
 	template<typename S>
 	class Buffer<S,1> {
 	/*
-		A link with a one-element buffer.
+		A link with a one-element buffer. All atomic operations needed for 
+		message-passing are encapsulated in this partial specialization. The
+		other specializations use this one recursively.
 	*/	
 	private:
 		typedef Frame<S> frame_type;
@@ -77,7 +81,10 @@ namespace ben {
 		}
 		
 		signal_type pull() { 
-			auto temp = data.exchange(frame_type{false, signal_type()});
+			//it may be faster and safer to return as a pair with a boolean
+			//that way, the buffer can't be altered between calls to is_ready
+			//and pull
+			auto temp = data.exchange(frame_type{false, signal_type()}); //leave the buffer blank
 			return temp.data; 
 		}
 	}; //class Buffer (length 1 specialization)
@@ -87,12 +94,11 @@ namespace ben {
 	class Buffer {
 	public:
 		typedef S signal_type;
-		static_assert(std::is_default_constructible<signal_type>::value, 
-			      "signals should be default-constructible"); 
-
+		
 	private:
 		typedef Frame<S> frame_type;
-		
+		//this recursion encapsulates all atomic operations in Buffer<S,1>
+		//it also enforces the static_assert used in Buffer<S,1>
 		Buffer<S,1> next;
 		std::array<frame_type, B-1> buffer;
 		unsigned short index;
@@ -113,10 +119,10 @@ namespace ben {
 		
 		bool is_ready() const { return next.is_ready(); }
 		
-		bool push(const signal_type& signal) {
+		bool push(const signal_type& signal) { //returns true if unread data is overwritten
 			auto temp = buffer[index];
 			buffer[index++] = frame_type{true, signal};
-			if(index == B-1) index = 0;
+			if(index == B-1) index = 0; //index needs to cycle (buffer is circular)
 			if(temp.ready) return next.push(temp.data);
 			else return false;
 		}
@@ -128,16 +134,15 @@ namespace ben {
 	template<typename S>
 	class Buffer<S,2> {
 	/*
-		A link with a two-element buffer.
+		A link with a two-element buffer. This is specialized because no indicies 
+		are needed, unlike the general case. 
 	*/	
 	public:
 		typedef S signal_type;
 	private:
 		typedef Frame<S> frame_type;
-		static_assert(std::is_default_constructible<signal_type>::value, 
-			      "signals should be default-constructible"); 
-
-		Buffer<S,1> next;
+	
+		Buffer<S,1> next; //the recursion encapsulates all atomic operations in Buffer<S,1>
 		frame_type buffer;
 	
 	public:
@@ -153,7 +158,7 @@ namespace ben {
 			auto temp = buffer;
 			buffer = frame_type{true, signal};
 			if(temp.ready) return next.push(temp.data);
-			else return false;
+			else return false; 
 		}
 		
 		signal_type pull() { return next.pull(); }

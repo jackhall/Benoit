@@ -35,15 +35,25 @@ namespace ben {
  * for Buffer method calls. More complex implementations could be written to store
  * extra data, check validity of pull operations or deal with custom Buffer classes
  * in a special way. 
+ * 
+ * Any replacement must have:
+ * 	id_type typedef
+ * 	complement_type typedef
+ * 	construction_types typedef
+ * 	get_address() method
+ * 	clone() method
+ * 	Constructor(id_type, construction_types...)
+ * 	Constructor(complement_type, id_type)
+ * 	copy construction/assignment (for the STL)
  */
-	
 	template<typename B, typename I=unsigned int>
 	class Port {
+	//this is just code shared by InPort and OutPort, can't be instantiated by itself
 	public:
 		typedef B 			buffer_type;
 		typedef typename B::signal_type signal_type;
 		typedef I 			id_type;
-		typedef ConstructionTypes<>	construction_types;
+		typedef ConstructionTypes<>	construction_types; //tells LinkManager how to construct a Port
 	
 	protected:
 		std::shared_ptr<buffer_type> buffer_ptr;//reference-counted smart pointer
@@ -62,15 +72,17 @@ namespace ben {
 		virtual ~Port() = default;
 	
 	public:
-		inline bool is_ready() const { return buffer_ptr->is_ready(); }
-		inline bool is_ghost() const { return buffer_ptr.use_count() < 2; }
+		bool is_ready() const { return buffer_ptr->is_ready(); }
+		bool is_ghost() const { return buffer_ptr.use_count() < 2; } //necessary but not sufficient for ghost :(
 	}; //class Port
 	
 
-	template<typename B> class OutPort;
+	template<typename B> class OutPort; //forward declaration to resolve circular typedefs
 
 	template<typename B>
 	class InPort : public Port<B> {
+/*This version allows pulling but not pushing, enforcing the directedness of messages
+ */
 	private:
 		typedef Port<B> base_type;
 		typedef InPort self_type;
@@ -79,24 +91,25 @@ namespace ben {
 		typename base_type::id_type sourceID;
 
 	public:
+		//carrying these typedefs through inheritance is automatic only for non-template classes
 		typedef typename base_type::construction_types construction_types;
 		typedef typename base_type::id_type id_type;
-		typedef typename B::signal_type signal_type;
-		typedef OutPort<B> complement_type;
 		typedef B buffer_type;
+		typedef typename buffer_type::signal_type signal_type;
+		typedef OutPort<buffer_type> complement_type;
 	
-		InPort(id_type nSource) : base_type(new buffer_type()), sourceID(nSource) {}
-		InPort(const complement_type& other, id_type nSource) : base_type(other), sourceID(nSource) {}
+		InPort(id_type nSource) : base_type(new buffer_type()), sourceID(nSource) {} //new link, new shared_ptr
+		InPort(const complement_type& other, id_type nSource) : base_type(other), sourceID(nSource) {} //matching link, old shared_ptr
 		InPort(const self_type& rhs) : base_type(rhs), sourceID(rhs.sourceID) {} //necessary for stl internals
 		InPort(self_type&& rhs) : base_type( std::move(rhs) ), sourceID(rhs.sourceID) {}
-		InPort& operator=(const self_type& rhs) {
+		InPort& operator=(const self_type& rhs) {//increases use_count
 			if(this != &rhs) {
 				base_type::operator=(rhs);
 				sourceID = rhs.sourceID;
 			}
 			return *this;
 		}
-		InPort& operator=(self_type&& rhs) {
+		InPort& operator=(self_type&& rhs) {//preserves use_count
 			if(this != &rhs) {
 				base_type::operator=( std::move(rhs) );
 				sourceID = rhs.sourceID;
@@ -104,15 +117,17 @@ namespace ben {
 			return *this;
 		}
 	
-		self_type clone() const { return self_type(sourceID); }
+		self_type clone() const { return self_type(sourceID); } //how to get a copy with a new shared_ptr
 	
-		inline id_type get_address() const { return sourceID; }
-		inline signal_type pull() const { return buffer_ptr->pull(); }
+		id_type get_address() const { return sourceID; }
+		signal_type pull() const { return buffer_ptr->pull(); }
 	}; //struct InPort
 	
 	
 	template<typename B>
 	class OutPort : public Port<B> {
+/*This version allows pushing but not pulling, enforcing the directedness of messages
+ */
 	private:
 		typedef Port<B> base_type;
 		typedef OutPort self_type;
@@ -127,18 +142,18 @@ namespace ben {
 		typedef InPort<B> complement_type;
 		typedef B buffer_type;
 	
-		OutPort(id_type nTarget) : base_type(new buffer_type()), targetID(nTarget) {}
-		OutPort(const complement_type& other, id_type nTarget) : base_type(other), targetID(nTarget) {}
+		OutPort(id_type nTarget) : base_type(new buffer_type()), targetID(nTarget) {} //new link, new shared_ptr
+		OutPort(const complement_type& other, id_type nTarget) : base_type(other), targetID(nTarget) {} //matches existing complement
 		OutPort(const self_type& rhs) : base_type(rhs), targetID(rhs.targetID) {}
 		OutPort(self_type&& rhs) : base_type( std::move(rhs) ), targetID(rhs.targetID) {}
-		OutPort& operator=(const self_type& rhs) {
+		OutPort& operator=(const self_type& rhs) {//increases shared_ptr::use_count
 			if(this != &rhs) {
 				base_type::operator=(rhs);
 				targetID = rhs.targetID;
 			}
 			return *this;
 		}
-		OutPort& operator=(self_type&& rhs) {
+		OutPort& operator=(self_type&& rhs) { //preserves shared_ptr::use_count
 			if(this != &rhs) {
 				base_type::operator=( std::move(rhs) );
 				targetID = rhs.targetID;
@@ -146,10 +161,10 @@ namespace ben {
 			return *this;
 		}
 	
-		self_type clone() const { return self_type(targetID); }
+		self_type clone() const { return self_type(targetID); } //how to get a copy with a new shared_ptr
 	
-		inline id_type get_address() const { return targetID; }
-		inline bool push(const signal_type& signal) { return buffer_ptr->push(signal); } //take another look at const requirements
+		id_type get_address() const { return targetID; }
+		bool push(const signal_type& signal) { return buffer_ptr->push(signal); } //take another look at const requirements
 	}; //struct OutPort
 
 } //namespace ben
