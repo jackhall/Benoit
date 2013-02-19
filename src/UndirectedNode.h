@@ -28,7 +28,12 @@ namespace ben {
 	
 	template<typename P>
 	class UndirectedNode : public Singleton { 
-/*
+/* UndirectedNode is the counterpart to DirectedNode. Between them, it should be possible to represent
+ * any sort of distributed graph by choosing the proper (possibly custom) Path or Port classes. 
+ *
+ * The standard type of UndirectedNode holds a templated value in each link, shared atomically by the
+ * two nodes the link connects. As in DirectedNode, most of the work is delegated to LinkManager. See
+ * DirectedNode for a little more information.
  */
 	private:
 		typedef UndirectedNode self_type;
@@ -37,20 +42,22 @@ namespace ben {
 	public:
 		typedef Graph<UndirectedNode> index_type;
 		typedef P link_type;
+		typedef typename LinkManager<link_type>::const_iterator const_iterator;
 		typedef typename LinkManager<link_type>::iterator iterator; 
 		
 	private:
 		static_assert(std::is_same<id_type, typename P::id_type>::value, 
-			      "Index and Port unique ID types don't match");
+			      "Index and Path unique ID types don't match");
 
 		LinkManager<link_type> links;
+		//std::mutex
 	
 	public:
 		UndirectedNode() : base_type(), links(ID()) {}
 		explicit UndirectedNode(const id_type id) : base_type(id), links(id) {}
 		explicit UndirectedNode(index_type& graph) : base_type(graph), links(ID()) {}
 		UndirectedNode(index_type& graph, const id_type id) : base_type(graph, id), links(id) {}
-		UndirectedNode(const self_type& rhs) = delete;
+		UndirectedNode(const self_type& rhs) = delete; //identity semantics
 		UndirectedNode& operator=(const self_type& rhs) = delete;
 		UndirectedNode(self_type&& rhs) : base_type(std::move(rhs)), links(std::move(rhs.links)) {}
 		UndirectedNode& operator=(self_type&& rhs) {
@@ -61,23 +68,29 @@ namespace ben {
 		}
 		virtual ~UndirectedNode() { clear(); } //might want to lock while deleting links
 
-		using base_type::ID;
-		const index_type& get_index() const 
+		using base_type::ID; //access method
+		const index_type& get_index() const //ensures proper type casting of the index pointer 
 			{ return static_cast<const index_type&>(base_type::get_index()); }
 		using base_type::is_managed;
 		bool is_managed_by(const index_type& x) const { return base_type::is_managed_by(x); }
+
 		iterator find(const id_type address) { return links.find(address); } 
+		const_iterator find(const id_type address) const { return links.find(address); }
 
 		template<typename... Args>
 		bool add(const id_type address, Args... args) {
+			//returns false if the address does not exist or a link is already there
+			//add should only be instantiated with arguments matching the Path constructor
 			static_assert(std::is_same< typename link_type::construction_types, ConstructionTypes<Args...> >::value,
 					"extra arguments for UndirectedNode::add must match link_type::construction_types");
-			auto node_iter = get_index().find(address);
+			auto node_iter = get_index().find(address); 
 			if(node_iter != get_index().end()) return links.add(node_iter->links, address, args...);
 			else return false;
 		}
 		bool clone_links(const self_type& other) { 
 			//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
+			//calls link_type::clone to copy links
+			//returns false if other is not managed by the same Graph
 			if( other.is_managed_by(get_index()) ) { 
 				clear();
 				id_type currentID;
@@ -92,14 +105,20 @@ namespace ben {
 			} else return false;
 		}
 		void remove(const iterator iter) {
+			//gets an iterator to the other node and lets LinkManager::remove do the rest
+			//of the work
 			auto node_iter = get_index.find(iter->get_address());
 			links.remove(node_iter->links, iter);
 		}
 		void remove(const id_type address) {
+			//finds the link referred to and delegates to the other overload of remove
+			//if the other link is not found, nothing happens 
 			auto iter = find(address);
 			if(iter != end()) remove(iter);
 		}
 		void clear() {
+			//removes all link complements before deleting the local copy of the links, thereby
+			//preventing iterator invalidation
 			for(auto& x : links) get_index().elem(x.get_address()).links.clean_up(ID());
 			links.clear();
 		}
@@ -107,12 +126,18 @@ namespace ben {
 		size_t size() const { return links.size(); }
 
 		bool contains(const id_type address) const { return links.contains(address); }
-		
-		self_type& walk(const iterator iter) const { return get_index().elem(iter->get_address()); }
+		self_type& walk(const const_iterator iter) const { 
+			//returns a reference to the node that iter points to: walks the graph
+			//iterator is implicitly cast to const_iterator
+			return get_index().elem(iter->get_address()); 
+		}
 		iterator begin() { return links.begin(); }
+		const_iterator begin() const { return links.begin(); }
 		iterator end() { return links.end(); }
+		const_iterator end() const { return links.begin(); }
 	}; //class UndirectedNode
 
+	//simply uses the default Path class, more user-friendly
 	template<typename V>
 	using stdUndirectedNode = UndirectedNode< Path<V> >;
 

@@ -54,27 +54,32 @@ namespace ben {
 			
 	public:		
 		typedef S singleton_type;
-			
+
+		//iterators are not nested because I need to forward declare their output operator			
 		class const_iterator; //do away with const_iterator? semantically weird
 		class iterator;
-	
+
 		Index()=default;
-		Index(const self_type& rhs) = delete;
-		Index(self_type&& rhs) : base_type( std::move(rhs) ) {}
+		Index(const self_type& rhs) = delete; //identity semantics
 		Index& operator=(const self_type& rhs) = delete; 
+		Index(self_type&& rhs) : base_type( std::move(rhs) ) {}
 		Index& operator=(self_type&& rhs) { base_type::operator=( std::move(rhs) ); }
-		virtual ~Index() { clear(); }
+		virtual ~Index() = default; //clear is called by IndexBase (it's virtual)
 		
 		iterator find(const id_type address) { return iterator( index.find(address) ); }
 		const_iterator find(const id_type address) const { return const_iterator( index.find(address) ); }
-		singleton_type& elem(const id_type address) const; //throw an exception if address does not exist?
+		singleton_type& elem(const id_type address) const {
+			//throw an exception if address does not exist?
+			//this is not safe to use unless you already know that address exists in this index
+			auto iter = index.find(address);
+			return *static_cast<singleton_type*>(iter->second);
+		}
 		bool check(const id_type address, const singleton_type* local_ptr) const 
 			{ return base_type::check(address, local_ptr); }
 		bool empty() const { return index.empty(); }
 		
 		virtual bool add(singleton_type& x) { return base_type::add(x); }
-		using base_type::remove;//this is virtual
-		using base_type::clear;//this is virtual
+		//virtual void clear() { base_type::clear(); }
 		size_type size() { return index.size(); }
 		
 		virtual bool merge_into(self_type& other) { return base_type::merge_into(other); }
@@ -87,7 +92,7 @@ namespace ben {
 	
 	
 	template<typename U> std::ostream& operator<<(std::ostream& out, const typename Index<U>::const_iterator& iter);
-	
+
 	template<typename S>
 	class Index<S>::const_iterator : public std::iterator<std::forward_iterator_tag, singleton_type> {
 	protected:
@@ -122,8 +127,7 @@ namespace ben {
 		bool operator!=(const const_iterator& rhs) const
 			{ return !( (*this) == rhs ); }
 	}; //class const_iterator
-	
-	
+
 	template<typename S>
 	class Index<S>::iterator : public Index<S>::const_iterator {
 	private:
@@ -153,12 +157,6 @@ namespace ben {
 		return out;
 	}
 
-	template<typename S>
-	typename Index<S>::singleton_type& Index<S>::elem(const typename Index<S>::id_type address) const {
-		//this is not safe to use unless you already know that address exists in this index
-		auto iter = index.find(address);
-		return *static_cast<singleton_type*>(iter->second);
-	}
 } //namespace ben
 
 #endif

@@ -46,38 +46,30 @@ namespace ben {
 		//typedef typename base_type::iterator iterator; //necessary?
 
 		Graph() = default;
-		Graph(const Graph& rhs) = delete;
-		Graph(Graph&& rhs) : base_type( std::move(rhs) ) {}
+		Graph(const Graph& rhs) = delete; //identity semantics
 		Graph& operator=(const Graph& rhs) = delete; 
+		Graph(Graph&& rhs) : base_type( std::move(rhs) ) {}
 		Graph& operator=(Graph&& rhs) { base_type::operator=( std::move(rhs) ); }
-		virtual ~Graph();
+		virtual ~Graph() { clear(); } 
+		//It shouldn't be necessary to call clear in this destructor, since it's called
+		//in ~IndexBase and it's virtual. But the tests don't run without it...
 		
-		virtual bool remove(const id_type address);
-		virtual void clear();
+		virtual bool remove(const id_type address) {
+			//erases all links to and from the corresponding node, stops tracking it, and
+			//leaves it with a null pointer to index
+			auto iter = this->find(address);
+			if(iter != base_type::end()) iter->clear(); //break links with the rest of the graph
+			else return false;
+			
+			base_type::remove(address);
+			return true;
+		}
+		virtual void clear() {
+			//since all Nodes become unmanaged, all links must be deleted
+			for(node_type& x : *this) x.clear();
+			base_type::clear();
+		}
 	}; //class Graph
-	
-	
-	template<typename N>
-	Graph<N>::~Graph() { 
-		for(node_type& x : *this) x.clear(); //this->clear is called higher up the inheritance tree
-	}
-	
-	template<typename N> 
-	bool Graph<N>::remove(const id_type address) {
-		auto iter = this->find(address);
-		if(iter != base_type::end()) iter->clear(); //break links with the rest of the graph
-		else return false;
-		
-		base_type::remove(address);
-		return true;
-	}
-	
-	template<typename N>
-	void Graph<N>::clear() {
-	//since all Nodes become unmanaged, all links must be deleted
-		for(node_type& x : *this) x.clear();
-		base_type::clear();
-	}
 
 } //namespace ben
 

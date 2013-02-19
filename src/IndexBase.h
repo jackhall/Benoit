@@ -39,7 +39,9 @@ namespace ben {
 		friend class Singleton;
 	
 		bool contains(const id_type address) const { return index.count(address) == 1; }
-	
+		virtual bool remove(const id_type address);
+		virtual void clear();
+
 	private:
 		typedef IndexBase self_type;
 	
@@ -64,9 +66,7 @@ namespace ben {
 		
 		bool check(const id_type address, const Singleton* local_ptr) const;	
 		bool add(Singleton& x); 
-		virtual bool remove(const id_type address);
 		bool merge_into(self_type& other);
-		virtual void clear();
 	}; //class IndexBase	
 
 } //namespace ben
