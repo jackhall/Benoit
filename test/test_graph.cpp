@@ -105,46 +105,40 @@ namespace {
 
 	class PortPath : public ::testing::Test {
 	protected:
-		template<typename I, typename O> 
-		void test_construction() { //need a way to customize arguments?
+		template<typename I, typename O, typename... Args> 
+		void test_construction(Args... args) { 
 			using namespace ben;
 			typedef I input_type;
 			typedef O output_type;
 	
 			//normal construction
-			auto input_port_ptr = new input_type(5);
+			auto input_port_ptr = new input_type(5, args...);
 			EXPECT_EQ(5, input_port_ptr->get_address());
-			EXPECT_FALSE(input_port_ptr->is_ready());
 			EXPECT_TRUE(input_port_ptr->is_ghost());
 			
-			auto output_port_ptr = new output_type(11);
+			auto output_port_ptr = new output_type(11, args...);
 			EXPECT_EQ(11, output_port_ptr->get_address());
-			EXPECT_FALSE(output_port_ptr->is_ready());
 			EXPECT_TRUE(output_port_ptr->is_ghost());
 		
 			//complement constructors
 			input_type input_port2(*output_port_ptr, 17);
 			EXPECT_EQ(17, input_port2.get_address());
-			EXPECT_FALSE(input_port2.is_ready());
 			EXPECT_FALSE(output_port_ptr->is_ghost());
 			EXPECT_FALSE(input_port2.is_ghost());
 			
 			output_type output_port2(*input_port_ptr, 19);
 			EXPECT_EQ(19, output_port2.get_address());
-			EXPECT_FALSE(output_port2.is_ready());
 			EXPECT_FALSE(input_port_ptr->is_ghost());
 			EXPECT_FALSE(output_port2.is_ghost());
 		
 			//copy constructor
 			input_type input_port3(*input_port_ptr);
 			EXPECT_EQ(5, input_port3.get_address());
-			EXPECT_FALSE(input_port3.is_ready());
 			EXPECT_FALSE(input_port3.is_ghost());
 			EXPECT_FALSE(input_port_ptr->is_ghost());
 
 			output_type output_port3(*output_port_ptr);
 			EXPECT_EQ(11, output_port3.get_address());
-			EXPECT_FALSE(output_port3.is_ready());
 			EXPECT_FALSE(output_port3.is_ghost());
 			EXPECT_FALSE(output_port_ptr->is_ghost());
 
@@ -161,23 +155,23 @@ namespace {
 			input_type input_port4(std::move(input_port2));
 			EXPECT_EQ(17, input_port4.get_address());
 			EXPECT_FALSE(input_port4.is_ghost());
-			EXPECT_TRUE(input_port2.is_ghost());
+			EXPECT_TRUE(input_port2.is_ghost()); //fails
 
 			output_type output_port4(std::move(output_port2));
 			EXPECT_EQ(19, output_port4.get_address());
 			EXPECT_FALSE(output_port4.is_ghost());
-			EXPECT_TRUE(output_port2.is_ghost());
+			EXPECT_TRUE(output_port2.is_ghost()); //fails
 
 			//move assignment
 			input_port2 = std::move(input_port4);
 			EXPECT_EQ(17, input_port2.get_address());
 			EXPECT_FALSE(input_port2.is_ghost());
-			EXPECT_TRUE(input_port4.is_ghost());
+			EXPECT_TRUE(input_port4.is_ghost()); //fails
 
 			output_port2 = std::move(output_port4);
 			EXPECT_EQ(19, output_port2.get_address());
 			EXPECT_FALSE(output_port2.is_ghost());
-			EXPECT_TRUE(output_port4.is_ghost());
+			EXPECT_TRUE(output_port4.is_ghost()); //fails
 		
 			//assignment
 			input_port4 = input_port2;
@@ -193,14 +187,16 @@ namespace {
 	};
 
 	TEST_F(PortPath, Port_Construction) {
+		SCOPED_TRACE("Ports");
 		typedef ben::InPort<ben::Buffer<double, 2>>  input_type;
 		typedef ben::OutPort<ben::Buffer<double, 2>> output_type;
 		test_construction<input_type, output_type>();
 	}
 	TEST_F(PortPath, Path_Construction) {
+		SCOPED_TRACE("Paths");
 		typedef ben::Path<double> input_type;
 		typedef ben::Path<double> output_type;
-		//test_construction<input_type, output_type>();
+		test_construction<input_type, output_type>(3.14159);
 	}
 
 	TEST(Ports, Data) {
@@ -223,7 +219,7 @@ namespace {
 	}
 	
 	TEST(Paths, Values) {
-
+//write these!
 	}
 
 	class DirectedNodes : public ::testing::Test {
@@ -247,21 +243,21 @@ namespace {
 			auto node4_ptr = new node_type(7);
 			EXPECT_EQ(nullptr, &node4_ptr->get_index());
 		}
-		template<typename N>
-		void test_add_remove() {
+		template<typename N, typename... Args>
+		void test_add_remove(Args... args) {
 			using namespace ben;
 			typedef N node_type;
 			auto graph1_ptr = new Graph<node_type>();
 
 			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
-			EXPECT_TRUE(node1.add_input(3));
+			EXPECT_TRUE(node1.add_input(3, args...)); //creates Port/Path
 			EXPECT_TRUE(node1.contains_input(3));
 			EXPECT_TRUE(node1.contains_output(3));
-			EXPECT_TRUE(node1.add_input(5)); 
+			EXPECT_TRUE(node1.add_input(5, args...)); //creates Port/Path
 			EXPECT_TRUE(node1.contains_input(5));
 			EXPECT_TRUE(node2.contains_output(3));
-			EXPECT_FALSE(node1.add_input(5));
-			EXPECT_TRUE(node1.add_output(7)); 
+			EXPECT_FALSE(node1.add_input(5, args...)); //creates Port/Path
+			EXPECT_TRUE(node1.add_output(7, args...)); //creates Port/Path
 			EXPECT_TRUE(node1.contains_output(7));
 			EXPECT_TRUE(node3.contains_input(3));
 			EXPECT_FALSE(node1.contains_input(11)); 
@@ -307,17 +303,17 @@ namespace {
 			EXPECT_FALSE(node3.is_managed());
 			EXPECT_FALSE(node4.is_managed());
 		}
-		template<typename N>
-		void test_iteration() {
+		template<typename N, typename... Args>
+		void test_iteration(Args... args) {
 			using namespace ben;
 			typedef N node_type;
 			auto graph1_ptr = new Graph<node_type>();
 
 			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
-			node1.add_input(3);
-			node1.add_input(5);
-			node1.add_input(7);
-			node1.add_output(7);
+			node1.add_input(3, args...);
+			node1.add_input(5, args...);
+			node1.add_input(7, args...);
+			node1.add_output(7, args...);
 			node4.clone_links(node1);
 			
 			for(auto iter = node1.ibegin(); iter != node1.iend(); ++iter) {
@@ -343,18 +339,18 @@ namespace {
 			delete graph1_ptr;
 			graph1_ptr = nullptr;
 		}
-		template<typename N>
-		void test_move_destruction() {
+		template<typename N, typename... Args>
+		void test_move_destruction(Args... args) {
 			using namespace ben;
 			typedef N node_type;
 			auto graph1_ptr = new Graph<node_type>();
 
 			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7);
 			auto node4_ptr = new node_type(*graph1_ptr, 11);
-			node1.add_input(3);
-			node1.add_input(5);
-			node1.add_input(7);
-			node1.add_output(7);
+			node1.add_input(3, args...);
+			node1.add_input(5, args...);
+			node1.add_input(7, args...);
+			node1.add_output(7, args...);
 			node4_ptr->clone_links(node1);
 
 			node_type node5 = std::move(node1);
@@ -411,21 +407,22 @@ namespace {
 	}
 	TEST_F(DirectedNodes, value_Node_Construction) {
 		typedef ben::stdDirectedNode<double> node_type;
-		//test_construction<node_type>();
+		test_construction<node_type>();
 	}
 	TEST_F(DirectedNodes, value_Node_Add_Remove) {
 		typedef ben::stdDirectedNode<double> node_type;
-		//test_add_remove<node_type>();
+		test_add_remove<node_type>(3.14159);
 	}
 	TEST_F(DirectedNodes, value_Node_Iteration) {
 		typedef ben::stdDirectedNode<double> node_type;
-		//test_iteration<node_type>();
+		test_iteration<node_type>(3.14159);
 	}
 	TEST_F(DirectedNodes, value_Node_Move_Destruction) {
 		typedef ben::stdDirectedNode<double> node_type;
-		//test_move_destruction<node_type>();
+		test_move_destruction<node_type>(3.14159);
 	}
 
+//test graphs with UndirectedNodes too!
 	TEST(Graphs, Add_Remove) {
 		using namespace ben;
 		typedef stdMessageNode<double, 1> node_type;

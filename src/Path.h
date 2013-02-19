@@ -55,14 +55,22 @@ namespace ben {
 		Path() = delete;
 		//1st ctor: new link, new shared_ptr
 		//2nd ctor: matches existing complement, old shared_ptr
-		Path(const id_type address, const value_type v) : otherID(address), value_ptr(new value_type(v)) {} 
+		Path(const id_type address, const value_type v) : otherID(address), value_ptr(new std::atomic<value_type>(v)) {} 
 		Path(complement_type& other, const id_type address) : otherID(address), value_ptr(other.value_ptr) {}
 		Path(const self_type& rhs) = default;
 		self_type& operator=(const self_type& rhs) = default;
+		Path(self_type&& rhs) : otherID(rhs.otherID), value_ptr( std::move(rhs.value_ptr) ) {}
+		self_type& operator=(self_type&& rhs) {
+			if(this != &rhs) {
+				otherID = rhs.otherID;
+				value_ptr = std::move(rhs.value_ptr);
+			}
+		}
 		~Path() = default;
 
 		self_type clone() const { return self_type(otherID, value_ptr->load()); } //how to get a link w/new shared_ptr
 
+		bool is_ghost() const { return value_ptr.use_count() < 2; } //necessary but not sufficient condition for ghost
 		id_type get_address() const { return otherID; } //required by all Port or Path types
 		value_type get_value() const { return value_ptr->load(); }
 		void set_value(const value_type& v) { value_ptr->store(v); }
