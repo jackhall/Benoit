@@ -98,7 +98,7 @@ namespace ben {
 					currentID = x.get_address();
 					if(currentID != ID()) {	
 						auto& target = get_index().elem(currentID).links;
-						links.add_clone_of(x, target)
+						links.add_clone_of(x, target);
 					}
 				}
 				return true;

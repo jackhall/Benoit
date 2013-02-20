@@ -30,13 +30,13 @@
 #include "Port.h"
 #include "Graph.h"
 #include "DirectedNode.h"
+#include "UndirectedNode.h"
 
 namespace {
 
 	class Buffers : public ::testing::Test {
 	protected:
 		std::vector<double> signals;
-		Buffers() {}
 		void PrepareSignals(const unsigned int n) {
 			std::default_random_engine gen;
   			std::uniform_real_distribution<double> random_real(0.0,1.0);
@@ -102,6 +102,7 @@ namespace {
 		TestBuffer<2>(link2);
 		TestBuffer<4>(link4);
 	}
+
 
 	class PortPath : public ::testing::Test {
 	protected:
@@ -219,8 +220,9 @@ namespace {
 	}
 	
 	TEST(Paths, Values) {
-//write these!
+		//write these!
 	}
+
 
 	class DirectedNodes : public ::testing::Test {
 	protected:
@@ -422,103 +424,246 @@ namespace {
 		test_move_destruction<node_type>(3.14159);
 	}
 
-//test graphs with UndirectedNodes too!
-	TEST(Graphs, Add_Remove) {
-		using namespace ben;
-		typedef stdMessageNode<double, 1> node_type;
-		Graph<node_type> graph1, graph2;
-		
-		auto node1_ptr = new node_type(graph1, 3);
-		auto node2_ptr = new node_type(5);
-		auto node3_ptr = new node_type(7);
 
-		EXPECT_TRUE(graph1.check(3, node1_ptr));
-		EXPECT_FALSE(graph1.check(5, node2_ptr));
-		EXPECT_TRUE(graph1.add(*node2_ptr));
-		EXPECT_TRUE(graph1.check(5, node2_ptr));
-		EXPECT_TRUE(graph1.add(*node3_ptr));
-		EXPECT_TRUE(graph2.empty());
-		EXPECT_TRUE(graph2.add(*node2_ptr));
-		EXPECT_TRUE(graph2.check(5, node2_ptr));
-		EXPECT_FALSE(graph2.empty());
-		EXPECT_EQ(1, graph2.size());
-		EXPECT_FALSE(graph1.empty());
-		EXPECT_EQ(2, graph1.size());
+	class UndirectedNodes : public ::testing::Test {
+	//this is nearly identical to the DirectedNode test set
+	protected:
+		template<typename N>
+		void test_construction() {
+			using namespace ben;
+			typedef N node_type;
+			Graph<node_type> graph1;
+			
+			auto node1_ptr = new node_type(graph1);
+			EXPECT_EQ(0, node1_ptr->size());
+			EXPECT_TRUE(graph1.check(node1_ptr->ID(), node1_ptr));
 
-		EXPECT_TRUE(graph2.remove(5));
-		EXPECT_FALSE(graph1.remove(5));
-		EXPECT_TRUE(graph2.empty());
-		EXPECT_FALSE(node2_ptr->is_managed());
-		EXPECT_TRUE(graph2.add(*node2_ptr));
-		EXPECT_TRUE(node2_ptr->is_managed());
+			auto node2_ptr = new node_type(graph1, 3);
+			EXPECT_TRUE(graph1.check(3, node2_ptr));
 
-		delete node1_ptr, node2_ptr, node3_ptr;
-	}
-	TEST(Graphs, Merge_Move_Destruction) {		
-		using namespace ben;
-		typedef stdMessageNode<double, 1> node_type;
-		Graph<node_type> graph1, graph2;
-		auto graph2_ptr = new Graph<node_type>();
-		
-		auto node1_ptr = new node_type(graph1, 3);
-		auto node2_ptr = new node_type(graph1, 5);
-		auto node3_ptr = new node_type(*graph2_ptr, 7);
-		auto node4_ptr = new node_type(*graph2_ptr, 11);
-
-		EXPECT_TRUE(graph2_ptr->merge_into(graph1));
-		EXPECT_EQ(4, graph1.size());
-		EXPECT_TRUE(graph2_ptr->empty());
-		EXPECT_EQ(&graph1, &(node1_ptr->get_index()));
-		EXPECT_EQ(&graph1, &(node2_ptr->get_index()));
-
-		Graph<node_type> graph3(std::move(graph1));
-		EXPECT_EQ(4, graph3.size());
-		EXPECT_TRUE(graph1.empty());
-		EXPECT_EQ(&graph3, &(node1_ptr->get_index()));
-		EXPECT_EQ(&graph3, &(node3_ptr->get_index()));
-
-		*graph2_ptr = std::move(graph3);
-		EXPECT_EQ(4, graph2_ptr->size());
-		EXPECT_TRUE(graph3.empty());
-		EXPECT_EQ(graph2_ptr, &(node1_ptr->get_index()));
-		EXPECT_EQ(graph2_ptr, &(node3_ptr->get_index()));
-
-		delete graph2_ptr;
-		graph2_ptr = nullptr;
-		EXPECT_FALSE(node1_ptr->is_managed());
-		EXPECT_FALSE(node2_ptr->is_managed());
-		EXPECT_FALSE(node3_ptr->is_managed());
-
-		delete node1_ptr, node2_ptr, node3_ptr, node4_ptr;
-	}
-	TEST(Graphs, Content) {
-		using namespace ben;
-		typedef stdMessageNode<double, 1> node_type;
-		Graph<node_type> graph1, graph2;
-		
-		auto node1_ptr = new node_type(graph1, 3);
-		auto node2_ptr = new node_type(graph1, 5);
-		auto node3_ptr = new node_type(graph1, 7);
-
-		for(node_type& x : graph1) {
-			EXPECT_TRUE(graph1.check(x.ID(), &x));
+			auto node3_ptr = new node_type();
+			EXPECT_EQ(nullptr, &node3_ptr->get_index());
+			auto node4_ptr = new node_type(7);
+			EXPECT_EQ(nullptr, &node4_ptr->get_index());
 		}
-		
-		EXPECT_TRUE(graph1.contains(7));
-		EXPECT_FALSE(graph2.contains(7));
+		template<typename N, typename... Args>
+		void test_add_remove(Args... args) {
+			using namespace ben;
+			typedef N node_type;
+			auto graph1_ptr = new Graph<node_type>();
 
-		EXPECT_TRUE(graph2.end() == graph2.find(3));
-		auto iter = graph1.begin();
-		while(iter->ID() != 7) ++iter;
-		EXPECT_TRUE(iter == graph1.find(7));
-		EXPECT_TRUE(graph1.end() == graph1.find(4));
+			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
+			EXPECT_TRUE(node1.add(3, args...)); //creates Port/Path
+			EXPECT_TRUE(node1.contains(3));
+			EXPECT_TRUE(node1.add(5, args...)); //creates Port/Path
+			EXPECT_TRUE(node1.contains(5));
+			EXPECT_TRUE(node2.contains(3));
+			EXPECT_FALSE(node1.add(5, args...)); //creates Port/Path
+			EXPECT_TRUE(node1.add(7, args...)); //creates Port/Path
+			EXPECT_TRUE(node1.contains(7));
+			EXPECT_TRUE(node3.contains(3));
+			EXPECT_FALSE(node1.contains(11)); 
+			EXPECT_FALSE(node1.contains(5)); 
+			
+			EXPECT_TRUE(node4.clone_links(node1));
+			EXPECT_TRUE(node4.contains(3));
+			EXPECT_TRUE(node1.contains(11));
+			EXPECT_TRUE(node4.contains(3));
+			EXPECT_TRUE(node1.contains(11));
+			EXPECT_TRUE(node4.contains(5));
+			EXPECT_TRUE(node2.contains(11));
+			EXPECT_TRUE(node4.contains(7));
+			EXPECT_FALSE(node4.contains(11));
+			EXPECT_FALSE(node4.contains(5));
+			
+			node_type node5(13);
+			EXPECT_FALSE(node5.clone_links(node1));
+			EXPECT_FALSE(node5.contains(3));
 
-		graph1.clear();
-		EXPECT_TRUE(graph1.empty());
-		EXPECT_FALSE(node1_ptr->is_managed());
-		EXPECT_FALSE(node3_ptr->is_managed());
+			node4.remove(7);
+			EXPECT_FALSE(node4.contains(7));
+			EXPECT_FALSE(node3.contains(11));
+			node4.remove(7);
+			EXPECT_FALSE(node4.contains(7));	
+			EXPECT_FALSE(node3.contains(11));	
 
-		delete node1_ptr, node2_ptr, node3_ptr;
+			node1.clear();
+			EXPECT_FALSE(node1.contains(3));
+			EXPECT_FALSE(node1.contains(5));
+			EXPECT_FALSE(node1.contains(7));
+			EXPECT_FALSE(node1.contains(7));
+
+			//this test was not included in Graphs.Destruction because it involves links
+			delete graph1_ptr;
+			graph1_ptr = nullptr;
+			EXPECT_EQ(0, node1.size());
+			EXPECT_EQ(0, node2.size());
+			EXPECT_EQ(0, node3.size());
+			EXPECT_EQ(0, node4.size());
+			EXPECT_FALSE(node1.is_managed());
+			EXPECT_FALSE(node2.is_managed());
+			EXPECT_FALSE(node3.is_managed());
+			EXPECT_FALSE(node4.is_managed());
+		}
+		template<typename N, typename... Args>
+		void test_iteration(Args... args) {}
+		template<typename N> 
+		void test_move_destruction() {}		
+	};
+
+	TEST_F(UndirectedNodes, value_Node_Construction) {
+		using namespace ben;
+		typedef stdUndirectedNode<double> node_type;
+		test_construction<node_type>();
+	}
+	TEST_F(UndirectedNodes, value_Node_Add_Remove) {
+		using namespace ben;
+		typedef stdUndirectedNode<double> node_type;
+		//test_add_remove<node_type>(3.14159);
+	}
+	TEST_F(UndirectedNodes, value_Node_Iteration) {
+		using namespace ben;
+		typedef stdUndirectedNode<double> node_type;
+		//test_iteration<node_type>(3.14159);
+	}
+	TEST_F(UndirectedNodes, value_Node_Move_Destruction) {
+		using namespace ben;
+		typedef stdUndirectedNode<double> node_type;
+		//test_move_destruction<node_type>(3.14159);
+	}
+
+
+	class Graphs : public ::testing::Test {
+	protected:
+		template<typename N> 
+		void test_add_remove() {
+			using namespace ben;
+			typedef N node_type;
+			Graph<node_type> graph1, graph2;
+			
+			auto node1_ptr = new node_type(graph1, 3);
+			auto node2_ptr = new node_type(5);
+			auto node3_ptr = new node_type(7);
+
+			EXPECT_TRUE(graph1.check(3, node1_ptr));
+			EXPECT_FALSE(graph1.check(5, node2_ptr));
+			EXPECT_TRUE(graph1.add(*node2_ptr));
+			EXPECT_TRUE(graph1.check(5, node2_ptr));
+			EXPECT_TRUE(graph1.add(*node3_ptr));
+			EXPECT_TRUE(graph2.empty());
+			EXPECT_TRUE(graph2.add(*node2_ptr));
+			EXPECT_TRUE(graph2.check(5, node2_ptr));
+			EXPECT_FALSE(graph2.empty());
+			EXPECT_EQ(1, graph2.size());
+			EXPECT_FALSE(graph1.empty());
+			EXPECT_EQ(2, graph1.size());
+
+			EXPECT_TRUE(graph2.remove(5));
+			EXPECT_FALSE(graph1.remove(5));
+			EXPECT_TRUE(graph2.empty());
+			EXPECT_FALSE(node2_ptr->is_managed());
+			EXPECT_TRUE(graph2.add(*node2_ptr));
+			EXPECT_TRUE(node2_ptr->is_managed());
+
+			delete node1_ptr, node2_ptr, node3_ptr;
+		}
+		template<typename N>
+		void test_merge_move_destruction() {
+			using namespace ben;
+			typedef N node_type;
+			Graph<node_type> graph1, graph2;
+			auto graph2_ptr = new Graph<node_type>();
+			
+			auto node1_ptr = new node_type(graph1, 3);
+			auto node2_ptr = new node_type(graph1, 5);
+			auto node3_ptr = new node_type(*graph2_ptr, 7);
+			auto node4_ptr = new node_type(*graph2_ptr, 11);
+
+			EXPECT_TRUE(graph2_ptr->merge_into(graph1));
+			EXPECT_EQ(4, graph1.size());
+			EXPECT_TRUE(graph2_ptr->empty());
+			EXPECT_EQ(&graph1, &(node1_ptr->get_index()));
+			EXPECT_EQ(&graph1, &(node2_ptr->get_index()));
+
+			Graph<node_type> graph3(std::move(graph1));
+			EXPECT_EQ(4, graph3.size());
+			EXPECT_TRUE(graph1.empty());
+			EXPECT_EQ(&graph3, &(node1_ptr->get_index()));
+			EXPECT_EQ(&graph3, &(node3_ptr->get_index()));
+
+			*graph2_ptr = std::move(graph3);
+			EXPECT_EQ(4, graph2_ptr->size());
+			EXPECT_TRUE(graph3.empty());
+			EXPECT_EQ(graph2_ptr, &(node1_ptr->get_index()));
+			EXPECT_EQ(graph2_ptr, &(node3_ptr->get_index()));
+
+			delete graph2_ptr;
+			graph2_ptr = nullptr;
+			EXPECT_FALSE(node1_ptr->is_managed());
+			EXPECT_FALSE(node2_ptr->is_managed());
+			EXPECT_FALSE(node3_ptr->is_managed());
+
+			delete node1_ptr, node2_ptr, node3_ptr, node4_ptr;
+		}
+		template<typename N>
+		void test_content() {
+			using namespace ben;
+			typedef N node_type;
+			Graph<node_type> graph1, graph2;
+			
+			auto node1_ptr = new node_type(graph1, 3);
+			auto node2_ptr = new node_type(graph1, 5);
+			auto node3_ptr = new node_type(graph1, 7);
+
+			for(node_type& x : graph1) {
+				EXPECT_TRUE(graph1.check(x.ID(), &x));
+			}
+			
+			EXPECT_TRUE(graph1.contains(7));
+			EXPECT_FALSE(graph2.contains(7));
+
+			EXPECT_TRUE(graph2.end() == graph2.find(3));
+			auto iter = graph1.begin();
+			while(iter->ID() != 7) ++iter;
+			EXPECT_TRUE(iter == graph1.find(7));
+			EXPECT_TRUE(graph1.end() == graph1.find(4));
+
+			graph1.clear();
+			EXPECT_TRUE(graph1.empty());
+			EXPECT_FALSE(node1_ptr->is_managed());
+			EXPECT_FALSE(node3_ptr->is_managed());
+
+			delete node1_ptr, node2_ptr, node3_ptr;
+		}
+	};
+
+	TEST_F(Graphs, DirectedNode_Add_Remove) {
+		using namespace ben;
+		typedef stdMessageNode<double, 1> node_type;
+		test_add_remove<node_type>();		
+	}
+	TEST_F(Graphs, DirectedNode_Merge_Move_Destruction) {		
+		using namespace ben;
+		typedef stdMessageNode<double, 1> node_type;
+		test_merge_move_destruction<node_type>();
+	}
+	TEST_F(Graphs, DirectedNode_Content) {
+		using namespace ben;
+		typedef stdMessageNode<double, 1> node_type;
+		test_content<node_type>();
+	}
+	TEST_F(Graphs, UndirectedNode_Add_Remove) {
+		using namespace ben;
+		typedef stdUndirectedNode<double> node_type;
+		test_add_remove<node_type>();
+	}
+	TEST_F(Graphs, UndirectedNode_Merge_Move_Destruction) {
+		using namespace ben;
+		typedef stdUndirectedNode<double> node_type;
+	}
+	TEST_F(Graphs, UndirectedNode_Content) {
+		using namespace ben;
+		typedef stdUndirectedNode<double> node_type;
 	}
 
 } //anonymous namespace 
