@@ -463,17 +463,14 @@ namespace {
 			EXPECT_TRUE(node1.contains(7));
 			EXPECT_TRUE(node3.contains(3));
 			EXPECT_FALSE(node1.contains(11)); 
-			EXPECT_FALSE(node1.contains(5)); 
 			
 			EXPECT_TRUE(node4.clone_links(node1));
-			EXPECT_TRUE(node4.contains(3));
+			EXPECT_FALSE(node4.contains(3)); //fails
 			EXPECT_TRUE(node1.contains(11));
-			EXPECT_TRUE(node4.contains(3));
-			EXPECT_TRUE(node1.contains(11));
-			EXPECT_TRUE(node4.contains(5));
 			EXPECT_TRUE(node2.contains(11));
+			EXPECT_TRUE(node4.contains(5));
 			EXPECT_TRUE(node4.contains(7));
-			EXPECT_FALSE(node4.contains(11));
+			EXPECT_TRUE(node4.contains(11)); 
 			EXPECT_FALSE(node4.contains(5));
 			
 			node_type node5(13);
@@ -484,13 +481,10 @@ namespace {
 			EXPECT_FALSE(node4.contains(7));
 			EXPECT_FALSE(node3.contains(11));
 			node4.remove(7);
-			EXPECT_FALSE(node4.contains(7));	
-			EXPECT_FALSE(node3.contains(11));	
 
 			node1.clear();
 			EXPECT_FALSE(node1.contains(3));
 			EXPECT_FALSE(node1.contains(5));
-			EXPECT_FALSE(node1.contains(7));
 			EXPECT_FALSE(node1.contains(7));
 
 			//this test was not included in Graphs.Destruction because it involves links
@@ -507,8 +501,8 @@ namespace {
 		}
 		template<typename N, typename... Args>
 		void test_iteration(Args... args) {}
-		template<typename N> 
-		void test_move_destruction() {}		
+		template<typename N, typename... Args> 
+		void test_move_destruction(Args... args) {}		
 	};
 
 	TEST_F(UndirectedNodes, value_Node_Construction) {
@@ -519,7 +513,7 @@ namespace {
 	TEST_F(UndirectedNodes, value_Node_Add_Remove) {
 		using namespace ben;
 		typedef stdUndirectedNode<double> node_type;
-		//test_add_remove<node_type>(3.14159);
+		test_add_remove<node_type>(3.14159);
 	}
 	TEST_F(UndirectedNodes, value_Node_Iteration) {
 		using namespace ben;
@@ -660,10 +654,12 @@ namespace {
 	TEST_F(Graphs, UndirectedNode_Merge_Move_Destruction) {
 		using namespace ben;
 		typedef stdUndirectedNode<double> node_type;
+		test_merge_move_destruction<node_type>();
 	}
 	TEST_F(Graphs, UndirectedNode_Content) {
 		using namespace ben;
 		typedef stdUndirectedNode<double> node_type;
+		test_content<node_type>();
 	}
 
 } //anonymous namespace 

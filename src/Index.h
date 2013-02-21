@@ -66,8 +66,7 @@ namespace ben {
 		Index& operator=(self_type&& rhs) { base_type::operator=( std::move(rhs) ); }
 		virtual ~Index() = default; //clear is called by IndexBase (it's virtual)
 		
-		iterator find(const id_type address) { return iterator( index.find(address) ); }
-		const_iterator find(const id_type address) const { return const_iterator( index.find(address) ); }
+		iterator find(const id_type address) const { return iterator( index.find(address) ); }
 		singleton_type& elem(const id_type address) const {
 			//throw an exception if address does not exist?
 			//this is not safe to use unless you already know that address exists in this index

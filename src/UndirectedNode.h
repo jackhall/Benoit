@@ -84,21 +84,40 @@ namespace ben {
 			static_assert(std::is_same< typename link_type::construction_types, ConstructionTypes<Args...> >::value,
 					"extra arguments for UndirectedNode::add must match link_type::construction_types");
 			auto node_iter = get_index().find(address); 
-			if(node_iter != get_index().end()) return links.add(node_iter->links, address, args...);
+			if(node_iter != get_index().end()) return links.add(node_iter->links, args...);
 			else return false;
 		}
-		bool clone_links(const self_type& other) { 
+		bool clone_links(const self_type& other) {
 			//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
 			//calls link_type::clone to copy links
 			//returns false if other is not managed by the same Graph
+			//should links to self be special when it comes to UndirectedNodes? probably	
+			if( other.is_managed_by(get_index()) ) {
+				clear(); 
+				id_type currentID;
+				for(const auto& x : other.links) {
+					currentID = x.get_address();
+					auto& target = get_index().elem(currentID).links;
+					links.add_clone_of(x, target);
+				}
+				return true;
+			} else return false;
+		}
+		bool mirror(const self_type& other) { 
+			//links-to-self are cloned to preserve the pattern - if other has a link-to-self, then
+			//this will also have a link-to-self, not a link to other 
 			if( other.is_managed_by(get_index()) ) { 
 				clear();
 				id_type currentID;
 				for(const auto& x : other.links) {
-					currentID = x.get_address();
-					if(currentID != ID()) {	
-						auto& target = get_index().elem(currentID).links;
-						links.add_clone_of(x, target);
+					currentID = x.get_address(); 
+					if(currentID == ID()) links.add_clone_of(x, other.links());
+					else {
+						if(currentID == other.ID() and !contains(ID())) links.add_clone_of(x, links); 
+						else {
+							auto& target = get_index().elem(currentID).links;
+							links.add_clone_of(x, target);
+						}
 					}
 				}
 				return true;
@@ -107,7 +126,7 @@ namespace ben {
 		void remove(const iterator iter) {
 			//gets an iterator to the other node and lets LinkManager::remove do the rest
 			//of the work
-			auto node_iter = get_index.find(iter->get_address());
+			auto node_iter = get_index().find(iter->get_address());
 			links.remove(node_iter->links, iter);
 		}
 		void remove(const id_type address) {

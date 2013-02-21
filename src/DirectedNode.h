@@ -126,6 +126,7 @@ namespace ben {
 		}
 		bool clone_links(const self_type& other) {
 			//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
+			//how should links-to-self be cloned? need two versions of clone?
 			if( other.is_managed_by(get_index()) ) {
 				clear(); //no old links
 				id_type currentID;
@@ -140,6 +141,35 @@ namespace ben {
 					currentID = x.get_address();
 					if(currentID != ID()) 
 						outputs.add_clone_of(x, get_index().elem(currentID).inputs);
+				}
+
+				return true;
+			} else return false;
+		}
+		bool mirror(const self_type& other) {
+			//a way to copy the pattern of links instead of the links themselves
+			//links-to-self are preserved as such, and other's links to this 
+			//become this nodes links to other (thereby mirroring the subgraph)
+			if( other.is_managed_by(get_index()) ) {
+				clear();
+				id_type currentID;
+
+				for(const auto& x : other.inputs) {
+					currentID = x.get_address();
+					if(currentID == ID()) inputs.add_clone_of(x, other.outputs);
+					else {
+						if(currentID == other.ID()) inputs.add_clone_of(x, outputs);
+						else inputs.add_clone_of(x, get_index().elem(currentID).outputs);
+					}
+				}
+
+				for(const auto& x : other.outputs) {
+					currentID = x.get_address();
+					if(currentID == ID()) outputs.add_clone_of(x, other.inputs);
+					else {
+						if(currentID == other.ID()) outputs.add_clone_of(x, inputs);
+						else outputs.add_clone_of(x, get_index().elem(currentID).outputs);
+					}
 				}
 
 				return true;

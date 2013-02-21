@@ -68,7 +68,11 @@ namespace ben {
 		}
 		~Path() = default;
 
-		self_type clone() const { return self_type(otherID, value_ptr->load()); } //how to get a link w/new shared_ptr
+		self_type clone(const id_type address) const { 
+			//how to get a link w/new shared_ptr
+			//can't use otherID because links-to-self would be impossible to clone
+			return self_type(address, value_ptr->load()); 
+		}
 
 		bool is_ghost() const { return value_ptr.use_count() < 2; } //necessary but not sufficient condition for ghost
 		id_type get_address() const { return otherID; } //required by all Port or Path types

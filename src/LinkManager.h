@@ -96,13 +96,15 @@ namespace ben {
 		bool add(complement_type& other, const ARGS... args) {
 			if( contains(other.nodeID) ) return false; //there is already a link to this other Node/LinkManager
 			links.push_back( link_type(other.nodeID, args...) );
-			other.links.push_back( link_complement_type(links.back(), nodeID) );
+			if(this != &other) other.links.push_back( link_complement_type(links.back(), nodeID) ); //link-to-self
 			return true;
 		}
 		void add_clone_of(const link_type& x, complement_type& other) {
 			//for copying the links of a Node
-			links.push_back(x.clone());
-			other.links.push_back( link_complement_type(links.back(), nodeID) );
+			//this member does little work because undirected links can't be treated
+			//the same as directed links
+			links.push_back(x.clone(other.nodeID));
+			if(this != &other) other.links.push_back( link_complement_type(links.back(), nodeID) ); //link-to-self
 		}
 		void remove(complement_type& other, const iterator iter) {
 			//remove deletes a port and its complement

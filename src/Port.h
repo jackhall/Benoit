@@ -117,7 +117,11 @@ namespace ben {
 			return *this;
 		}
 	
-		self_type clone() const { return self_type(sourceID); } //how to get a copy with a new shared_ptr
+		self_type clone(const id_type address) const { 
+			//how to get a copy with a new shared_ptr
+			//can't use sourceID because then links-to-self could not be cloned properly
+			return self_type(address); 
+		}
 	
 		id_type get_address() const { return sourceID; }
 		signal_type pull() const { return buffer_ptr->pull(); }
@@ -161,7 +165,11 @@ namespace ben {
 			return *this;
 		}
 	
-		self_type clone() const { return self_type(targetID); } //how to get a copy with a new shared_ptr
+		self_type clone(const id_type address) const { 
+			//how to get a copy with a new shared_ptr
+			//can't use targetID because then links-to-self could not be cloned properly
+			return self_type(address); 
+		} 
 	
 		id_type get_address() const { return targetID; }
 		bool push(const signal_type& signal) { return buffer_ptr->push(signal); } //take another look at const requirements
