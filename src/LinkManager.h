@@ -61,12 +61,9 @@ namespace ben {
 	private:
 		typedef LinkManagerHelper self_type;
 
-		//LinkManagers need to be able to add complement Ports to eacch other
-		//using the public interface for this would lead to infinite recursion
-		friend class LinkManagerHelper<typename link_type::complement_type, ConstructionTypes<ARGS...> >;
-		std::vector<link_type> links;
-	
 	public:
+		std::vector<link_type> links; //allows Nodes to violate encapsulation, which should be fine because LinkManager
+						//is part of Node internals anyway
 		id_type nodeID; //needed to initialize complement Ports, public because LinkManager is internal to Node
 
 		LinkManagerHelper() = delete;
@@ -96,7 +93,7 @@ namespace ben {
 		bool add(complement_type& other, const ARGS... args) {
 			if( contains(other.nodeID) ) return false; //there is already a link to this other Node/LinkManager
 			links.push_back( link_type(other.nodeID, args...) );
-			if(this != &other) other.links.push_back( link_complement_type(links.back(), nodeID) ); //link-to-self
+			other.links.push_back( link_complement_type(links.back(), nodeID) ); 
 			return true;
 		}
 		void add_clone_of(const link_type& x, complement_type& other) {
@@ -104,7 +101,7 @@ namespace ben {
 			//this member does little work because undirected links can't be treated
 			//the same as directed links
 			links.push_back(x.clone(other.nodeID));
-			if(this != &other) other.links.push_back( link_complement_type(links.back(), nodeID) ); //link-to-self
+			other.links.push_back( link_complement_type(links.back(), nodeID) ); //link-to-self
 		}
 		void remove(complement_type& other, const iterator iter) {
 			//remove deletes a port and its complement
