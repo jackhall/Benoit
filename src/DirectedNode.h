@@ -128,13 +128,28 @@ namespace ben {
 			//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
 			//how should links-to-self be cloned? need two versions of clone?
 			if( other.is_managed_by(get_index()) ) {
-				clear(); //no old links
-				id_type currentID;
-				
+				//these are not correct yet! do they have to be coupled?
+				auto input_iter = find_input(other.ID());
+				if( input_iter != iend() ) {
+					auto temp = *input_iter; //copy the endangered Port
+					clear_inputs();
+					inputs.add_clone_of(temp, outputs);
+				} else clear_inputs(); //would have deleted one of the links to be copied
+
+				//repeat the above for outputs
+				auto output_iter = find_output(other.ID());
+				if( output_iter != oend() ) {
+					auto temp = *output_iter;
+					clear_outputs();
+					outputs.add_clone_of(temp, other.inputs);
+				} else clear_outputs(); 
+
 				for(const auto& x : other.inputs) {
-					currentID = x.get_address();
-					if(currentID != ID()) 
-						inputs.add_clone_of(x, get_index().elem(currentID).outputs);
+					id_type currentID = x.get_address();
+					if(currentID != ID()) { //this was already added above?
+						auto& source = get_index().elem(currentID);
+						inputs.add_clone_of(x, source.outputs);
+					}
 				}
 		
 				for(const auto& x : other.outputs) {

@@ -453,29 +453,36 @@ namespace {
 			auto graph1_ptr = new Graph<node_type>();
 
 			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
-			EXPECT_TRUE(node1.add(3, args...)); //creates Port/Path
+			EXPECT_TRUE(node1.add(3, args...)); //creates Path
 			EXPECT_TRUE(node1.contains(3));
-			EXPECT_TRUE(node1.add(5, args...)); //creates Port/Path
+			EXPECT_TRUE(node1.add(5, args...)); //creates Path
 			EXPECT_TRUE(node1.contains(5));
 			EXPECT_TRUE(node2.contains(3));
-			EXPECT_FALSE(node1.add(5, args...)); //creates Port/Path
-			EXPECT_TRUE(node1.add(7, args...)); //creates Port/Path
+			EXPECT_FALSE(node1.add(5, args...)); 
+			EXPECT_TRUE(node1.add(7, args...)); //creates Path
 			EXPECT_TRUE(node1.contains(7));
 			EXPECT_TRUE(node3.contains(3));
-			EXPECT_FALSE(node1.contains(11)); 
-			
-			EXPECT_TRUE(node4.clone_links(node1));
-			EXPECT_FALSE(node4.contains(3)); //fails
-			EXPECT_TRUE(node1.contains(11));
-			EXPECT_TRUE(node2.contains(11));
-			EXPECT_TRUE(node4.contains(5));
-			EXPECT_TRUE(node4.contains(7));
-			EXPECT_TRUE(node4.contains(11)); 
+			EXPECT_FALSE(node1.contains(11));
+			EXPECT_TRUE(node2.add(11, args...)); //creates Path
+			EXPECT_FALSE(node3.contains(5));
+			EXPECT_FALSE(node3.contains(7));
+			EXPECT_FALSE(node3.contains(11));
+
+			EXPECT_EQ(1, node4.size());
+			EXPECT_EQ(2, node2.size());
+			EXPECT_TRUE(node4.clone_links(node2));
+			EXPECT_TRUE(node4.contains(3)); 
 			EXPECT_FALSE(node4.contains(5));
+			EXPECT_FALSE(node4.contains(7));
+			EXPECT_TRUE(node4.contains(11)); 
+			EXPECT_TRUE(node1.contains(11));
+			EXPECT_FALSE(node2.contains(11));
 			
 			node_type node5(13);
 			EXPECT_FALSE(node5.clone_links(node1));
 			EXPECT_FALSE(node5.contains(3));
+
+			graph1_ptr->add(node5);
 
 			node4.remove(7);
 			EXPECT_FALSE(node4.contains(7));

@@ -60,10 +60,10 @@ namespace ben {
 		
 	private:
 		typedef LinkManagerHelper self_type;
+		friend class LinkManagerHelper<link_complement_type, ConstructionTypes<ARGS...> >; //for noncircular calls to add/remove
+		std::vector<link_type> links; 
 
 	public:
-		std::vector<link_type> links; //allows Nodes to violate encapsulation, which should be fine because LinkManager
-						//is part of Node internals anyway
 		id_type nodeID; //needed to initialize complement Ports, public because LinkManager is internal to Node
 
 		LinkManagerHelper() = delete;
@@ -102,6 +102,18 @@ namespace ben {
 			//the same as directed links
 			links.push_back(x.clone(other.nodeID));
 			other.links.push_back( link_complement_type(links.back(), nodeID) ); //link-to-self
+		}
+		bool add_self_link(const ARGS... args) {
+			//without this, UndirectedNodes either end up violating encapsulation of LinkManager
+			//or having two copies of every link-to-self
+			if( contains(nodeID) ) return false;
+			links.push_back( link_type(nodeID, args...) );
+			return true;
+		}
+		void add_self_link_clone_of(const link_type& x) {
+			//without this, UndirectedNodes either end up violating encapsulation of LinkManager
+			//or having two copies of every link-to-self
+			links.push_back( x.clone(nodeID) );
 		}
 		void remove(complement_type& other, const iterator iter) {
 			//remove deletes a port and its complement
