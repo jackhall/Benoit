@@ -265,7 +265,8 @@ namespace {
 			EXPECT_FALSE(node1.contains_input(11)); 
 			EXPECT_FALSE(node1.contains_output(5)); 
 			
-			EXPECT_TRUE(node4.clone_links(node1));
+			EXPECT_TRUE(node4.mirror(node1)); //clone_links cannot be well-defined for DirectedNode
+			//these tests need adjustment
 			EXPECT_TRUE(node4.contains_input(3));
 			EXPECT_TRUE(node1.contains_output(11));
 			EXPECT_TRUE(node4.contains_output(3));
@@ -277,7 +278,7 @@ namespace {
 			EXPECT_FALSE(node4.contains_output(5));
 			
 			node_type node5(13);
-			EXPECT_FALSE(node5.clone_links(node1));
+			EXPECT_FALSE(node5.mirror(node1));
 			EXPECT_FALSE(node5.contains_input(3));
 
 			node4.remove_input(7);
@@ -316,7 +317,7 @@ namespace {
 			node1.add_input(5, args...);
 			node1.add_input(7, args...);
 			node1.add_output(7, args...);
-			node4.clone_links(node1);
+			node4.mirror(node1); //changed from clone_links, may need to adjust tests
 			
 			for(auto iter = node1.ibegin(); iter != node1.iend(); ++iter) {
 				EXPECT_TRUE(graph1_ptr->elem(iter->get_address()).contains_output(3));
@@ -353,7 +354,7 @@ namespace {
 			node1.add_input(5, args...);
 			node1.add_input(7, args...);
 			node1.add_output(7, args...);
-			node4_ptr->clone_links(node1);
+			node4_ptr->mirror(node1); //changed from clone_links, may need to adjust tests
 
 			node_type node5 = std::move(node1);
 			EXPECT_EQ(3, node5.ID());

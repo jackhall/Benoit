@@ -124,66 +124,92 @@ namespace ben {
 				return outputs.add(get_index().elem(address).inputs, args...);
 			} else return false;
 		}
-		bool clone_links(const self_type& other) {
+		//cloning DirectedNodes is not well-defined for all cases without allowing redundant links 
+		/*bool clone_links(const self_type& other) {
 			//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
 			//how should links-to-self be cloned? need two versions of clone?
 			if( other.is_managed_by(get_index()) ) {
 				//these are not correct yet! do they have to be coupled?
 				auto input_iter = find_input(other.ID());
-				if( input_iter != iend() ) {
-					auto temp = *input_iter; //copy the endangered Port
-					clear_inputs();
-					inputs.add_clone_of(temp, outputs);
-				} else clear_inputs(); //would have deleted one of the links to be copied
-
-				//repeat the above for outputs
 				auto output_iter = find_output(other.ID());
-				if( output_iter != oend() ) {
-					auto temp = *output_iter;
-					clear_outputs();
-					outputs.add_clone_of(temp, other.inputs);
-				} else clear_outputs(); 
+				if(input_iter != iend() and output_iter != oend()) {
+					auto input_temp = *input_iter;
+					auto output_temp = *output_iter; //which should be used?
+					clear();
+					inputs.add_clone_of(input_temp, outputs); //these two lines result in two links-to-self!
+					outputs.add_clone_of(output_temp, inputs);
+				} else if(input_iter == iend() and output_iter != oend()) { //if other had an input from this, but not an output...
+					auto output_temp = *output_iter;//save the endangered link
+					clear();
+					outputs.add_clone_of(output_temp, inputs);//add it back (it's now a link-to-self)
+				} else if(input_iter != iend() and output_iter == oend()) { //mirror of the last case
+					auto input_temp = *input_iter;
+					clear();
+					inputs.add_clone_of(input_temp, outputs);
+				} else clear(); //no unusual problems
 
+				//copy all inputs
 				for(const auto& x : other.inputs) {
 					id_type currentID = x.get_address();
-					if(currentID != ID()) { //this was already added above?
-						auto& source = get_index().elem(currentID);
-						inputs.add_clone_of(x, source.outputs);
-					}
+					auto& source = get_index().elem(currentID);
+					inputs.add_clone_of(x, source.outputs);
 				}
-		
+				//and all outputs
 				for(const auto& x : other.outputs) {
 					currentID = x.get_address();
-					if(currentID != ID()) 
-						outputs.add_clone_of(x, get_index().elem(currentID).inputs);
+					auto& target = get_index().elem(currentID);
+					outputs.add_clone_of(x, target.inputs);
 				}
 
 				return true;
 			} else return false;
-		}
-		bool mirror(const self_type& other) {
+		}*/
+		bool mirror(self_type& other) { //should other be guaranteed const?
 			//a way to copy the pattern of links instead of the links themselves
 			//links-to-self are preserved as such, and other's links to this 
 			//become this nodes links to other (thereby mirroring the subgraph)
 			if( other.is_managed_by(get_index()) ) {
-				clear();
-				id_type currentID;
+				//take care of links between this and other, which would ordinarily
+				//be deleted before the mirror operation
+				auto input_iter = other.find_input(ID());
+				auto output_iter = other.find_output(ID());
+				if(input_iter != other.iend() and output_iter != other.oend()) {
+					//this case just reverses both links
+					auto input_temp = *input_iter;
+					auto output_temp = *output_iter; 
+					clear();
+					inputs.add_clone_of(input_temp, other.outputs); 
+					outputs.add_clone_of(output_temp, other.inputs);
+				} else if(input_iter == other.iend() and output_iter != other.oend()) { 
+					//if other had an input from this, but not an output...
+					auto output_temp = *output_iter;//save the endangered link
+					clear();
+					outputs.add_clone_of(output_temp, other.inputs);//add it back 
+				} else if(input_iter != iend() and output_iter == oend()) { 
+					//mirror of the last case
+					auto input_temp = *input_iter;
+					clear();
+					inputs.add_clone_of(input_temp, other.outputs);
+				} else clear(); //no unusual problems
 
+				//copy the rest of the inputs
 				for(const auto& x : other.inputs) {
-					currentID = x.get_address();
-					if(currentID == ID()) inputs.add_clone_of(x, other.outputs);
-					else {
-						if(currentID == other.ID()) inputs.add_clone_of(x, outputs);
-						else inputs.add_clone_of(x, get_index().elem(currentID).outputs);
+					id_type currentID = x.get_address();
+					if(currentID != ID()) { //these links already copied
+						if(currentID == other.ID()) inputs.add_clone_of(x, outputs); //only do this once 
+						else {
+							auto& source = get_index().elem(currentID);
+							inputs.add_clone_of(x, source.outputs);
+						}
 					}
 				}
 
+				//and the rest of the outputs
 				for(const auto& x : other.outputs) {
-					currentID = x.get_address();
-					if(currentID == ID()) outputs.add_clone_of(x, other.inputs);
-					else {
-						if(currentID == other.ID()) outputs.add_clone_of(x, inputs);
-						else outputs.add_clone_of(x, get_index().elem(currentID).outputs);
+					id_type currentID = x.get_address();
+					if(currentID != ID() and currentID != other.ID()) { //these links already copied
+						auto& target = get_index().elem(currentID);
+						outputs.add_clone_of(x, target.inputs);
 					}
 				}
 

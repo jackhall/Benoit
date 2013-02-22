@@ -108,7 +108,7 @@ namespace ben {
 				return true;
 			} else return false;
 		}
-		bool mirror(const self_type& other) { 
+		bool mirror(const self_type& other) { //should other be guaranteed const?
 			//links-to-self are cloned to preserve the pattern - if other has a link-to-self, then
 			//this will also have a link-to-self, not a link to other 
 			if( other.is_managed_by(get_index()) ) {
