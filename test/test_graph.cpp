@@ -266,15 +266,15 @@ namespace {
 			EXPECT_FALSE(node1.contains_output(5)); 
 			
 			EXPECT_TRUE(node4.mirror(node1)); //clone_links cannot be well-defined for DirectedNode
-			//these tests need adjustment
-			EXPECT_TRUE(node4.contains_input(3));
-			EXPECT_TRUE(node1.contains_output(11));
-			EXPECT_TRUE(node4.contains_output(3));
-			EXPECT_TRUE(node1.contains_input(11));
+			EXPECT_FALSE(node4.contains_input(3));
+			EXPECT_FALSE(node1.contains_output(11));
+			EXPECT_FALSE(node4.contains_output(3));
+			EXPECT_FALSE(node1.contains_input(11));
 			EXPECT_TRUE(node4.contains_input(5));
 			EXPECT_TRUE(node2.contains_output(11));
 			EXPECT_TRUE(node4.contains_output(7));
-			EXPECT_FALSE(node4.contains_input(11));
+			EXPECT_TRUE(node4.contains_input(11));
+			EXPECT_TRUE(node4.contains_output(11));
 			EXPECT_FALSE(node4.contains_output(5));
 			
 			node_type node5(13);
@@ -362,25 +362,23 @@ namespace {
 			EXPECT_FALSE(node1.is_managed());
 			EXPECT_EQ(0, node1.size_inputs() + node1.size_outputs());
 			EXPECT_TRUE(node5.contains_input(3));
+			EXPECT_TRUE(node5.contains_output(3));
 			EXPECT_TRUE(node5.contains_input(5));
 			EXPECT_TRUE(node5.contains_input(7));
-			EXPECT_TRUE(node5.contains_output(3));
 			EXPECT_TRUE(node5.contains_output(7));
-			EXPECT_TRUE(node5.contains_input(11));
-			EXPECT_TRUE(node5.contains_output(11));
+			EXPECT_EQ(5, node5.size_inputs() + node5.size_outputs());
 
 			node1 = std::move(node5);
 			EXPECT_TRUE(graph1_ptr->check(3, &node1));
 			EXPECT_FALSE(node5.is_managed());
 			EXPECT_EQ(0, node5.size_inputs() + node5.size_outputs());
 			EXPECT_TRUE(node1.contains_input(3));
+			EXPECT_TRUE(node1.contains_output(3));
 			EXPECT_TRUE(node1.contains_input(5));
 			EXPECT_TRUE(node1.contains_input(7));
-			EXPECT_TRUE(node1.contains_output(3));
 			EXPECT_TRUE(node1.contains_output(7));
-			EXPECT_TRUE(node1.contains_input(11));
-			EXPECT_TRUE(node1.contains_output(11));
-			
+			EXPECT_EQ(5, node1.size_inputs() + node1.size_outputs());
+
 			delete node4_ptr;
 			node4_ptr = nullptr;
 			EXPECT_FALSE(graph1_ptr->contains(11));
@@ -472,11 +470,11 @@ namespace {
 			EXPECT_EQ(1, node4.size());
 			EXPECT_EQ(2, node2.size());
 			EXPECT_TRUE(node4.clone_links(node2));
-			EXPECT_TRUE(node4.contains(3)); 
+			EXPECT_TRUE(node4.contains(3));// 
 			EXPECT_FALSE(node4.contains(5));
 			EXPECT_FALSE(node4.contains(7));
 			EXPECT_TRUE(node4.contains(11)); 
-			EXPECT_TRUE(node1.contains(11));
+			EXPECT_TRUE(node1.contains(11));//
 			EXPECT_FALSE(node2.contains(11));
 			
 			node_type node5(13);
