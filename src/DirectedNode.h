@@ -164,38 +164,55 @@ namespace ben {
 				return true;
 			} else return false;
 		}*/
-		bool mirror(self_type& other) { //should other be guaranteed const?
+		bool mirror(const self_type& other) { //should other be guaranteed const?
 			//a way to copy the pattern of links instead of the links themselves
-			//links-to-self are preserved as such, and other's links to this 
-			//become this nodes links to other (thereby mirroring the subgraph)
+			//links-to-self are preserved as such, links between this and other are untouched, as 
+			//this would violate const-ness of other and the principle of least surprise
+			//ASHLEY
 			if( other.is_managed_by(get_index()) ) {
+				//the code in each of these lambdas would have to be written twice
+				auto clear_inputs_except = [this](const id_type id, const index_type& index) {
+					for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) 
+						if(iter->get_address() != id) 
+							index.elem(iter->get_address()).outputs.clean_up(ID());
+					inputs.clear();
+				};
+
+				auto clear_outputs_except = [this](const id_type id, const index_type& index) {
+					for(auto iter=outputs.begin(); iter!=outputs.end(); ++iter) 
+						if(iter->get_address() != id) 
+							index.elem(iter->get_address()).inputs.clean_up(ID());
+					outputs.clear();
+				};
+
 				//take care of links between this and other, which would ordinarily
 				//be deleted before the mirror operation
-				auto input_iter = other.find_input(ID());
-				auto output_iter = other.find_output(ID());
-				if(input_iter != other.iend() and output_iter != other.oend()) {
-					//this case just reverses both links
+				auto input_iter = find_input(ID());
+				auto output_iter = find_output(ID());
+				if(input_iter != iend() and output_iter != oend()) {
+					//this case saves both links
 					auto input_temp = *input_iter;
 					auto output_temp = *output_iter; 
-					clear();
-					inputs.add_clone_of(input_temp, other.outputs); 
-					outputs.add_clone_of(output_temp, other.inputs);
-				} else if(input_iter == other.iend() and output_iter != other.oend()) { 
-					//if other had an input from this, but not an output...
-					auto output_temp = *output_iter;//save the endangered link
-					clear();
-					outputs.add_clone_of(output_temp, other.inputs);//add it back 
+					clear_inputs_except(other.ID(), get_index());
+					clear_outputs_except(other.ID(), get_index());
+					inputs.restore(input_temp, other.outputs); 
+					outputs.restore(output_temp, other.inputs);
 				} else if(input_iter != iend() and output_iter == oend()) { 
+					//if other had an input from this, but not an output...
+					auto input_temp = *input_iter; //save a copy of the Port
+					clear_inputs_except(other.ID(), get_index()); //deletes all Ports, but does not clean up after other
+					inputs.restore(input_temp, other.outputs); //add the copy back
+				} else if(input_iter == iend() and output_iter != oend()) { 
 					//mirror of the last case
-					auto input_temp = *input_iter;
-					clear();
-					inputs.add_clone_of(input_temp, other.outputs);
+					auto output_temp = *output_iter;
+					clear_outputs_except(other.ID(), get_index());
+					outputs.restore(output_temp, other.inputs);
 				} else clear(); //no unusual problems
 
 				//copy the rest of the inputs
 				for(const auto& x : other.inputs) {
 					id_type currentID = x.get_address();
-					if(currentID != ID()) { //these links already copied
+					if(currentID != ID()) { //these links shouldn't be touched 
 						if(currentID == other.ID()) inputs.add_clone_of(x, outputs); //only do this once 
 						else {
 							auto& source = get_index().elem(currentID);
@@ -207,7 +224,7 @@ namespace ben {
 				//and the rest of the outputs
 				for(const auto& x : other.outputs) {
 					id_type currentID = x.get_address();
-					if(currentID != ID() and currentID != other.ID()) { //these links already copied
+					if(currentID != ID() and currentID != other.ID()) { //links-to-self already copied
 						auto& target = get_index().elem(currentID);
 						outputs.add_clone_of(x, target.inputs);
 					}

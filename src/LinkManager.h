@@ -115,6 +115,16 @@ namespace ben {
 			//or having two copies of every link-to-self
 			links.push_back( x.clone(nodeID) );
 		}
+		bool restore(link_type x, const complement_type& other) {
+			//this method allows client code to save and then restore a Port
+			//the second argument is solely for running checks on the validity of the data structure
+			//if the link is already there, the link doesn't match other, or the link has no complement,
+			//then the function returns false and does nothing
+			id_type id = x.get_address();
+			if( !other.contains(nodeID) or other.nodeID != id or contains(id) ) return false;
+			links.push_back(x);
+			return true;
+		}
 		void remove(complement_type& other, const iterator iter) {
 			//remove deletes a port and its complement
 			auto address = iter->get_address();
