@@ -220,7 +220,27 @@ namespace {
 	}
 	
 	TEST(Paths, Values) {
-		//write these!
+		//getting and setting values, verifying clones
+		using namespace ben;
+		Path<double> path1(3, 0.0);
+		Path<double> path2(path1, 5);
+
+		double value1(1.23), value2(4.56);
+		
+		EXPECT_EQ(0, path1.get_value());
+		EXPECT_EQ(0, path2.get_value());
+		path1.set_value(value1);
+		EXPECT_EQ(value1, path1.get_value());
+		EXPECT_EQ(value1, path2.get_value());
+		path2.set_value(value2);
+		EXPECT_EQ(value2, path1.get_value());
+		EXPECT_EQ(value2, path2.get_value());
+
+		auto path3 = path1.clone(7);
+		Path<double> path4(path3, 11);
+		EXPECT_EQ(value2, path3.get_value());
+		EXPECT_EQ(value2, path4.get_value());
+		path4.set_value(value1);
 	}
 
 
@@ -452,33 +472,34 @@ namespace {
 			auto graph1_ptr = new Graph<node_type>();
 
 			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
-			EXPECT_TRUE(node1.add(3, args...)); //creates Path
+			EXPECT_TRUE(node1.add(3, args...)); //creates Path 3-3
 			EXPECT_TRUE(node1.contains(3));
-			EXPECT_TRUE(node1.add(5, args...)); //creates Path
+			EXPECT_TRUE(node1.add(5, args...)); //creates Path 3-5
 			EXPECT_TRUE(node1.contains(5));
 			EXPECT_TRUE(node2.contains(3));
 			EXPECT_FALSE(node1.add(5, args...)); 
-			EXPECT_TRUE(node1.add(7, args...)); //creates Path
+			EXPECT_TRUE(node1.add(7, args...)); //creates Path 3-7
 			EXPECT_TRUE(node1.contains(7));
 			EXPECT_TRUE(node3.contains(3));
 			EXPECT_FALSE(node1.contains(11));
-			EXPECT_TRUE(node2.add(11, args...)); //creates Path
+			EXPECT_TRUE(node2.add(11, args...)); //creates Path 5-11
 			EXPECT_FALSE(node3.contains(5));
 			EXPECT_FALSE(node3.contains(7));
 			EXPECT_FALSE(node3.contains(11));
 
 			EXPECT_EQ(1, node4.size());
 			EXPECT_EQ(2, node2.size());
-			EXPECT_TRUE(node4.clone_links(node2));
-			EXPECT_TRUE(node4.contains(3));// 
-			EXPECT_FALSE(node4.contains(5));
+			EXPECT_TRUE(node4.mirror(node2));//should have 3, 5
+			EXPECT_EQ(2, node4.size());
+			EXPECT_TRUE(node4.contains(3)); 
+			EXPECT_TRUE(node4.contains(5));
 			EXPECT_FALSE(node4.contains(7));
-			EXPECT_TRUE(node4.contains(11)); 
-			EXPECT_TRUE(node1.contains(11));//
-			EXPECT_FALSE(node2.contains(11));
+			EXPECT_FALSE(node4.contains(11)); 
+			EXPECT_TRUE(node1.contains(11));
+			EXPECT_TRUE(node2.contains(11));
 			
 			node_type node5(13);
-			EXPECT_FALSE(node5.clone_links(node1));
+			EXPECT_FALSE(node5.mirror(node1));
 			EXPECT_FALSE(node5.contains(3));
 
 			graph1_ptr->add(node5);
@@ -506,9 +527,70 @@ namespace {
 			EXPECT_FALSE(node4.is_managed());
 		}
 		template<typename N, typename... Args>
-		void test_iteration(Args... args) {}
+		void test_iteration(Args... args) {
+			using namespace ben;
+			typedef N node_type;
+			auto graph1_ptr = new Graph<node_type>();
+
+			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
+			node1.add(3, args...);
+			node1.add(5, args...);
+			node1.add(7, args...);
+			node4.mirror(node1); //changed from clone_links, may need to adjust tests
+			
+			for(auto iter = node1.begin(); iter != node1.end(); ++iter) {
+				EXPECT_TRUE(graph1_ptr->elem(iter->get_address()).contains(3));
+				EXPECT_EQ(iter->get_address(), node1.walk(iter).ID());
+			}
+
+			node4.remove(node4.find(5));
+			EXPECT_FALSE(node4.contains(5));
+			EXPECT_FALSE(node2.contains(11));
+			EXPECT_TRUE(node4.end() == node4.find(5));
+
+			delete graph1_ptr;
+			graph1_ptr = nullptr;
+		}
 		template<typename N, typename... Args> 
-		void test_move_destruction(Args... args) {}		
+		void test_move_destruction(Args... args) {
+			using namespace ben;
+			typedef N node_type;
+			auto graph1_ptr = new Graph<node_type>();
+
+			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7);
+			auto node4_ptr = new node_type(*graph1_ptr, 11);
+			node1.add(3, args...);
+			node1.add(5, args...);
+			node1.add(7, args...);
+			node4_ptr->clone_links(node1); 
+
+			node_type node5 = std::move(node1);
+			EXPECT_EQ(3, node5.ID());
+			EXPECT_TRUE(graph1_ptr->check(3, &node5));
+			EXPECT_FALSE(node1.is_managed());
+			EXPECT_EQ(0, node1.size());
+			EXPECT_TRUE(node5.contains(3));
+			EXPECT_TRUE(node5.contains(5));
+			EXPECT_TRUE(node5.contains(7));
+			EXPECT_EQ(4, node5.size());
+
+			node1 = std::move(node5);
+			EXPECT_TRUE(graph1_ptr->check(3, &node1));
+			EXPECT_FALSE(node5.is_managed());
+			EXPECT_EQ(0, node5.size());
+			EXPECT_TRUE(node1.contains(3));
+			EXPECT_TRUE(node1.contains(5));
+			EXPECT_TRUE(node1.contains(7));
+			EXPECT_EQ(4, node1.size());
+
+			delete node4_ptr;
+			node4_ptr = nullptr;
+			EXPECT_FALSE(graph1_ptr->contains(11));
+			EXPECT_FALSE(node1.contains(11));
+
+			delete graph1_ptr;
+			graph1_ptr = nullptr;
+		}		
 	};
 
 	TEST_F(UndirectedNodes, value_Node_Construction) {

@@ -87,45 +87,27 @@ namespace ben {
 			if(node_iter != get_index().end()) return links.add(node_iter->links, args...);
 			else return false;
 		}
-		bool clone_links(const self_type& other) {
-			//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
-			//calls link_type::clone to copy links
-			//returns false if other is not managed by the same Graph
-			if( other.is_managed_by(get_index()) ) {
-				auto path_iter = other.find(ID());
-				if(path_iter != other.end()) { //if other contains a link to this node
-					auto temp = *path_iter;
-					clear();
-					links.add_self_link_clone_of(temp);
-				} else clear(); //would have deleted one of the links we're trying to copy
-
-				for(const auto& x : other) {
-					id_type currentID = x.get_address();
-					auto& target = get_index().elem(currentID);
-					links.add_clone_of(x, target.links);
-				}
-
-				return true;
-			} else return false;
-		}
-		bool mirror(const self_type& other) { //should other be guaranteed const?
+		bool mirror(const self_type& other) { 
 			//links-to-self are cloned to preserve the pattern - if other has a link-to-self, then
 			//this will also have a link-to-self, not a link to other 
 			if( other.is_managed_by(get_index()) ) {
-				auto path_iter = other.find(ID());
-				if(path_iter != other.end()) { //if other contains a link to this node...
+				auto path_iter = find(other.ID());
+				if(path_iter != end()) { //if other contains a link to this node...
 					auto temp = *path_iter;
-					clear();
-					links.add_clone_of(temp, other.links); //need to add this after?
+					for(auto iter=begin(); iter!=end(); ++iter) 
+						if(iter->get_address() != other.ID()) //clean up all except links to other
+							walk(iter).links.clean_up(ID());
+					links.clear();
+					links.restore(temp, other.links);//add back the saved link 
 				} else clear(); //would have deleted one of the links we're trying to copy
 
-				for(const auto& x : other) {
+				for(const auto& x : other.links) {
 					id_type currentID = x.get_address(); 
-					if(currentID != ID()) { //if this link was there, it is already cloned 
+					if(currentID != ID()) { //if this link was there, it is left alone 
 						if(currentID == other.ID()) links.add_self_link_clone_of(x); 
 						else {
-							auto& target = get_index().elem(currentID).links;
-							links.add_clone_of(x, target);
+							auto& target = get_index().elem(currentID);
+							links.add_clone_of(x, target.links);
 						}
 					}
 				}

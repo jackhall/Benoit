@@ -168,7 +168,6 @@ namespace ben {
 			//a way to copy the pattern of links instead of the links themselves
 			//links-to-self are preserved as such, links between this and other are untouched, as 
 			//this would violate const-ness of other and the principle of least surprise
-			//ASHLEY
 			if( other.is_managed_by(get_index()) ) {
 				//the code in each of these lambdas would have to be written twice
 				auto clear_inputs_except = [this](const id_type id, const index_type& index) {

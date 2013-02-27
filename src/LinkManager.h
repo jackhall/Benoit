@@ -121,7 +121,7 @@ namespace ben {
 			//if the link is already there, the link doesn't match other, or the link has no complement,
 			//then the function returns false and does nothing
 			id_type id = x.get_address();
-			if( !other.contains(nodeID) or other.nodeID != id or contains(id) ) return false;
+			if( !other.contains(nodeID) or other.nodeID!=id or contains(id) ) return false;
 			links.push_back(x);
 			return true;
 		}
