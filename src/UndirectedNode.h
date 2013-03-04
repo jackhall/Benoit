@@ -42,14 +42,14 @@ namespace ben {
 	public:
 		typedef Graph<UndirectedNode> index_type;
 		typedef P link_type;
-		typedef typename LinkManager<link_type>::const_iterator const_iterator;
-		typedef typename LinkManager<link_type>::iterator iterator; 
+		typedef typename LinkManager<self_type, link_type>::const_iterator const_iterator;
+		typedef typename LinkManager<self_type, link_type>::iterator iterator; 
 		
 	private:
 		static_assert(std::is_same<id_type, typename P::id_type>::value, 
 			      "Index and Path unique ID types don't match");
 
-		LinkManager<link_type> links;
+		LinkManager<self_type, link_type> links;
 		//std::mutex
 	
 	public:

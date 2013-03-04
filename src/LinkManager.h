@@ -26,12 +26,15 @@
 
 namespace ben {
 
+	//this struct allows LinkManagerHelper to friend the node type that uses it
+	template<typename T> struct type_wrapper { typedef T type; };
+
 	//the struct carries around its template argument pack, like a variadic typedef
 	template<typename... ARGS> struct ConstructionTypes {};
 
 
-	template<typename P, typename... ARGS>
-	struct LinkManagerHelper {
+	template<typename N, typename P, typename... ARGS>
+	class LinkManagerHelper {
 		//Don't let this compile! Only the specialization taking a ConstructionTypes struct
 		//should be used. The static_assert here doesn't quite say the right thing...
 		static_assert(!std::is_same<typename P::construction_types, ARGS...>::value, 
@@ -39,8 +42,8 @@ namespace ben {
 	};
 
 	
-	template<typename P, typename... ARGS>
-	struct LinkManagerHelper< P, ConstructionTypes<ARGS...> > { 
+	template<typename N, typename P, typename... ARGS>
+	class LinkManagerHelper<N, P, ConstructionTypes<ARGS...> > { 
 /* This helper class does all the LinkManager work, but has a messier and less safe template interface
  * than it should. I use a template typedef to hide this template interface under the name LinkManager.
  * LinkManager is part of the internal machinery of Node classes, allowing the reuse of much code for
@@ -54,17 +57,17 @@ namespace ben {
 		typedef P link_type;
 		typedef typename link_type::complement_type link_complement_type;
 		typedef typename P::id_type id_type;
-		typedef LinkManagerHelper<typename link_type::complement_type, ConstructionTypes<ARGS...> > complement_type;
+		typedef LinkManagerHelper<N, typename link_type::complement_type, ConstructionTypes<ARGS...> > complement_type;
 		typedef typename std::vector<link_type>::iterator iterator; 
 		typedef typename std::vector<link_type>::const_iterator const_iterator;
 		
 	private:
-		typedef LinkManagerHelper self_type;
-		friend class LinkManagerHelper<link_complement_type, ConstructionTypes<ARGS...> >; //for noncircular calls to add/remove
+		friend class LinkManagerHelper<N, link_complement_type, ConstructionTypes<ARGS...> >; //for noncircular calls to add/remove
+		friend class type_wrapper<N>::type; //allow the owning node access to private methods
 		std::vector<link_type> links; 
-
-	public:
 		id_type nodeID; //needed to initialize complement Ports, public because LinkManager is internal to Node
+
+		typedef LinkManagerHelper self_type;
 
 		LinkManagerHelper() = delete;
 		LinkManagerHelper(const id_type id) : nodeID(id) {}
@@ -79,17 +82,6 @@ namespace ben {
 		} 
 		~LinkManagerHelper() = default;
 
-		iterator find(const id_type address) {
-			//Using a sequence container means that this method takes O(n) operations,
-			//but using vector to store ports may allow cache optimizations in the compiler.
-			auto it = begin();
-			for(; it!=end(); ++it)
-				if(it->get_address() == address) break;
-			return it;
-		}
-		const_iterator find(const id_type address) const {
-			return const_cast<self_type*>(this)->find(address);
-		}
 		bool add(complement_type& other, const ARGS... args) {
 			if( contains(other.nodeID) ) return false; //there is already a link to this other Node/LinkManager
 			links.push_back( link_type(other.nodeID, args...) );
@@ -146,11 +138,25 @@ namespace ben {
 			if(iter != end()) links.erase(iter);
 		}
 
+	public:
+		iterator find(const id_type address) {
+			//Using a sequence container means that this method takes O(n) operations,
+			//but using vector to store ports may allow cache optimizations in the compiler.
+			auto it = begin();
+			for(; it!=end(); ++it)
+				if(it->get_address() == address) break;
+			return it;
+		}
+		const_iterator find(const id_type address) const {
+			return const_cast<self_type*>(this)->find(address);
+		}
+
 		void clear() { links.clear(); } //does not clean up after links!
 		
 		size_t size() const { return links.size(); } 
 		bool contains(const id_type address) const { return links.end() != find(address); }
-		
+		//link_type& elem(const id_type address) { return *find(address); }
+
 		iterator begin() { return links.begin(); }
 		const_iterator begin() const { return links.begin(); }
 		iterator end() { return links.end(); }
@@ -158,8 +164,8 @@ namespace ben {
 	}; //class LinkManager
 
 	//this alias significantly cleans up the interface and makes it safer
-	template<typename P>
-	using LinkManager = LinkManagerHelper<P, typename P::construction_types>;
+	template<typename N, typename P>
+	using LinkManager = LinkManagerHelper<N, P, typename P::construction_types>;
 
 } //namespace ben
 

@@ -48,77 +48,82 @@ BOOST_PYTHON_MODULE(benoitpy) {
 	using namespace ben;
 	
 	typedef double 	signal_type;
-	typedef int 	weight_type;
+	typedef stdMessageNode<signal_type> message_node;
+	typedef message_node::input_type input_port;
+	typedef message_node::output_type output_port;
+	typedef Graph<message_node> message_graph;
+
+	typedef int value_type;
+	typedef stdUndirectedNode<value_type> undirected_node;
+	typedef undirected_node::link_type path;
+	typedef Graph<undirected_node> undirected_graph;
+
+	typedef unsigned int id_type;
+
+	class_< message_graph, boost::noncopyable >("message_graph", init<>()) 
+		.def("__iter__", iterator<message_graph>()) 
+		.def("contains", &message_graph::contains)
+		.def("size", &message_graph::size)
+		.def("elem", &message_graph::elem)
+		.def("add", &message_graph::add)
+		.def("remove", &message_graph::remove)
+		.def("merge_into", &message_graph::merge_into)
+		.def("clear", &message_graph::clear);
 	
-	class_< Index<weight_type, signal_type>, boost::noncopyable >("index", init<>()) 
-		.def("__iter__", iterator<Index<weight_type, signal_type>>()) //need to verify Index::iterator traits
-		.def("contains", &Index<weight_type, signal_type>::contains)
-		.def("add", &Index<weight_type, signal_type>::add)
-		.def("remove", &Index<weight_type, signal_type>::remove)
-		.def("update_node", &Index<weight_type, signal_type>::update_node)
-		.def("move_to", &Index<weight_type, signal_type>::move_to)
-		.def("swap_with", &Index<weight_type, signal_type>::swap_with)
-		.def("merge_into", &Index<weight_type, signal_type>::merge_into);
-	
-	//these function pointers aren't working... need way to resolve function overloads
-	bool (Node<weight_type, signal_type>::*addoutput)(unsigned int, const weight_type&) = &Node<weight_type, signal_type>::add_output;
-	void (Node<weight_type, signal_type>::*removeoutput)(unsigned int) = &Node<weight_type, signal_type>::remove_output;
-	
-	object node_class = 
-	class_< Node<weight_type, signal_type> >("node", init<>())
+	class_< message_node >("message_node", init<>())
 		.def( init<unsigned int>() )
 		.def( init<weight_type>() )
 		.def( init<weight_type, unsigned int>() )
-		.def( init< Index<weight_type, signal_type>& >() )
-		.def( init< Index<weight_type, signal_type>&, unsigned int >() )
-		.def( init< Index<weight_type, signal_type>&, weight_type >() )
-		.def( init< Index<weight_type, signal_type>&, weight_type, unsigned int >() )
-		.def( init< Node<weight_type, signal_type>&, unsigned int >() )
-		.def_readwrite("value", &Node<weight_type, signal_type>::bias)
-		.add_property("ID", &Node<weight_type, signal_type>::ID)
-		.def("get_index", &Node<weight_type, signal_type>::get_index, return_internal_reference<>())
-		.def("copy_inputs", &Node<weight_type, signal_type>::copy_inputs)
-		.def("copy_outputs", &Node<weight_type, signal_type>::copy_outputs)
-		.def("add_input", &Node<weight_type, signal_type>::add_input)
-		.def("remove_input", &Node<weight_type, signal_type>::remove_input)
+		.def( init< message_graph& >() )
+		.def( init< message_graph&, unsigned int >() )
+		.def( init< message_graph&, weight_type >() )
+		.def( init< message_graph&, weight_type, unsigned int >() )
+		.def( init< message_node&, unsigned int >() )
+		.def_readwrite("value", &message_node::bias)
+		.add_property("ID", &message_node::ID)
+		.def("get_index", &message_node::get_index, return_internal_reference<>())
+		.def("copy_inputs", &message_node::copy_inputs)
+		.def("copy_outputs", &message_node::copy_outputs)
+		.def("add_input", &message_node::add_input)
+		.def("remove_input", &message_node::remove_input)
 		.def("add_output", addoutput)
 		.def("remove_output", removeoutput)
-		.def("clear", &Node<weight_type, signal_type>::clear)
-		.def("clear_inputs", &Node<weight_type, signal_type>::clear_inputs)
-		.def("clear_outputs", &Node<weight_type, signal_type>::clear_outputs)
-		.def("contains_input", &Node<weight_type, signal_type>::contains_input)
-		.def("contains_output", &Node<weight_type, signal_type>::contains_output)
-		.def("size_inputs", &Node<weight_type, signal_type>::size_inputs)
-		.def("size_outputs", &Node<weight_type, signal_type>::size_outputs)
-		.def("input_begin", &Node<weight_type, signal_type>::input_begin)
-		.def("input_end", &Node<weight_type, signal_type>::input_end)
-		.def("output_begin", &Node<weight_type, signal_type>::output_begin)
-		.def("output_end", &Node<weight_type, signal_type>::output_end);
+		.def("clear", &message_node::clear)
+		.def("clear_inputs", &message_node::clear_inputs)
+		.def("clear_outputs", &message_node::clear_outputs)
+		.def("contains_input", &message_node::contains_input)
+		.def("contains_output", &message_node::contains_output)
+		.def("size_inputs", &message_node::size_inputs)
+		.def("size_outputs", &message_node::size_outputs)
+		.def("input_begin", &message_node::input_begin)
+		.def("input_end", &message_node::input_end)
+		.def("output_begin", &message_node::output_begin)
+		.def("output_end", &message_node::output_end);
 	
-	node_class.attr("INDEX") = Node<weight_type, signal_type>::INDEX;
+	node_class.attr("INDEX") = message_node::INDEX;
 	
-	class_< Node<weight_type, signal_type>::input_port >("input_port")
+	class_< message_node::input_port >("input_port")
 		.def( self == self )
 		.def( self != self )
-		.def("pull", &Node<weight_type, signal_type>::input_port::pull)
-		.def("next", &std_port<Node<weight_type, signal_type>::input_port>::next, return_internal_reference<>())
-		.def("prev", &std_port<Node<weight_type, signal_type>::input_port>::prev, return_internal_reference<>())
-		.add_property("ready", &std_port<Node<weight_type, signal_type>::input_port>::ready)
-		.add_property("origin", &std_port<Node<weight_type, signal_type>::input_port>::get_origin)
-		.add_property("target", &std_port<Node<weight_type, signal_type>::input_port>::get_target)
-		.add_property("value", &std_port<Node<weight_type, signal_type>::input_port>::get_value,
-				       &std_port<Node<weight_type, signal_type>::input_port>::set_value);
+		.def("pull", &message_node::input_port::pull)
+		.def("next", &std_port<message_node::input_port>::next, return_internal_reference<>())
+		.def("prev", &std_port<message_node::input_port>::prev, return_internal_reference<>())
+		.add_property("ready", &std_port<message_node::input_port>::ready)
+		.add_property("origin", &std_port<message_node::input_port>::get_origin)
+		.add_property("target", &std_port<message_node::input_port>::get_target)
+		.add_property("value", &std_port<message_node::input_port>::get_value,
+				       &std_port<message_node::input_port>::set_value);
 	
-	class_< Node<weight_type, signal_type>::output_port >("output_port")
+	class_< message_node::output_port >("output_port")
 		.def( self == self )
 		.def( self != self )
-		.def("push", &Node<weight_type, signal_type>::output_port::push)
-		.def("next", &std_port<Node<weight_type, signal_type>::output_port>::next, return_internal_reference<>())
-		.def("prev", &std_port<Node<weight_type, signal_type>::output_port>::prev, return_internal_reference<>())
-		.add_property("ready", &std_port<Node<weight_type, signal_type>::output_port>::ready)
-		.add_property("origin", &std_port<Node<weight_type, signal_type>::output_port>::get_origin)
-		.add_property("target", &std_port<Node<weight_type, signal_type>::output_port>::get_target)
-		.add_property("value", &std_port<Node<weight_type, signal_type>::output_port>::get_value,
-				       &std_port<Node<weight_type, signal_type>::output_port>::set_value);
+		.def("push", &message_node::output_port::push)
+		.def("next", &std_port<message_node::output_port>::next, return_internal_reference<>())
+		.def("prev", &std_port<message_node::output_port>::prev, return_internal_reference<>())
+		.add_property("ready", &std_port<message_node::output_port>::ready)
+		.add_property("origin", &std_port<message_node::output_port>::get_origin)
+		.add_property("target", &std_port<message_node::output_port>::get_target)
+		.add_property("value", &std_port<message_node::output_port>::get_value,
+				       &std_port<message_node::output_port>::set_value);
 	
 }

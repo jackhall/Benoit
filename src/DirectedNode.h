@@ -47,19 +47,20 @@ namespace ben {
  */
 	template<typename I, typename O>
 	class DirectedNode : public Singleton { 
+	private:
+		typedef DirectedNode 	self_type;
+		typedef Singleton 	base_type;
+
 	public:
 		typedef Graph<DirectedNode> 	index_type;
 		typedef I 			input_type;
 		typedef O 			output_type;
-		typedef typename LinkManager<input_type>::iterator input_iterator;
-		typedef typename LinkManager<input_type>::const_iterator const_input_iterator;
-		typedef typename LinkManager<output_type>::iterator output_iterator;
-		typedef typename LinkManager<output_type>::const_iterator const_output_iterator;
+		typedef typename LinkManager<self_type, input_type>::iterator input_iterator;
+		typedef typename LinkManager<self_type, input_type>::const_iterator const_input_iterator;
+		typedef typename LinkManager<self_type, output_type>::iterator output_iterator;
+		typedef typename LinkManager<self_type, output_type>::const_iterator const_output_iterator;
 		
 	private:
-		typedef DirectedNode 	self_type;
-		typedef Singleton 	base_type;
-	
 		//Benoit would probably not compile anyway, but these assertions should
 		//make debugging easier
 		static_assert(std::is_same<id_type, typename I::id_type>::value, 
@@ -71,11 +72,12 @@ namespace ben {
 		static_assert(std::is_same<typename I::id_type, typename O::id_type>::value, 
 			      "Ports using different unique ID types");
 	
-		LinkManager<input_type> inputs; 
-		LinkManager<output_type> outputs;
 		//std::mutex node_mutex; //would need this to alter graph structure in multiple threads
 		
 	public:
+		LinkManager<self_type, input_type> inputs; //interface for LinkManagers is now restricted
+		LinkManager<self_type, output_type> outputs;
+
 		//For the ctors lacking an id_type argument, Singleton automatically generates a unique ID.
 		//This generated ID is only guaranteed to be unique if that generation method is used exclusively.
 		DirectedNode() : base_type(), inputs(ID()), outputs(ID()) {} 
