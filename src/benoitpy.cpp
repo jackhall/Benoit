@@ -19,7 +19,26 @@
 */
 
 #include <boost/python.hpp>
-#include "Benoit.h"
+#include "Graph.h"
+#include "UndirectedNode.h"
+#include "DirectedNode.h"
+#include "Port.h"
+#include "Path.h"
+
+void IndexError() { PyErr_SetString(PyExc_IndexError, "No element with that ID"); }
+
+template<class T>
+struct associative_access { //helper class for element access
+	typedef typename T::node_type V;
+	typedef typename T::id_type id_type;
+
+	static V& get(const T& x, id_type i) {
+		auto iter = x.find(i);
+		if(iter != x.end()) return *iter;
+		else IndexError();
+	}
+};
+
 
 BOOST_PYTHON_MODULE(benoitpy) {
 	using namespace boost::python;
@@ -32,6 +51,7 @@ BOOST_PYTHON_MODULE(benoitpy) {
 	typedef LinkManager<message_node, input_port> input_manager;
 	typedef LinkManager<message_node, output_port> output_manager;
 	typedef Graph<message_node> message_graph;
+	typedef Index<message_node> message_index;
 
 	typedef int value_type;
 	typedef stdUndirectedNode<value_type> undirected_node;
@@ -44,7 +64,7 @@ BOOST_PYTHON_MODULE(benoitpy) {
 		.def("__iter__", iterator<message_graph>()) 
 		.def("contains", &message_graph::contains)
 		.def("size", &message_graph::size)
-		.def("elem", &message_graph::elem) //could use a helper struct for safety checks
+		//.def("__getitem__", &associative_access<message_graph>::get) //could use a helper struct for safety checks
 		.def("add", &message_graph::add)
 		.def("remove", &message_graph::remove)
 		.def("merge_into", &message_graph::merge_into)
@@ -62,10 +82,10 @@ BOOST_PYTHON_MODULE(benoitpy) {
 		.def("remove_output", &message_node::remove_output)
 		.def("clear", &message_node::clear)
 		.def("clear_inputs", &message_node::clear_inputs)
-		.def("clear_outputs", &message_node::clear_outputs)
-		.def_readonly("inputs", &message_node::inputs)
-		.def_readonly("outputs", &message_node::outputs);
-
+		.def("clear_outputs", &message_node::clear_outputs);
+		//.def_readonly("inputs", &message_node::inputs)
+		//.def_readonly("outputs", &message_node::outputs);
+/*
 	class_< input_manager, boost::noncopyable >("input_manager")
 		.def("__iter__", iterator<input_manager>())
 		.def("contains", &input_manager::contains)
@@ -94,7 +114,7 @@ BOOST_PYTHON_MODULE(benoitpy) {
 		.def("__iter__", iterator<undirected_graph>()) 
 		.def("contains", &undirected_graph::contains)
 		.def("size", &undirected_graph::size)
-		.def("elem", &undirected_graph::elem) //could use a helper struct for safety checks
+		.def("__getitem__", &associative_access<undirected_graph>::get) //could use a helper struct for safety checks
 		.def("add", &undirected_graph::add)
 		.def("remove", &undirected_graph::remove)
 		.def("merge_into", &undirected_graph::merge_into)
@@ -118,5 +138,5 @@ BOOST_PYTHON_MODULE(benoitpy) {
 		.def( self!=self )
 		.add_property("value", &path::get_value, &path::set_value)
 		.add_property("address", &path::get_address);
-
+*/
 }

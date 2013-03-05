@@ -1,8 +1,12 @@
 CC = g++
 CFLAGS = -std=c++11 -lpthread -g 
 LFLAGS = -shared -Wl,-no-undefined -g
-PFLAGS = -lpython2.7 -lboost_python -lboost_system
+PFLAGS = -lpython2.7 -lboost_python -lboost_system -lbenoit
 PATHS = -Isrc -Ibuild -IWayne/src
+
+build/benpy.so : src/Index.h src/UndirectedNode.h src/DirectedNode.h src/LinkManager.h src/Port.h src/Path.h src/Buffer.h src/benoitpy.cpp
+	$(CC) $(CFLAGS) $(PATHS) -fPIC -I/usr/include/python2.7 -o build/benpy.o -c src/benoitpy.cpp
+	$(CC) $(LFLAGS) $(PFLAGS) -o build/benpy.so build/benpy.o
 
 build/libbenoit.so : build/IndexBase.o
 	$(CC) $(LFLAGS) -lboost_system -Wl,-soname,libbenoit.so.1 -o build/libbenoit.so.1.0 build/IndexBase.o; \

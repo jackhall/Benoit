@@ -21,6 +21,7 @@
     e-mail: jackwhall7@gmail.com
 */
 
+#include "Singleton.h"
 #include "Path.h"
 #include "LinkManager.h"
 
