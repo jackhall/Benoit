@@ -137,6 +137,7 @@ namespace ben {
 			auto iter = find(address);
 			if(iter != end()) links.erase(iter);
 		}
+		void clear() { links.clear(); } //does not clean up after links!
 
 	public:
 		iterator find(const id_type address) {
@@ -150,8 +151,6 @@ namespace ben {
 		const_iterator find(const id_type address) const {
 			return const_cast<self_type*>(this)->find(address);
 		}
-
-		void clear() { links.clear(); } //does not clean up after links!
 		
 		size_t size() const { return links.size(); } 
 		bool contains(const id_type address) const { return links.end() != find(address); }
