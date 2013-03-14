@@ -22,6 +22,7 @@
 */
 
 #include "Index.h"
+#include <memory>
 
 namespace ben {
 	
@@ -45,44 +46,44 @@ namespace ben {
 		static std::atomic<id_type> IDCOUNT;  
 		static id_type get_new_ID() { return IDCOUNT.fetch_add(1); }
 	
-		index_type* index;
+		std::shared_ptr<index_type> index_ptr;
 		id_type uniqueID;
 		//std::mutex? maybe later
 		
-		void update_index(index_type* ptr) { index = ptr; }
+		void update_index(const std::shared_ptr<index_type>& ptr) { index_ptr = ptr; }
 	
 	protected:
 		friend class IndexBase; 
 	
 		Singleton(const id_type id=get_new_ID())
-			: uniqueID(id), index(nullptr) {}
-		Singleton(index_type& x, const id_type id=get_new_ID()) 
-			: uniqueID(id), index(&x) { if( !x.add(*this) ) throw; } //define a custom exception?
+			: uniqueID(id), index_ptr() {}
+		Singleton(std::shared_ptr<index_type> ptr, const id_type id=get_new_ID()) //passing ptr by ref isn't thread-safe
+			: uniqueID(id), index_ptr(ptr) { if( !ptr->add(*this) ) throw; } //define a custom exception?
 		Singleton(const self_type& rhs) = delete;
 		Singleton(self_type&& rhs) 
-			: uniqueID(rhs.uniqueID), index(rhs.index) { 
+			: uniqueID(rhs.uniqueID), index_ptr(rhs.index_ptr) { 
 			if( is_managed() && !(index->update_singleton(this)) ) throw; //define a custom exception?
-			rhs.index = nullptr;
+			rhs.index_ptr.reset();
 		}
 		self_type& operator=(const self_type& rhs) = delete;
 		self_type& operator=(self_type&& rhs) {
 			if(this != &rhs) {
-				if(index != nullptr) 
+				if(index_ptr) //checks if index_ptr manages is empty
 					if( !(index->remove(uniqueID)) ) throw; //need to catch this?
 				uniqueID = rhs.uniqueID;
-				index = rhs.index; //haven't checked rhs.is_managed() yet
-				if( is_managed() && !(index->update_singleton(this)) ) throw; //define a custom exception?
-				rhs.index = nullptr; 
+				index_ptr = rhs.index_ptr; //haven't checked rhs.is_managed() yet
+				if( is_managed() && !(index_ptr->update_singleton(this)) ) throw; //define a custom exception?
+				rhs.index_ptr.reset(); 
 			} 
 			return *this;
 		}
-		virtual ~Singleton() { if(is_managed()) index->remove(uniqueID); }
+		virtual ~Singleton() { if(is_managed()) index_ptr->remove(uniqueID); }
 	
-		bool is_managed() const { return index != nullptr; }
-		bool is_managed_by(const index_type& x) const { return index == &x; }
+		bool is_managed() const { return index_ptr; }
+		bool is_managed_by(const index_type& x) const { return index_ptr.get() == &ptr; }
 		id_type ID() const { return uniqueID; }
 		//resetID method? not for now
-		const index_type& get_index() const { return *index; }
+		std::shared_ptr<index_type> get_index() const { return index_ptr; }
 	}; //class Singleton
 	
 	std::atomic<typename Singleton::id_type> Singleton::IDCOUNT(1000);

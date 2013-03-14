@@ -78,7 +78,6 @@ namespace ben {
 		bool empty() const { return index.empty(); }
 		
 		virtual bool add(singleton_type& x) { return base_type::add(x); }
-		//virtual void clear() { base_type::clear(); }
 		size_type size() { return index.size(); }
 		
 		virtual bool merge_into(self_type& other) { return base_type::merge_into(other); }

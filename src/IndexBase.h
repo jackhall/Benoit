@@ -40,7 +40,7 @@ namespace ben {
 	
 		bool contains(const id_type address) const { return index.count(address) == 1; }
 		virtual bool remove(const id_type address);
-		virtual void clear();
+		virtual void clear(); //this function is a danger to thread-safety and might not be necessary
 
 	private:
 		typedef IndexBase self_type;
