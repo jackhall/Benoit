@@ -33,13 +33,6 @@ namespace ben {
 		} else return false;
 	}
 	
-	void IndexBase::update_all() { 
-	//iterates through data structure, updating the location of this Index as tracked by 
-	//each Singleton
-		for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
-			it->second->update_index(this);
-	}
-	
 	bool IndexBase::check(const id_type address, const Singleton* local_ptr) const {
 	//verifies correct tracking of Singleton
 		auto iter = index.find(address);
@@ -74,31 +67,22 @@ namespace ben {
 		} else return false;
 	}
 	
-	bool IndexBase::merge_into(IndexBase& other) {
+	bool IndexBase::merge_into(std::shared_ptr<IndexBase> other_ptr) {
 	//transfers management of all Singletons to other, first checking for redundancy
 	//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
 	//either transfers all Singletons or none
-		if(this == &other) return false; //redundant, but clear
-		for(auto x : index) if( other.contains(x.first) ) return false;
+		if(this == other_ptr.get()) return false; //redundant, but clear
+		for(auto x : index) if( other_ptr->contains(x.first) ) return false;
 		
 		auto it = index.begin(), ite = index.end();
 		while(it != ite) {
 			//does not call add or remove!
-			other.index.insert( std::make_pair(it->first, it->second) );
-			it->second->update_index(&other);
+			other_ptr->index.insert( std::make_pair(it->first, it->second) );
+			it->second->update_index(other_ptr);
 			index.erase(it++);
 		}
 	
 		return true;
-	}
-	
-	
-	void IndexBase::clear() {
-	//stops tracking all Singletons, leaves Singletons with a nullptr where the Singleton was
-	//pointing to this Index
-		for(auto it=index.begin(), ite=index.end(); it!=ite; ++it) 
-			it->second->update_index(nullptr);
-		index.clear(); 
 	}
 	
 } //namespace ben

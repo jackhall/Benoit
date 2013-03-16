@@ -49,7 +49,6 @@ namespace ben {
 		typedef std::unordered_map<id_type, Singleton*> map_type;
 		
 		using base_type::update_singleton;
-		using base_type::update_all;
 		using base_type::index; //FIELD
 			
 	public:		
@@ -62,9 +61,9 @@ namespace ben {
 		Index()=default;
 		Index(const self_type& rhs) = delete; //identity semantics
 		Index& operator=(const self_type& rhs) = delete; 
-		Index(self_type&& rhs) : base_type( std::move(rhs) ) {}
-		Index& operator=(self_type&& rhs) { base_type::operator=( std::move(rhs) ); }
-		virtual ~Index() = default; //clear is called by IndexBase (it's virtual)
+		Index(self_type&& rhs) = delete;
+		Index& operator=(self_type&& rhs) = delete;
+		virtual ~Index() = default; //should never be called while any Singletons are still managed
 		
 		iterator find(const id_type address) const { return iterator( index.find(address) ); }
 		singleton_type& elem(const id_type address) const {
@@ -78,10 +77,9 @@ namespace ben {
 		bool empty() const { return index.empty(); }
 		
 		virtual bool add(singleton_type& x) { return base_type::add(x); }
-		//virtual void clear() { base_type::clear(); }
 		size_type size() { return index.size(); }
 		
-		virtual bool merge_into(self_type& other) { return base_type::merge_into(other); }
+		virtual bool merge_into(std::shared_ptr<self_type> other_ptr) { return base_type::merge_into(other_ptr); }
 		
 		iterator begin() { return iterator( index.begin() ); }
 		iterator end()   { return iterator( index.end() ); }

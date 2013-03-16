@@ -22,6 +22,7 @@
 */
 
 #include <unordered_map>
+#include <memory>
 #include "Commons.h"
 
 namespace ben {
@@ -39,8 +40,6 @@ namespace ben {
 		friend class Singleton;
 	
 		bool contains(const id_type address) const { return index.count(address) == 1; }
-		virtual bool remove(const id_type address);
-		virtual void clear();
 
 	private:
 		typedef IndexBase self_type;
@@ -48,25 +47,19 @@ namespace ben {
 	protected:
 		IndexBase()=default;
 		IndexBase(const self_type& rhs) = delete;
-		IndexBase(self_type&& rhs) : index( std::move(rhs.index) ) { update_all(); }
+		IndexBase(self_type&& rhs) = delete;
 		self_type& operator=(const self_type& rhs) = delete;
-		self_type& operator=(self_type&& rhs) {
-			if(this != &rhs) {
-				clear();
-				index = std::move(rhs.index);
-				update_all();
-			} return *this;
-		}
-		virtual ~IndexBase() { clear(); }
+		self_type& operator=(self_type&& rhs) = delete;
+		virtual ~IndexBase() { for(auto x : index) x.second->update_index(std::shared_ptr<self_type>()); }
 	
-		mutable std::unordered_map<id_type, Singleton*> index;
+		std::unordered_map<id_type, Singleton*> index;
 		
 		bool update_singleton(Singleton* ptr); 
-		void update_all();
 		
 		bool check(const id_type address, const Singleton* local_ptr) const;	
 		bool add(Singleton& x); 
-		bool merge_into(self_type& other);
+		virtual bool remove(const id_type address);
+		bool merge_into(std::shared_ptr<self_type> other_ptr); //this can be used to emulate move semantics
 	}; //class IndexBase	
 
 } //namespace ben
