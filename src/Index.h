@@ -50,9 +50,12 @@ namespace ben {
 		
 		using base_type::update_singleton;
 		using base_type::index; //FIELD
-			
+		
+		virtual bool add(singleton_type& x) { return base_type::add(x); }
+	
 	public:		
 		typedef S singleton_type;
+		friend singleton_type;
 
 		//iterators are not nested because I need to forward declare their output operator			
 		class const_iterator; //do away with const_iterator? semantically weird
@@ -75,7 +78,6 @@ namespace ben {
 		bool check(const id_type address, const singleton_type* local_ptr) const 
 			{ return base_type::check(address, local_ptr); }
 		
-		virtual bool add(singleton_type& x) { return base_type::add(x); }
 		virtual bool merge_into(std::shared_ptr<self_type> other_ptr) { return base_type::merge_into(other_ptr); }
 		
 		iterator begin() { return iterator( index.begin() ); }

@@ -81,6 +81,7 @@ namespace ben {
 		virtual ~Singleton() { leave_index(); }
 	
 		void join_index(std::shared_ptr<index_type> ptr) { 
+			if(index_ptr) leave_index();
 			index_ptr = ptr;
 			while( !index_ptr->add(*this) ) uniqueID = get_new_ID(); 
 		}
