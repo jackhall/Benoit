@@ -74,11 +74,8 @@ namespace ben {
 		}
 		bool check(const id_type address, const singleton_type* local_ptr) const 
 			{ return base_type::check(address, local_ptr); }
-		bool empty() const { return index.empty(); }
 		
 		virtual bool add(singleton_type& x) { return base_type::add(x); }
-		size_type size() { return index.size(); }
-		
 		virtual bool merge_into(std::shared_ptr<self_type> other_ptr) { return base_type::merge_into(other_ptr); }
 		
 		iterator begin() { return iterator( index.begin() ); }

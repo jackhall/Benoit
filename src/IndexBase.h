@@ -40,6 +40,7 @@ namespace ben {
 		friend class Singleton;
 	
 		bool contains(const id_type address) const { return index.count(address) == 1; }
+		size_t size() const { return index.size(); }
 
 	private:
 		typedef IndexBase self_type;

@@ -35,94 +35,50 @@ namespace {
 
 		DerivedSingleton() : Singleton() {}
 		DerivedSingleton(const id_type id) : Singleton(id) {}
-		DerivedSingleton(index_type& x) : Singleton(x) {}
-		DerivedSingleton(index_type& x, const id_type id) : Singleton(x, id) {}
+		DerivedSingleton(std::shared_ptr<index_type> x) : Singleton(x) {}
+		DerivedSingleton(std::shared_ptr<index_type> x, const id_type id) : Singleton(x, id) {}
 		DerivedSingleton(const DerivedSingleton& rhs) = delete;
 		DerivedSingleton(DerivedSingleton&& rhs) : Singleton( std::move(rhs) ) {}
 		DerivedSingleton& operator=(const DerivedSingleton& rhs) = delete;
-		DerivedSingleton& operator=(DerivedSingleton&& rhs) { Singleton::operator=( std::move(rhs) ); }
+		DerivedSingleton& operator=(DerivedSingleton&& rhs) { Singleton::operator=( std::move(rhs) ); 
 		~DerivedSingleton() = default;
 		
-		using base_type::is_managed;
-		bool is_managed_by(const index_type& x) { return base_type::is_managed_by(x); }
-		using base_type::ID;
+		void join_index(std::shared_ptr<index_type> x) { base_type::join_index(x); }
+		std::shared_ptr<index_type> get_index() const { return static_pointer_cast(base_type::get_index()); }	
 	};
 
 	TEST(IndexSingleton, Construction) {
 		using namespace ben;
+		typedef DerivedSingleton singleton_type;
+		typedef Index<singleton_type> index_type;
 		
 		//======= Index<> default constructor =========
-		Index<DerivedSingleton>* index1_ptr = new Index<DerivedSingleton>();
-			EXPECT_TRUE(index1_ptr->empty()); 
+		auto index1_ptr = make_shared<index_type>();
 			EXPECT_EQ(0, index1_ptr->size());
 		
 		//======= Singleton index constructor ========
-		DerivedSingleton singleton1(*index1_ptr);
+		singleton_type singleton1(index1_ptr);
 			//singleton1 tests
 			EXPECT_EQ(1000, singleton1.ID());
 			EXPECT_TRUE(singleton1.is_managed());
-			EXPECT_TRUE(singleton1.is_managed_by(*index1_ptr));
+			EXPECT_TRUE(index1_ptr, singleton1.get_index());
 			//index1 tests
-			EXPECT_FALSE(index1_ptr->empty()); 
 			EXPECT_EQ(1, index1_ptr->size());
 			//both
 			EXPECT_TRUE( index1_ptr->contains(singleton1.ID()) );
 			EXPECT_TRUE( index1_ptr->check(singleton1.ID(), &singleton1) );
 			EXPECT_EQ( &singleton1, &(index1_ptr->elem(singleton1.ID())) );
 		
-		//======= Index<> move constructor =========
-		Index<DerivedSingleton> index2( std::move(*index1_ptr) );
-			//singleton1 tests
-			EXPECT_TRUE(singleton1.is_managed());
-			EXPECT_TRUE(singleton1.is_managed_by(index2));
-			//index2 tests
-			EXPECT_FALSE(index2.empty()); 
-			EXPECT_EQ(1, index2.size());
-			//index1 tests
-			EXPECT_TRUE(index1_ptr->empty()); 
-			EXPECT_EQ(0, index1_ptr->size());
-			//singleton+index2
-			EXPECT_TRUE( index2.contains(singleton1.ID()) );
-			EXPECT_TRUE( index2.check(singleton1.ID(), &singleton1) );
-			EXPECT_EQ( &singleton1, &(index2.elem(singleton1.ID())) );
-			//singleton+index1
-			EXPECT_FALSE( index1_ptr->contains(singleton1.ID()) );
-			EXPECT_FALSE( index1_ptr->check(singleton1.ID(), &singleton1) ); 
-		
-		//====== Index<> move assignment operator =======
-		*index1_ptr = std::move(index2);
-			//singleton1 tests
-			EXPECT_TRUE(singleton1.is_managed());
-			EXPECT_TRUE(singleton1.is_managed_by(*index1_ptr));
-			//index1 tests
-			EXPECT_FALSE(index1_ptr->empty()); 
-			EXPECT_EQ(1, index1_ptr->size());
-			//index2 tests
-			EXPECT_TRUE(index2.empty()); 
-			EXPECT_EQ(0, index2.size());
-			//singleton+index1
-			EXPECT_TRUE( index1_ptr->contains(singleton1.ID()) );
-			EXPECT_TRUE( index1_ptr->check(singleton1.ID(), &singleton1) );
-			EXPECT_EQ( &singleton1, &(index1_ptr->elem(singleton1.ID())) );
-			//singleton+index2
-			EXPECT_FALSE( index2.contains(singleton1.ID()) );
-			EXPECT_FALSE( index2.check(singleton1.ID(), &singleton1) );
-		
-		//====== Index<> destructor =========
-		delete index1_ptr;
-		index1_ptr = nullptr;
-			//singleton1 tests
-			EXPECT_FALSE(singleton1.is_managed());
-		
+		//====== Index<> destructor ========= //unnecessary; managed Nodes now have shared ownership
+		//
 		//====== Singleton index constructor ====== 
-		DerivedSingleton* singleton2_ptr = new DerivedSingleton(index2);
+		singleton_type* singleton2_ptr = new singleton_type(index1_ptr);
 			//singleton2 tests
 			EXPECT_EQ(1001, singleton2_ptr->ID());
 			EXPECT_TRUE(singleton2_ptr->is_managed());
-			EXPECT_TRUE(singleton2_ptr->is_managed_by(index2));
+			EXPECT_TRUE(index1_ptr, singleton2_ptr->get_index());
 			//index2 tests
-			EXPECT_FALSE(index2.empty()); 
-			EXPECT_EQ(1, index2.size());
+			EXPECT_EQ(1, index1_ptr->size());
 			//both
 			EXPECT_TRUE( index2.contains(singleton2_ptr->ID()) );
 			EXPECT_TRUE( index2.check(singleton2_ptr->ID(), singleton2_ptr) );
@@ -133,22 +89,21 @@ namespace {
 		delete singleton2_ptr;
 		singleton2_ptr = nullptr;
 			//index2 tests
-			EXPECT_TRUE(index2.empty());
 			EXPECT_EQ(0, index2.size());
 			EXPECT_FALSE(index2.contains(id2));
 		
 		//====== Singleton default constructor ======
-		DerivedSingleton singleton3;
+		singleton_type singleton3;
 			EXPECT_EQ(1002, singleton3.ID());
 			EXPECT_FALSE(singleton3.is_managed());
 		
 		//====== Singleton id constructor ======
-		DerivedSingleton singleton4(5000);
+		singleton_type singleton4(5000);
 			EXPECT_EQ(5000, singleton4.ID());
 			EXPECT_FALSE(singleton4.is_managed());
 		
 		//====== Singleton index+id constructor ======
-		DerivedSingleton singleton5(index2, 6000);
+		singleton_type singleton5(index2, 6000);
 			//singleton5 tests
 			EXPECT_EQ(6000, singleton5.ID());
 			EXPECT_TRUE(singleton5.is_managed());
@@ -163,7 +118,7 @@ namespace {
 		
 		//====== Singleton move constructor ======
 		//---- from is_managed
-		DerivedSingleton singleton6( std::move(singleton5) );
+		singleton_type singleton6( std::move(singleton5) );
 			//singleton6 tests
 			EXPECT_EQ(6000, singleton6.ID());
 			EXPECT_TRUE(singleton6.is_managed());
@@ -183,7 +138,7 @@ namespace {
 			EXPECT_FALSE( index2.check(singleton5.ID(), &singleton5) );
 		
 		//---- from null
-		DerivedSingleton singleton7( std::move(singleton3) ); 
+		singleton_type singleton7( std::move(singleton3) ); 
 			//singleton7 tests
 			EXPECT_EQ(1002, singleton7.ID()); 
 			EXPECT_FALSE(singleton7.is_managed());
@@ -236,8 +191,8 @@ namespace {
 		
 		//---- is_managed -> is_managed
 		//prepare new singleton
-		DerivedSingleton singleton8(index2); 
-		DerivedSingleton singleton9(index2);
+		singleton_type singleton8(index2); 
+		singleton_type singleton9(index2);
 			//singleton8 tests
 			EXPECT_EQ(1003, singleton8.ID());
 			EXPECT_TRUE(singleton8.is_managed());

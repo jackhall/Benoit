@@ -41,6 +41,8 @@ namespace ben {
 	public:
 		typedef typename IndexBase::id_type id_type;
 		id_type ID() const { return uniqueID; }
+		bool is_managed() const { return index_ptr; }
+		void leave_index() { if(index_ptr) index_ptr->remove(uniqueID); }
 
 	private:
 		typedef Singleton 	self_type;
@@ -78,7 +80,6 @@ namespace ben {
 		}
 		virtual ~Singleton() { leave_index(); }
 	
-		void leave_index() { if(index_ptr) index_ptr->remove(uniqueID); }
 		void join_index(std::shared_ptr<index_type> ptr) { 
 			index_ptr = ptr;
 			while( !index_ptr->add(*this) ) uniqueID = get_new_ID(); 
