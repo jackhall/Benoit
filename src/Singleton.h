@@ -39,17 +39,18 @@ namespace ben {
  */
 	class Singleton {
 	public:
-		typedef typename IndexBase::id_type id_type;
+		typedef unsigned int id_type;
 		id_type ID() const { return uniqueID; }
 		bool is_managed() const { return index_ptr; }
 		void leave_index() { if(index_ptr) index_ptr->remove(uniqueID); }
 
 	private:
-		typedef Singleton 	self_type;
-		typedef IndexBase 	index_type;
+		typedef Singleton self_type;
+		typedef Index<self_type> index_type;
 		static std::atomic<id_type> IDCOUNT;  
 		static id_type get_new_ID() { return IDCOUNT.fetch_add(1); }
-	
+
+		friend class Index<self_type>; 
 		std::shared_ptr<index_type> index_ptr;
 		id_type uniqueID;
 		//std::mutex? maybe later
@@ -57,8 +58,6 @@ namespace ben {
 		void update_index(const std::shared_ptr<index_type>& ptr) { index_ptr = ptr; }
 	
 	protected:
-		friend class IndexBase; 
-	
 		Singleton(const id_type id=get_new_ID())
 			: uniqueID(id), index_ptr() {}
 		Singleton(std::shared_ptr<index_type> ptr, const id_type id=get_new_ID()) //passing ptr by ref isn't thread-safe
