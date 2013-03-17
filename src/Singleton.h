@@ -79,10 +79,15 @@ namespace ben {
 		}
 		virtual ~Singleton() { leave_index(); }
 	
-		void join_index(std::shared_ptr<index_type> ptr) { 
-			if(index_ptr) leave_index();
-			index_ptr = ptr;
-			while( !index_ptr->add(*this) ) uniqueID = get_new_ID(); 
+		bool join_index(std::shared_ptr<index_type> ptr) { 
+			auto originalID = ID();
+			while( ptr->contains(uniqueID) ) uniqueID = get_new_ID(); 
+			bool status = ptr->add(this);
+			if(status) {
+				if(index_ptr) leave_index();
+				index_ptr = ptr;
+			} else uniqueID = originalID;
+			return status;
 		}
 		std::shared_ptr<index_type> get_index() const { return index_ptr; }
 	}; //class Singleton
