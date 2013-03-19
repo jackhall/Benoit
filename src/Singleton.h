@@ -41,16 +41,18 @@ namespace ben {
 	public:
 		typedef unsigned int id_type;
 		id_type ID() const { return uniqueID; }
-		bool is_managed() const { return index_ptr; }
+		bool is_managed() const { return static_cast<bool>(index_ptr); }
 		void leave_index() { if(index_ptr) index_ptr->remove(uniqueID); }
 
 	private:
 		typedef Singleton self_type;
-		typedef Index<self_type> index_type;
+		typedef IndexBase index_type; 
 		static std::atomic<id_type> IDCOUNT;  
 		static id_type get_new_ID() { return IDCOUNT.fetch_add(1); }
 
-		friend class Index<self_type>; 
+		template<typename T>
+		friend bool merge(std::shared_ptr< Index<T> >, std::shared_ptr< Index<T> >); //circular!
+
 		std::shared_ptr<index_type> index_ptr;
 		id_type uniqueID;
 		//std::mutex? maybe later
@@ -61,7 +63,9 @@ namespace ben {
 		Singleton(const id_type id=get_new_ID())
 			: uniqueID(id), index_ptr() {}
 		Singleton(std::shared_ptr<index_type> ptr, const id_type id=get_new_ID()) //passing ptr by ref isn't thread-safe
-			: uniqueID(id), index_ptr(ptr) { while( !ptr->add(*this) ) uniqueID = get_new_ID(); } 
+			: uniqueID(id), index_ptr(ptr) { 
+			while( !ptr->add(this) ) uniqueID = get_new_ID(); 
+		} 
 		Singleton(const self_type& rhs) = delete;
 		Singleton(self_type&& rhs) : uniqueID(rhs.uniqueID), index_ptr(rhs.index_ptr) { 
 			if( index_ptr && !(index_ptr->update_singleton(this)) ) throw; //define a custom exception?
@@ -81,7 +85,7 @@ namespace ben {
 	
 		bool join_index(std::shared_ptr<index_type> ptr) { 
 			auto originalID = ID();
-			while( ptr->contains(uniqueID) ) uniqueID = get_new_ID(); 
+			while( ptr->manages(uniqueID) ) uniqueID = get_new_ID(); 
 			bool status = ptr->add(this);
 			if(status) {
 				if(index_ptr) leave_index();

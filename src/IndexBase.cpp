@@ -19,7 +19,7 @@
 */
 
 #include "IndexBase.h"
-#include "Singleton.h"
+//#include "Singleton.h"
 
 namespace ben {
 	
@@ -41,33 +41,30 @@ namespace ben {
 	} 
 	
 	bool IndexBase::add(Singleton& x) {
-	//begins tracking x, removing it from its existing Index if necessary
-	//returns false if this Index is already tracking a Singleton with x's ID, true otherwise
-		if( index.insert(std::make_pair(x.ID(), &x)).second ) {
-			if(!x.is_managed()) x.update_index(this);
-			else {
-				if(!x.is_managed_by(*this)) {
-					x.index->remove(x.ID());
-					x.update_index(this);
-				}
-			}	 
-			return true; 
+	//begins tracking referent of ptr
+	//returns false if this Index is already tracking a Singleton with ptr's ID, true otherwise
+	//only called by Singleton, internally
+		auto x = index.insert(std::make_pair(ptr->ID(), ptr));
+		if( x.second ) {
+			bool status = perform_add(x.first); 
+			if(!status) index.erase(x.first);
+			return status;
 		} return false;
 	}
 	
 	bool IndexBase::remove(const id_type address) {
-	//stops tracking Singleton with ID=address, leaving it with a nullptr where the Singleton
-	//was pointing to this Index
-	//returns false it this Index is not tracking a Singleton with ID=address, true otherwise
+	//stops tracking Singleton with ID=address, 
+	//returns false if this Index is not tracking a Singleton with ID=address, true otherwise
+	//only called by Singleton, internally
 		auto iter = index.find(address);
-		if( iter != index.end() ) { 
-			if(iter->second->is_managed_by(*this)) iter->second->update_index(nullptr); 
-			index.erase(iter);
-			return true;
+		if( iter != index.end() ) {
+			bool status = perform_remove(iter); 
+			if(status) index.erase(iter);
+			return status;
 		} else return false;
 	}
 	
-	bool IndexBase::merge_into(std::shared_ptr<IndexBase> other_ptr) {
+	/*bool merge(std::shared_ptr<IndexBase> other_ptr) {
 	//transfers management of all Singletons to other, first checking for redundancy
 	//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
 	//either transfers all Singletons or none
@@ -83,6 +80,6 @@ namespace ben {
 		}
 	
 		return true;
-	}
+	}*/
 	
 } //namespace ben

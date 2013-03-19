@@ -25,6 +25,7 @@
 #include <memory>
 #include <iostream>
 #include "IndexBase.h"
+#include "Singleton.h" //circular?
 #include "Commons.h"
 
 namespace ben {
@@ -43,61 +44,28 @@ namespace ben {
  * Because IndexBase is now based on std::unordered_map, only forward iterators are provided.
  */
 	template<typename S>
-	class Index : public wayne::Commons {
+	class Index : public IndexBase {
 	public:
 		typedef S singleton_type;
+		typedef typename S::id_type id_type;
 		//iterators are not nested because I need to forward declare their output operator			
 		class const_iterator; //do away with const_iterator? semantically weird
 		class iterator;
 
 	private:
-		typedef Index		self_type;
-		typedef typename S::id_type id_type;
-		typedef std::unordered_map<id_type, Singleton*> map_type;
-		
-		friend singleton_type;
-		bool update_singleton(singleton_type* ptr) {
-		//updates the tracking for the indicated Singleton
-		//returns false if no Singleton with this ID is currently being tracked, true otherwise
-			auto iter = index.find(ptr->ID());
-			if(iter != index.end()) { 
-				iter->second = ptr;
-				return true;
-			} else return false;
-		}
+		typedef IndexBase base_type;
+		typedef Index self_type;
+		//typedef std::unordered_map<id_type, singleton_type*> map_type;
+		using base_type::index; //hiding this field
+		using base_type::add;
+		using base_type::remove;
 
-		map_type index;	
-	
-		bool add(singleton_type* ptr) { 
-		//begins tracking referent of ptr
-		//returns false if this Index is already tracking a Singleton with ptr's ID, true otherwise
-			if( index.insert(std::make_pair(ptr->ID(), ptr)).second ) {
-				bool status = perform_add(singleton_type); 
-				if(!status) index.erase(ptr->ID());
-				return status;
-			} return false;
-		 }
-		bool remove(const id_type address) {
-		//stops tracking Singleton with ID=address, 
-		//returns false it this Index is not tracking a Singleton with ID=address, true otherwise
-			auto iter = index.find(address);
-			if( iter != index.end() ) {
-				bool status = perform_remove(iter); 
-				if(status) index.erase(iter);
-				return status;
-			} else return false;
-		}
-		
-		//these functions perform custom operations on derived data structure
-		//for context, see the exposed add, remove, and merge_into methods
-		virtual bool perform_add() { return true; }
-		virtual bool perform_remove(iterator iter) { return true; }
-		virtual bool perform_merge(self_type& other) { return true; } 
+		virtual bool perform_merge() = 0; //should this still be a member function?
 
 	protected:
 		virtual ~Index() { //should never be called while any Singletons are still managed
 			//but for safety's sake...
-			for(auto x : index) x.second->update_index(std::shared_ptr<self_type>()); 
+			for(auto x : index) x.second->update_index(std::shared_ptr<base_type>()); 
 		}
 
 	public:	
@@ -107,54 +75,12 @@ namespace ben {
 		Index(self_type&& rhs) = delete;
 		Index& operator=(self_type&& rhs) = delete;
 		
-		bool contains(const id_type address) const { return index.count(address) == 1; }
-		size_t size() const { return index.size(); }
-
 		iterator find(const id_type address) const { return iterator( index.find(address) ); }
 		singleton_type& elem(const id_type address) const {
 		//throw an exception if address does not exist?
 		//this is not safe to use unless you already know that address exists in this index
 			auto iter = index.find(address);
 			return *static_cast<singleton_type*>(iter->second);
-		}
-		bool check(const id_type address, const singleton_type* local_ptr) const { 
-		//verifies correct tracking of Singleton
-			auto iter = index.find(address);
-			if(iter != index.end()) return iter->second == local_ptr;
-			else return false;
-		}
-		
-		bool merge_into(std::shared_ptr<self_type> other_ptr) { 
-		//transfers management of all Singletons to other, first checking for redundancy
-		//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
-		//either transfers all Singletons or none
-		//this method can be used to emulate move semantics
-			if(this == other_ptr.get()) return false; //redundant, but clear
-			if(size() == 0) return true; 
-			for(auto x : index) if( other_ptr->contains(x.first) ) return false;
-		
-			//begin merge, leaving the process reversible
-			auto it = index.begin(), ite = index.end();
-			auto self_ptr = it->second->get_index(); 
-			while(it != ite) {
-				//does not call add or remove!
-				other_ptr->index.insert( std::make_pair(it->first, it->second) );
-				it->second->update_index(other_ptr);
-			}
-		
-			bool status = perform_merge(*other_ptr);
-		
-			it = index.begin();
-			if(status) index.erase(it, ite); //finish merge
-			else {
-				//reverse merge
-				while(it != ite) {
-					other_ptr->index.erase(it->first);
-					it->second->update_index(self_ptr);
-				}
-			}
-	
-			return status;
 		}
 		
 		iterator begin() { return iterator( index.begin() ); }
@@ -230,6 +156,40 @@ namespace ben {
 		return out;
 	}
 
+	template<typename T>
+	bool merge(std::shared_ptr< Index<T> > one, std::shared_ptr< Index<T> > two) {
+	//transfers management of all Singletons to other, first checking for redundancy
+	//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
+	//either transfers all Singletons or none
+	//this method can be used to emulate move semantics
+		if(this == one.get()) return false; //redundant, but clear
+		if(two->size() == 0) return true; 
+		for(auto x : two.index) if( one->manages(x.first) ) return false;
+	
+		//begin merge, leaving the process reversible
+		auto it = two->index.begin(), ite = two->index.end();
+		auto self_ptr = it->second->get_index(); 
+		while(it != ite) {
+			//does not call add or remove!
+			one->index.insert( std::make_pair(it->first, it->second) );
+			it->second->update_index(one);
+		}
+	
+		bool status = one->perform_merge(*two);
+	
+		it = two->index.begin();
+		if(status) two->index.erase(it, ite); //finish merge
+		else {
+			//reverse merge
+			while(it != ite) {
+				one->index.erase(it->first);
+				it->second->update_index(self_ptr);
+			}
+		}
+
+		return status;
+	}
+	
 } //namespace ben
 
 #endif
