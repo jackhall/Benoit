@@ -1,3 +1,6 @@
+#ifndef IndexBase_cpp
+#define IndexBase_cpp
+
 /*
     Benoit: a flexible framework for distributed graphs and spaces
     Copyright (C) 2011  Jack Hall
@@ -33,22 +36,15 @@ namespace ben {
 		} else return false;
 	}
 	
-	bool IndexBase::check(const id_type address, const Singleton* local_ptr) const {
-	//verifies correct tracking of Singleton
-		auto iter = index.find(address);
-		if(iter != index.end()) return iter->second == local_ptr;
-		else return false;
-	} 
-	
-	bool IndexBase::add(Singleton& x) {
+	bool IndexBase::add(Singleton* ptr) {
 	//begins tracking referent of ptr
 	//returns false if this Index is already tracking a Singleton with ptr's ID, true otherwise
 	//only called by Singleton, internally
-		auto x = index.insert(std::make_pair(ptr->ID(), ptr));
-		if( x.second ) {
-			bool status = perform_add(x.first); 
-			if(!status) index.erase(x.first);
-			return status;
+		auto insert_status = index.insert(std::make_pair(ptr->ID(), ptr));
+		if( insert_status.second ) {
+			bool delegate_status = perform_add(ptr); 
+			if(!delegate_status) index.erase(insert_status.first);
+			return delegate_status;
 		} return false;
 	}
 	
@@ -58,7 +54,7 @@ namespace ben {
 	//only called by Singleton, internally
 		auto iter = index.find(address);
 		if( iter != index.end() ) {
-			bool status = perform_remove(iter); 
+			bool status = perform_remove(iter->second); 
 			if(status) index.erase(iter);
 			return status;
 		} else return false;
@@ -83,3 +79,6 @@ namespace ben {
 	}*/
 	
 } //namespace ben
+
+#endif
+

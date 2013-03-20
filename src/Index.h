@@ -24,9 +24,8 @@
 #include <unordered_map>
 #include <memory>
 #include <iostream>
-#include "IndexBase.h"
-#include "Singleton.h" //circular?
-#include "Commons.h"
+//#include "IndexBase.h" //included from Singleton.h
+#include "Singleton.h" 
 
 namespace ben {
 /* Index is a layer between IndexBase and any client code that provides a type-safe interface
@@ -43,6 +42,8 @@ namespace ben {
  *
  * Because IndexBase is now based on std::unordered_map, only forward iterators are provided.
  */
+
+	//Singleton forward declares this
 	template<typename S>
 	class Index : public IndexBase {
 	public:
@@ -74,7 +75,8 @@ namespace ben {
 		Index& operator=(const self_type& rhs) = delete; 
 		Index(self_type&& rhs) = delete;
 		Index& operator=(self_type&& rhs) = delete;
-		
+	
+		//constness of this pointer preventing creation of nonconst iterator	
 		iterator find(const id_type address) const { return iterator( index.find(address) ); }
 		singleton_type& elem(const id_type address) const {
 		//throw an exception if address does not exist?
@@ -156,13 +158,17 @@ namespace ben {
 		return out;
 	}
 
+	//Singleton forward declares this
 	template<typename T>
-	bool merge(std::shared_ptr< Index<T> > one, std::shared_ptr< Index<T> > two) {
+	bool merge(std::shared_ptr<T> one, std::shared_ptr<T> two) {
 	//transfers management of all Singletons to other, first checking for redundancy
 	//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
 	//either transfers all Singletons or none
 	//this method can be used to emulate move semantics
-		if(this == one.get()) return false; //redundant, but clear
+		static_assert(std::is_base_of<Index<typename T::singleton_type>, T>::value,
+				"Only Index-derived classes can be used");
+
+		if(two == one) return false; //redundant, but clear
 		if(two->size() == 0) return true; 
 		for(auto x : two.index) if( one->manages(x.first) ) return false;
 	

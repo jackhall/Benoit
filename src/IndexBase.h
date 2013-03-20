@@ -57,15 +57,7 @@ namespace ben {
 		virtual bool perform_add(Singleton* ptr) = 0; //make these members of Index instead?
 		virtual bool perform_remove(Singleton* ptr) = 0;
 
-		bool update_singleton(const id_type address, Singleton* ptr) {
-		//updates the tracking for the indicated Singleton
-		//returns false if no Singleton with this ID is currently being tracked, true otherwise
-			auto iter = index.find(address);
-			if(iter != index.end()) { 
-				iter->second = ptr;
-				return true;
-			} else return false;
-		}
+		bool update_singleton(Singleton* ptr);
 
 	protected:
 		IndexBase()=default;
@@ -78,28 +70,8 @@ namespace ben {
 		typedef std::unordered_map<id_type, Singleton*> map_type;
 		map_type index;
 		
-		bool add(const id_type address, Singleton* ptr) {
-		//begins tracking referent of ptr
-		//returns false if this Index is already tracking a Singleton with ptr's ID, true otherwise
-		//only called by Singleton, internally
-			auto insert_status = index.insert(std::make_pair(address, ptr));
-			if( insert_status.second ) {
-				bool delegate_status = perform_add(ptr); 
-				if(!delegate_status) index.erase(insert_status.first);
-				return delegate_status;
-			} return false;
-		} 
-		bool remove(const id_type address) {
-		//stops tracking Singleton with ID=address, 
-		//returns false if this Index is not tracking a Singleton with ID=address, true otherwise
-		//only called by Singleton, internally
-			auto iter = index.find(address);
-			if( iter != index.end() ) {
-				bool status = perform_remove(iter->second); 
-				if(status) index.erase(iter);
-				return status;
-			} else return false;
-		}
+		bool add(Singleton* ptr); 
+		bool remove(const id_type address);
 	}; //class IndexBase	
 
 } //namespace ben

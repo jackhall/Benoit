@@ -21,7 +21,7 @@
     e-mail: jackwhall7@gmail.com
 */
 
-#include "Index.h"
+#include "IndexBase.h"
 #include <memory>
 
 namespace ben {
@@ -37,6 +37,11 @@ namespace ben {
  * circularity prevents the use of an Index<> reference here. Child classes cannot violate 
  * encapsulation, but the protected interface is semantically complete. 
  */
+	template<typename S> class Index;
+	
+	template<typename T> 
+	bool merge(std::shared_ptr< Index<T> > one, std::shared_ptr< Index<T> > two);
+
 	class Singleton {
 	public:
 		typedef unsigned int id_type;
@@ -99,5 +104,7 @@ namespace ben {
 	std::atomic<typename Singleton::id_type> Singleton::IDCOUNT(1000);
 	
 } //namespace ben
+
+#include "IndexBase.cpp"
 
 #endif
