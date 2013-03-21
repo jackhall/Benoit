@@ -36,8 +36,10 @@ namespace {
 		typedef DerivedIndex self_type;
 
 		bool perform_add(ben::Singleton* ptr) { return true; }
-		bool perform_remove(ben::Singleton* ptr) { return true; }
-		bool perform_merge(base_type& other) { return true; }
+		void perform_remove(ben::Singleton* ptr) {}
+		bool perform_merge(base_type& other) { 
+			return true;
+		}
 
 	public:
 		DerivedIndex() = default;
@@ -217,7 +219,7 @@ namespace {
 			EXPECT_TRUE(singleton9.is_managed());
 			EXPECT_EQ(index2_ptr, singleton9.get_index());
 			//index2 tests
-			EXPECT_EQ(2, index2_ptr->size()); 
+			EXPECT_EQ(1, index2_ptr->size()); 
 			//both
 			EXPECT_TRUE( index1_ptr->manages(singleton8.ID()) ); 
 			EXPECT_TRUE( index2_ptr->manages(singleton9.ID()) ); 
@@ -231,53 +233,13 @@ namespace {
 			//singleton8 tests
 			EXPECT_EQ(1003, singleton8.ID());
 			EXPECT_FALSE(singleton8.is_managed());
-			//singleton5 tests
+			//singleton9 tests
 			EXPECT_EQ(1003, singleton9.ID());
 			EXPECT_TRUE(singleton9.is_managed());
-			EXPECT_EQ(index2_ptr, singleton9.get_index());
+			EXPECT_EQ(index1_ptr, singleton9.get_index());
 			//index2 tests
-			EXPECT_EQ(1, index2_ptr->size());
-			EXPECT_TRUE( index2_ptr->manages(singleton9.ID()) );
-	}
-	
-	TEST(IndexSingleton, LocalMethods) {
-	/*	using namespace ben;
-		typedef DerivedSingleton singleton_type;
-		typedef DerivedIndex<singleton_type> index_type;
-
-			
-		Index<DerivedSingleton> index1, index2;
-		DerivedSingleton singleton1(index1), singleton2(index1, 5000), singleton3(index2, 5000);
-		
-		//test switch_index, valid
-		//note: replaced singleton::switch_index with index::add; these tests may be redundant
-		EXPECT_TRUE( index2.add(singleton1) );
-			//index2 checks
-			EXPECT_TRUE( index2.manages(singleton1.ID()) );
-			EXPECT_TRUE( index2.check(singleton1.ID(), &singleton1) );
-			//index1 checks
-			EXPECT_FALSE( index1.manages(singleton1.ID()) );
-			//singleton1 checks
-			EXPECT_TRUE( singleton1.is_managed() );
-			EXPECT_TRUE( singleton1.is_managed_by(index2) );
-			
-		//test switch_index, invalid
-		EXPECT_FALSE( index2.add(singleton2) );
-			//index2 checks
-			EXPECT_FALSE( index2.check(singleton2.ID(), &singleton2) );
-			//index1 checks
-			EXPECT_TRUE( index1.manages(singleton2.ID()) );
-			EXPECT_TRUE( index1.check(singleton2.ID(), &singleton2) );
-			//singleton2 checks
-			EXPECT_TRUE( singleton2.is_managed() );
-			EXPECT_TRUE( singleton2.is_managed_by(index1) );
-		
-		//final checks
-		EXPECT_EQ(1, index1.size());
-		EXPECT_EQ(2, index2.size());
-		EXPECT_TRUE( index2.manages(singleton3.ID()) );
-		EXPECT_TRUE( index2.check(singleton3.ID(), &singleton3) );
-		EXPECT_TRUE( singleton3.is_managed_by(index2) ); */
+			EXPECT_EQ(0, index2_ptr->size());
+			EXPECT_FALSE( index2_ptr->manages(singleton9.ID()) );
 	}
 	
 	TEST(IndexSingleton, Iterators) {
@@ -287,7 +249,7 @@ namespace {
 
 		auto index1_ptr = std::make_shared<index_type>();
 		DerivedSingleton singleton1(index1_ptr), singleton2(index1_ptr), singleton3(index1_ptr);
-		
+		//range-based for uses iterators, check std::for_each as well?
 		for(auto& x : *index1_ptr) EXPECT_TRUE( index1_ptr->manages(x.ID()) );
 
 		index_type::iterator it = index1_ptr->begin();
@@ -303,9 +265,9 @@ namespace {
 		typedef DerivedIndex<singleton_type> index_type;
 
 		auto index1_ptr = std::make_shared<index_type>();
-		DerivedSingleton singleton1(index1_ptr), singleton2(index1_ptr), singleton3(index1_ptr, 5000);
+		singleton_type singleton1(index1_ptr), singleton2(index1_ptr), singleton3(index1_ptr, 5000);
 		auto index2_ptr = std::make_shared<index_type>();
-		DerivedSingleton singleton4(index2_ptr), singleton5(index2_ptr, 5003), singleton6(index2_ptr, 5000);
+		singleton_type singleton4(index2_ptr), singleton5(index2_ptr, 5003), singleton6(index2_ptr, 5000);
 		
 		//initial checks
 		EXPECT_EQ(3, index1_ptr->size());
@@ -332,10 +294,13 @@ namespace {
 		EXPECT_EQ(index1_ptr, singleton7.get_index());
 		
 		//is_managed -> is_managed redundant
-		EXPECT_FALSE(singleton6.join_index(index1_ptr));
-		EXPECT_FALSE(index1_ptr->check(5000, &singleton6));
-		EXPECT_TRUE(index2_ptr->check(5000, &singleton6));
-		EXPECT_EQ(index2_ptr, singleton6.get_index());
+		EXPECT_TRUE(singleton6.join_index(index1_ptr));
+		EXPECT_EQ(5, index1_ptr->size());
+		EXPECT_TRUE(index1_ptr->check(5000, &singleton3));
+		EXPECT_TRUE(index1_ptr->check(singleton6.ID(), &singleton6));
+		EXPECT_FALSE(index2_ptr->manages(5000));
+		EXPECT_EQ(2, index2_ptr->size());
+		EXPECT_EQ(index1_ptr, singleton6.get_index());
 		
 		//is_managed -> managed
 		EXPECT_TRUE(singleton5.join_index(index1_ptr));
@@ -344,9 +309,10 @@ namespace {
 		EXPECT_EQ(index1_ptr, singleton5.get_index());	
 		
 		//merge (redundant for id=5000)
+		singleton_type singleton8(index2_ptr, 5000);
 		EXPECT_FALSE(merge(index2_ptr, index1_ptr));
 			//index1 tests
-			EXPECT_EQ(5, index1_ptr->size());
+			EXPECT_EQ(6, index1_ptr->size());
 			EXPECT_TRUE(index1_ptr->check(singleton1.ID(), &singleton1));
 			EXPECT_EQ(index1_ptr, singleton1.get_index());
 			EXPECT_TRUE(index1_ptr->check(singleton2.ID(), &singleton2));
@@ -356,17 +322,19 @@ namespace {
 			EXPECT_TRUE(index1_ptr->check(5003, &singleton5));
 			EXPECT_EQ(index1_ptr, singleton5.get_index());
 			EXPECT_TRUE(index1_ptr->check(5002, &singleton7));
+			EXPECT_EQ(index1_ptr, singleton6.get_index());
+			EXPECT_TRUE(index1_ptr->check(singleton6.ID(), &singleton6));
 			EXPECT_EQ(index1_ptr, singleton7.get_index());
 			//index2 tests
 			EXPECT_EQ(2, index2_ptr->size());
 			EXPECT_TRUE(index2_ptr->check(singleton4.ID(), &singleton4));
 			EXPECT_EQ(index2_ptr, singleton4.get_index());
-			EXPECT_TRUE(index2_ptr->check(5000, &singleton6));
-			EXPECT_EQ(index2_ptr, singleton6.get_index());
+			EXPECT_TRUE(index2_ptr->check(5000, &singleton8));
+			EXPECT_EQ(index2_ptr, singleton8.get_index());
 		
 		//remove
 		singleton3.leave_index(); 
-		EXPECT_FALSE(singleton3.is_managed());
+		EXPECT_FALSE(singleton3.is_managed()); 
 		EXPECT_FALSE(index1_ptr->manages(5000));
 		
 		//merge_into (valid)
@@ -374,7 +342,7 @@ namespace {
 			//index1 tests 
 			EXPECT_EQ(0, index1_ptr->size());
 			//index2 tests
-			EXPECT_EQ(6, index2_ptr->size());
+			EXPECT_EQ(7, index2_ptr->size());
 			EXPECT_TRUE(index2_ptr->check(singleton1.ID(), &singleton1));
 			EXPECT_EQ(index2_ptr, singleton1.get_index());
 			EXPECT_TRUE(index2_ptr->check(singleton2.ID(), &singleton2));
@@ -383,10 +351,12 @@ namespace {
 			EXPECT_EQ(index2_ptr, singleton4.get_index());
 			EXPECT_TRUE(index2_ptr->check(5003, &singleton5));
 			EXPECT_EQ(index2_ptr, singleton5.get_index());
-			EXPECT_TRUE(index2_ptr->check(5000, &singleton6));
+			EXPECT_TRUE(index2_ptr->check(singleton6.ID(), &singleton6));
 			EXPECT_EQ(index2_ptr, singleton6.get_index());
 			EXPECT_TRUE(index2_ptr->check(5002, &singleton7));
 			EXPECT_EQ(index2_ptr, singleton7.get_index());
+			EXPECT_TRUE(index2_ptr->check(5000, &singleton8));
+			EXPECT_EQ(index2_ptr, singleton8.get_index());
 	}
 	
 } //anonymous namespace

@@ -155,6 +155,7 @@ namespace ben {
 			//does not call add or remove!
 			one->index.insert( std::make_pair(it->first, it->second) );
 			it->second->update_index(one);
+			++it;
 		}
 
 		//need the explicit up-cast because derived classes are not friended	
@@ -167,6 +168,7 @@ namespace ben {
 			while(it != ite) {
 				one->index.erase(it->first);
 				it->second->update_index(self_ptr);
+				++it;
 			}
 		}
 

@@ -48,16 +48,14 @@ namespace ben {
 		} return false;
 	}
 	
-	bool IndexBase::remove(const id_type address) {
+	void IndexBase::remove(const id_type address) {
 	//stops tracking Singleton with ID=address, 
-	//returns false if this Index is not tracking a Singleton with ID=address, true otherwise
 	//only called by Singleton, internally
 		auto iter = index.find(address);
 		if( iter != index.end() ) {
-			bool status = perform_remove(iter->second); 
-			if(status) index.erase(iter);
-			return status;
-		} else return false;
+			perform_remove(iter->second); 
+			index.erase(iter);
+		} 
 	}
 
 	IndexBase::~IndexBase() { //should never be called while any Singletons are still managed

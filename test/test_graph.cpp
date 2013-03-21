@@ -250,28 +250,30 @@ namespace {
 		void test_construction() {
 			using namespace ben;
 			typedef N node_type;
-			Graph<node_type> graph1;
+			typedef Graph<node_type> graph_type;
+			graph1_ptr = std::make_shared<graph_type>();
 			
-			auto node1_ptr = new node_type(graph1);
+			auto node1_ptr = new node_type(graph1_ptr);
 			EXPECT_EQ(0, node1_ptr->size_inputs());
 			EXPECT_EQ(0, node1_ptr->size_outputs());
-			EXPECT_TRUE(graph1.check(node1_ptr->ID(), node1_ptr));
+			EXPECT_TRUE(graph1_ptr->check(node1_ptr->ID(), node1_ptr));
 
-			auto node2_ptr = new node_type(graph1, 3);
-			EXPECT_TRUE(graph1.check(3, node2_ptr));
+			auto node2_ptr = new node_type(graph1_ptr, 3);
+			EXPECT_TRUE(graph1_ptr->check(3, node2_ptr));
 
 			auto node3_ptr = new node_type();
-			EXPECT_EQ(nullptr, &node3_ptr->get_index());
+			EXPECT_FALSE(node3_ptr->is_managed());
 			auto node4_ptr = new node_type(7);
-			EXPECT_EQ(nullptr, &node4_ptr->get_index());
+			EXPECT_FALSE(node4_ptr->is_managed());
 		}
 		template<typename N, typename... Args>
 		void test_add_remove(Args... args) {
 			using namespace ben;
 			typedef N node_type;
-			auto graph1_ptr = new Graph<node_type>();
+			typedef Graph<node_type> graph_type;
+			auto graph1_ptr = std::make_shared<graph_type>();
 
-			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
+			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7), node4(*graph1_ptr, 11);
 			EXPECT_TRUE(node1.add_input(3, args...)); //creates Port/Path
 			EXPECT_TRUE(node1.contains_input(3));
 			EXPECT_TRUE(node1.contains_output(3));
@@ -314,25 +316,25 @@ namespace {
 			EXPECT_FALSE(node1.contains_input(7));
 			EXPECT_FALSE(node1.contains_output(7));
 
-			//this test was not included in Graphs.Destruction because it involves links
-			delete graph1_ptr;
-			graph1_ptr = nullptr;
-			EXPECT_EQ(0, node1.size_inputs() + node1.size_outputs());
-			EXPECT_EQ(0, node2.size_inputs() + node2.size_outputs());
-			EXPECT_EQ(0, node3.size_inputs() + node3.size_outputs());
-			EXPECT_EQ(0, node4.size_inputs() + node4.size_outputs());
-			EXPECT_FALSE(node1.is_managed());
-			EXPECT_FALSE(node2.is_managed());
-			EXPECT_FALSE(node3.is_managed());
-			EXPECT_FALSE(node4.is_managed());
+			//testing ownership semantics of graph
+			graph1_ptr.reset();
+			EXPECT_EQ(4, node1.size_inputs() + node1.size_outputs());
+			EXPECT_EQ(2, node2.size_inputs() + node2.size_outputs());
+			EXPECT_EQ(2, node3.size_inputs() + node3.size_outputs());
+			EXPECT_EQ(4, node4.size_inputs() + node4.size_outputs());
+			EXPECT_TRUE(node1.is_managed());
+			EXPECT_TRUE(node2.is_managed());
+			EXPECT_TRUE(node3.is_managed());
+			EXPECT_TRUE(node4.is_managed());
 		}
 		template<typename N, typename... Args>
 		void test_iteration(Args... args) {
 			using namespace ben;
 			typedef N node_type;
-			auto graph1_ptr = new Graph<node_type>();
+			typedef Graph<node_type> graph_type;
+			auto graph1_ptr = std::make_shared<graph_type>();
 
-			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
+			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7), node4(*graph1_ptr, 11);
 			node1.add_input(3, args...);
 			node1.add_input(5, args...);
 			node1.add_input(7, args...);
@@ -358,18 +360,16 @@ namespace {
 			EXPECT_FALSE(node4.contains_output(7));
 			EXPECT_FALSE(node3.contains_input(11));
 			EXPECT_TRUE(node4.oend() == node4.find_output(7));
-		
-			delete graph1_ptr;
-			graph1_ptr = nullptr;
 		}
 		template<typename N, typename... Args>
 		void test_move_destruction(Args... args) {
 			using namespace ben;
 			typedef N node_type;
-			auto graph1_ptr = new Graph<node_type>();
+			typedef Graph<node_type> graph_type;
+			auto graph1_ptr = std::make_shared<graph_type>();
 
-			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7);
-			auto node4_ptr = new node_type(*graph1_ptr, 11);
+			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7);
+			auto node4_ptr = new node_type(graph1_ptr, 11);
 			node1.add_input(3, args...);
 			node1.add_input(5, args...);
 			node1.add_input(7, args...);
@@ -404,9 +404,6 @@ namespace {
 			EXPECT_FALSE(graph1_ptr->contains(11));
 			EXPECT_FALSE(node1.contains_input(11));
 			EXPECT_FALSE(node1.contains_output(11));
-
-			delete graph1_ptr;
-			graph1_ptr = nullptr;
 		}
 	};
 
@@ -451,14 +448,15 @@ namespace {
 		void test_construction() {
 			using namespace ben;
 			typedef N node_type;
-			Graph<node_type> graph1;
+			typedef Graph<node_type> graph_type;
+			auto graph1_ptr = std::make_shared<graph_type>();
 			
-			auto node1_ptr = new node_type(graph1);
+			auto node1_ptr = new node_type(graph1_ptr);
 			EXPECT_EQ(0, node1_ptr->size());
-			EXPECT_TRUE(graph1.check(node1_ptr->ID(), node1_ptr));
+			EXPECT_TRUE(graph1_ptr->check(node1_ptr->ID(), node1_ptr));
 
-			auto node2_ptr = new node_type(graph1, 3);
-			EXPECT_TRUE(graph1.check(3, node2_ptr));
+			auto node2_ptr = new node_type(graph1_ptr, 3);
+			EXPECT_TRUE(graph1_ptr->check(3, node2_ptr));
 
 			auto node3_ptr = new node_type();
 			EXPECT_EQ(nullptr, &node3_ptr->get_index());
@@ -469,9 +467,10 @@ namespace {
 		void test_add_remove(Args... args) {
 			using namespace ben;
 			typedef N node_type;
-			auto graph1_ptr = new Graph<node_type>();
+			typedef Graph<node_type> graph_type;
+			auto graph1_ptr = std::make_shared<graph_type>();
 
-			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
+			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7), node4(graph1_ptr, 11);
 			EXPECT_TRUE(node1.add(3, args...)); //creates Path 3-3
 			EXPECT_TRUE(node1.contains(3));
 			EXPECT_TRUE(node1.add(5, args...)); //creates Path 3-5
@@ -502,7 +501,7 @@ namespace {
 			EXPECT_FALSE(node5.mirror(node1));
 			EXPECT_FALSE(node5.contains(3));
 
-			graph1_ptr->add(node5);
+			EXPECT_TRUE(node5.join_index(graph1_ptr));
 
 			node4.remove(7);
 			EXPECT_FALSE(node4.contains(7));
@@ -514,25 +513,25 @@ namespace {
 			EXPECT_FALSE(node1.contains(5));
 			EXPECT_FALSE(node1.contains(7));
 
-			//this test was not included in Graphs.Destruction because it involves links
-			delete graph1_ptr;
-			graph1_ptr = nullptr;
-			EXPECT_EQ(0, node1.size());
-			EXPECT_EQ(0, node2.size());
-			EXPECT_EQ(0, node3.size());
-			EXPECT_EQ(0, node4.size());
-			EXPECT_FALSE(node1.is_managed());
-			EXPECT_FALSE(node2.is_managed());
-			EXPECT_FALSE(node3.is_managed());
-			EXPECT_FALSE(node4.is_managed());
+			//testing ownership semantics of graph
+			graph1_ptr.reset()
+			EXPECT_EQ(4, node1.size());
+			EXPECT_EQ(2, node2.size());
+			EXPECT_EQ(1, node3.size());
+			EXPECT_EQ(2, node4.size());
+			EXPECT_TRUE(node1.is_managed());
+			EXPECT_TRUE(node2.is_managed());
+			EXPECT_TRUE(node3.is_managed());
+			EXPECT_TRUE(node4.is_managed());
 		}
 		template<typename N, typename... Args>
 		void test_iteration(Args... args) {
 			using namespace ben;
 			typedef N node_type;
-			auto graph1_ptr = new Graph<node_type>();
+			typedef Graph<node_type> graph_type;
+			auto graph1_ptr = std::make_shared<graph_type>();
 
-			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7), node4(*graph1_ptr, 11);
+			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7), node4(graph1_ptr, 11);
 			node1.add(3, args...);
 			node1.add(5, args...);
 			node1.add(7, args...);
@@ -547,18 +546,16 @@ namespace {
 			EXPECT_FALSE(node4.contains(5));
 			EXPECT_FALSE(node2.contains(11));
 			EXPECT_TRUE(node4.end() == node4.find(5));
-
-			delete graph1_ptr;
-			graph1_ptr = nullptr;
 		}
 		template<typename N, typename... Args> 
 		void test_move_destruction(Args... args) {
 			using namespace ben;
 			typedef N node_type;
-			auto graph1_ptr = new Graph<node_type>();
+			typedef Graph<node_type> graph_type;
+			auto graph1_ptr = std::make_shared<graph_type>();
 
-			node_type node1(*graph1_ptr, 3), node2(*graph1_ptr, 5), node3(*graph1_ptr, 7);
-			auto node4_ptr = new node_type(*graph1_ptr, 11);
+			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7);
+			auto node4_ptr = new node_type(graph1_ptr, 11);
 			node1.add(3, args...);
 			node1.add(5, args...);
 			node1.add(7, args...);
@@ -587,9 +584,6 @@ namespace {
 			node4_ptr = nullptr;
 			EXPECT_FALSE(graph1_ptr->contains(11));
 			EXPECT_FALSE(node1.contains(11));
-
-			delete graph1_ptr;
-			graph1_ptr = nullptr;
 		}		
 	};
 
@@ -621,69 +615,62 @@ namespace {
 		void test_add_remove() {
 			using namespace ben;
 			typedef N node_type;
-			Graph<node_type> graph1, graph2;
+			typedef Graph<node_type> graph_type;
+			auto graph1_ptr = std::make_shared<graph_type>();
+			auto graph2_ptr = std::make_shared<graph_type>();
 			
-			auto node1_ptr = new node_type(graph1, 3);
+			auto node1_ptr = new node_type(graph1_ptr, 3);
 			auto node2_ptr = new node_type(5);
 			auto node3_ptr = new node_type(7);
 
-			EXPECT_TRUE(graph1.check(3, node1_ptr));
-			EXPECT_FALSE(graph1.check(5, node2_ptr));
-			EXPECT_TRUE(graph1.add(*node2_ptr));
-			EXPECT_TRUE(graph1.check(5, node2_ptr));
-			EXPECT_TRUE(graph1.add(*node3_ptr));
-			EXPECT_TRUE(graph2.empty());
-			EXPECT_TRUE(graph2.add(*node2_ptr));
-			EXPECT_TRUE(graph2.check(5, node2_ptr));
-			EXPECT_FALSE(graph2.empty());
-			EXPECT_EQ(1, graph2.size());
-			EXPECT_FALSE(graph1.empty());
-			EXPECT_EQ(2, graph1.size());
+			EXPECT_TRUE(graph1_ptr->check(3, node1_ptr));
+			EXPECT_FALSE(graph1_ptr->check(5, node2_ptr));
+			EXPECT_TRUE(graph1_ptr->add(*node2_ptr));
+			EXPECT_TRUE(graph1_ptr->check(5, node2_ptr));
+			EXPECT_TRUE(graph1_ptr->add(*node3_ptr));
+			EXPECT_TRUE(graph2_ptr->empty());
+			EXPECT_TRUE(graph2_ptr->add(*node2_ptr));
+			EXPECT_TRUE(graph2_ptr->check(5, node2_ptr));
+			EXPECT_FALSE(graph2_ptr->empty());
+			EXPECT_EQ(1, graph2_ptr->size());
+			EXPECT_FALSE(graph1_ptr->empty());
+			EXPECT_EQ(2, graph1_ptr->size());
 
-			EXPECT_TRUE(graph2.remove(5));
-			EXPECT_FALSE(graph1.remove(5));
-			EXPECT_TRUE(graph2.empty());
+			EXPECT_TRUE(graph2_ptr->remove(5));
+			EXPECT_FALSE(graph1_ptr->remove(5));
+			EXPECT_TRUE(graph2_ptr->empty());
 			EXPECT_FALSE(node2_ptr->is_managed());
-			EXPECT_TRUE(graph2.add(*node2_ptr));
+			EXPECT_TRUE(graph2_ptr->add(*node2_ptr));
 			EXPECT_TRUE(node2_ptr->is_managed());
 
 			delete node1_ptr, node2_ptr, node3_ptr;
+			EXPECT_TRUE(graph1_ptr.unique());
+			EXPECT_TRUE(graph2_ptr.unique());
 		}
 		template<typename N>
 		void test_merge_move_destruction() {
 			using namespace ben;
 			typedef N node_type;
-			Graph<node_type> graph1, graph2;
-			auto graph2_ptr = new Graph<node_type>();
+			typedef Graph<node_type> graph_type;
+			auto graph1_ptr = std::make_shared<graph_type>();
+			auto graph2_ptr = std::make_shared<graph_type>();
 			
-			auto node1_ptr = new node_type(graph1, 3);
-			auto node2_ptr = new node_type(graph1, 5);
-			auto node3_ptr = new node_type(*graph2_ptr, 7);
-			auto node4_ptr = new node_type(*graph2_ptr, 11);
+			auto node1_ptr = new node_type(graph1_ptr, 3);
+			auto node2_ptr = new node_type(graph1_ptr, 5);
+			auto node3_ptr = new node_type(graph2_ptr, 7);
+			auto node4_ptr = new node_type(graph2_ptr, 11);
 
 			EXPECT_TRUE(graph2_ptr->merge_into(graph1));
-			EXPECT_EQ(4, graph1.size());
+			EXPECT_EQ(4, graph1_ptr->size());
 			EXPECT_TRUE(graph2_ptr->empty());
-			EXPECT_EQ(&graph1, &(node1_ptr->get_index()));
-			EXPECT_EQ(&graph1, &(node2_ptr->get_index()));
+			EXPECT_EQ(graph1_ptr, node1_ptr->get_index());
+			EXPECT_EQ(graph1_ptr, node2_ptr->get_index());
 
-			Graph<node_type> graph3(std::move(graph1));
-			EXPECT_EQ(4, graph3.size());
-			EXPECT_TRUE(graph1.empty());
-			EXPECT_EQ(&graph3, &(node1_ptr->get_index()));
-			EXPECT_EQ(&graph3, &(node3_ptr->get_index()));
-
-			*graph2_ptr = std::move(graph3);
-			EXPECT_EQ(4, graph2_ptr->size());
-			EXPECT_TRUE(graph3.empty());
-			EXPECT_EQ(graph2_ptr, &(node1_ptr->get_index()));
-			EXPECT_EQ(graph2_ptr, &(node3_ptr->get_index()));
-
-			delete graph2_ptr;
-			graph2_ptr = nullptr;
-			EXPECT_FALSE(node1_ptr->is_managed());
-			EXPECT_FALSE(node2_ptr->is_managed());
-			EXPECT_FALSE(node3_ptr->is_managed());
+			graph1_ptr.reset();
+			graph2_ptr.reset();
+			EXPECT_TRUE(node1_ptr->is_managed());
+			EXPECT_TRUE(node2_ptr->is_managed());
+			EXPECT_TRUE(node3_ptr->is_managed());
 
 			delete node1_ptr, node2_ptr, node3_ptr, node4_ptr;
 		}
@@ -691,29 +678,26 @@ namespace {
 		void test_content() {
 			using namespace ben;
 			typedef N node_type;
-			Graph<node_type> graph1, graph2;
+			typedef Graph<node_type> graph_type;
+			auto graph1_ptr = std::make_shared<graph_type>();
+			auto graph2_ptr = std::make_shared<graph_type>();
 			
-			auto node1_ptr = new node_type(graph1, 3);
-			auto node2_ptr = new node_type(graph1, 5);
-			auto node3_ptr = new node_type(graph1, 7);
+			auto node1_ptr = new node_type(graph1_ptr, 3);
+			auto node2_ptr = new node_type(graph1_ptr, 5);
+			auto node3_ptr = new node_type(graph1_ptr, 7);
 
-			for(node_type& x : graph1) {
-				EXPECT_TRUE(graph1.check(x.ID(), &x));
+			for(node_type& x : *graph1_ptr) {
+				EXPECT_TRUE(graph1_ptr->check(x.ID(), &x));
 			}
 			
-			EXPECT_TRUE(graph1.contains(7));
-			EXPECT_FALSE(graph2.contains(7));
+			EXPECT_TRUE(graph1_ptr->contains(7));
+			EXPECT_FALSE(graph2_ptr->contains(7));
 
-			EXPECT_TRUE(graph2.end() == graph2.find(3));
-			auto iter = graph1.begin();
+			EXPECT_TRUE(graph2_ptr->end() == graph2_ptr->find(3));
+			auto iter = graph1_ptr->begin();
 			while(iter->ID() != 7) ++iter;
-			EXPECT_TRUE(iter == graph1.find(7));
-			EXPECT_TRUE(graph1.end() == graph1.find(4));
-
-			graph1.clear();
-			EXPECT_TRUE(graph1.empty());
-			EXPECT_FALSE(node1_ptr->is_managed());
-			EXPECT_FALSE(node3_ptr->is_managed());
+			EXPECT_TRUE(iter == graph1_ptr->find(7));
+			EXPECT_TRUE(graph1_ptr->end() == graph1_ptr->find(4));
 
 			delete node1_ptr, node2_ptr, node3_ptr;
 		}

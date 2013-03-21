@@ -55,7 +55,7 @@ namespace ben {
 		//for context, see the exposed add, remove, and merge_into methods
 		//return true if successful, roll back and return false if not
 		virtual bool perform_add(Singleton* ptr) = 0; //make these members of Index instead?
-		virtual bool perform_remove(Singleton* ptr) = 0;
+		virtual void perform_remove(Singleton* ptr) = 0;
 
 		bool update_singleton(Singleton* ptr);
 
@@ -71,7 +71,7 @@ namespace ben {
 		mutable map_type index;
 		
 		bool add(Singleton* ptr); 
-		bool remove(const id_type address);
+		void remove(const id_type address);
 	}; //class IndexBase	
 
 } //namespace ben

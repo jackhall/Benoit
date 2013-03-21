@@ -47,7 +47,12 @@ namespace ben {
 		typedef unsigned int id_type;
 		id_type ID() const { return uniqueID; }
 		bool is_managed() const { return static_cast<bool>(index_ptr); }
-		void leave_index() { if(index_ptr) index_ptr->remove(uniqueID); }
+		void leave_index() { 
+			if(index_ptr) { 
+				index_ptr->remove(uniqueID); 
+				index_ptr.reset();
+			}
+		}
 
 	private:
 		typedef Singleton self_type;
@@ -78,31 +83,38 @@ namespace ben {
 			rhs.index_ptr.reset();
 		}
 		self_type& operator=(const self_type& rhs) = delete;
-		self_type& operator=(self_type&& rhs) {
-			if(this != &rhs) {
-				leave_index();
-				uniqueID = rhs.uniqueID;
-				index_ptr = std::move( rhs.index_ptr ); //haven't checked rhs.is_managed() yet
-				if( index_ptr && !(index_ptr->update_singleton(this)) ) throw; //define a custom exception?
-			} 
-			return *this;
-		}
+		self_type& operator=(self_type&& rhs);
+
 		virtual ~Singleton() { leave_index(); }
 	
-		bool join_index(std::shared_ptr<index_type> ptr) { 
-			auto originalID = ID();
-			while( ptr->manages(uniqueID) ) uniqueID = get_new_ID(); 
-			bool status = ptr->add(this);
-			if(status) {
-				if(index_ptr) leave_index();
-				index_ptr = ptr;
-			} else uniqueID = originalID;
-			return status;
-		}
+		bool join_index(std::shared_ptr<index_type> ptr);
+
 		std::shared_ptr<index_type> get_index() const { return index_ptr; }
 	}; //class Singleton
 	
 	std::atomic<typename Singleton::id_type> Singleton::IDCOUNT(1000);
+
+	Singleton& Singleton::operator=(self_type&& rhs) {
+		if(this != &rhs) {
+			leave_index();
+			uniqueID = rhs.uniqueID;
+			index_ptr = std::move( rhs.index_ptr ); //haven't checked rhs.is_managed() yet
+			if( index_ptr && !(index_ptr->update_singleton(this)) ) throw; //define a custom exception?
+		} 
+		return *this;
+	}
+
+	bool Singleton::join_index(std::shared_ptr<index_type> ptr) {
+		auto originalID = ID();
+		while( ptr->manages(uniqueID) ) uniqueID = get_new_ID(); 
+		bool status = ptr->add(this);
+		if(status) {
+			//since ID has changed, can't delegate to leave_index()
+			if(index_ptr) index_ptr->remove(originalID); 
+			index_ptr = ptr;
+		} else uniqueID = originalID;
+		return status;
+	}
 	
 } //namespace ben
 
