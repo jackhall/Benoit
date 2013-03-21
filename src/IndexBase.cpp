@@ -59,25 +59,12 @@ namespace ben {
 			return status;
 		} else return false;
 	}
-	
-	/*bool merge(std::shared_ptr<IndexBase> other_ptr) {
-	//transfers management of all Singletons to other, first checking for redundancy
-	//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
-	//either transfers all Singletons or none
-		if(this == other_ptr.get()) return false; //redundant, but clear
-		for(auto x : index) if( other_ptr->contains(x.first) ) return false;
-		
-		auto it = index.begin(), ite = index.end();
-		while(it != ite) {
-			//does not call add or remove!
-			other_ptr->index.insert( std::make_pair(it->first, it->second) );
-			it->second->update_index(other_ptr);
-			index.erase(it++);
-		}
-	
-		return true;
-	}*/
-	
+
+	IndexBase::~IndexBase() { //should never be called while any Singletons are still managed
+		//but for safety's sake...
+		for(auto x : index) x.second->update_index(std::shared_ptr<self_type>()); 
+	}
+
 } //namespace ben
 
 #endif

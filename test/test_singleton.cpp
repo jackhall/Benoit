@@ -37,7 +37,7 @@ namespace {
 
 		bool perform_add(ben::Singleton* ptr) { return true; }
 		bool perform_remove(ben::Singleton* ptr) { return true; }
-		bool perform_merge(self_type& other) { return true; }
+		bool perform_merge(base_type& other) { return true; }
 
 	public:
 		DerivedIndex() = default;
@@ -45,7 +45,6 @@ namespace {
 
 		typedef S singleton_type;		
 		typedef typename base_type::iterator iterator;
-		typedef typename base_type::const_iterator const_iterator;
 	};
 
 	struct DerivedSingleton : public ben::Singleton {
@@ -291,20 +290,11 @@ namespace {
 		
 		for(auto& x : *index1_ptr) EXPECT_TRUE( index1_ptr->manages(x.ID()) );
 
-		auto index2_ptr = std::const_pointer_cast<const index_type>(index1_ptr);
-		
-		for(auto& x : *index2_ptr) EXPECT_TRUE( index2_ptr->manages(x.ID()) );
-		
-		//--it; --cit;
-		//it--; cit--;
 		index_type::iterator it = index1_ptr->begin();
-		index_type::const_iterator cit = index2_ptr->begin();
-		it++; cit++;
-		
-		EXPECT_TRUE(it == cit);
-		EXPECT_TRUE(cit == it);
-		EXPECT_FALSE(it != cit);
-		EXPECT_FALSE(cit != it);
+		it++;
+		EXPECT_TRUE( index1_ptr->manages(it->ID()) ); 
+		++it;
+		EXPECT_TRUE( index1_ptr->manages(it->ID()) ); 
 	}
 	
 	TEST(IndexSingleton, GlobalMethods) {
@@ -316,8 +306,6 @@ namespace {
 		DerivedSingleton singleton1(index1_ptr), singleton2(index1_ptr), singleton3(index1_ptr, 5000);
 		auto index2_ptr = std::make_shared<index_type>();
 		DerivedSingleton singleton4(index2_ptr), singleton5(index2_ptr, 5003), singleton6(index2_ptr, 5000);
-		
-		auto index3_ptr = std::const_pointer_cast<const index_type>(index1_ptr);
 		
 		//initial checks
 		EXPECT_EQ(3, index1_ptr->size());
@@ -335,13 +323,6 @@ namespace {
 		EXPECT_TRUE(index1_ptr->end() == index1_ptr->find(5001));
 		//EXPECT_EQ(index1.find(5000), iter1);
 		//EXPECT_EQ(index1.end(), index1.find(5001));
-		
-		//find const tests
-		index_type::const_iterator iter2 = index3_ptr->begin();
-		EXPECT_TRUE(index3_ptr->find(iter2->ID()) == iter2); //gtest problem with expect_eq
-		EXPECT_TRUE(index3_ptr->end() == index3_ptr->find(5001));
-		//EXPECT_EQ(index3.find(5000), iter2);
-		//EXPECT_EQ(index3.end(), index3.find(5001));
 		
 		//add test
 		DerivedSingleton singleton7(5002);

@@ -49,8 +49,7 @@ namespace ben {
 	public:
 		typedef S singleton_type;
 		typedef typename S::id_type id_type;
-		//iterators are not nested because I need to forward declare their output operator			
-		class const_iterator; //do away with const_iterator? semantically weird
+		//iterator is not nested because I need to forward declare the output operator			
 		class iterator;
 
 	private:
@@ -61,13 +60,12 @@ namespace ben {
 		using base_type::add;
 		using base_type::remove;
 
-		virtual bool perform_merge() = 0; //should this still be a member function?
+		template<typename T>
+		friend bool merge(std::shared_ptr<T> one, std::shared_ptr<T> two);
+		virtual bool perform_merge(self_type& other) = 0; //should this still be a member function?
 
 	protected:
-		virtual ~Index() { //should never be called while any Singletons are still managed
-			//but for safety's sake...
-			for(auto x : index) x.second->update_index(std::shared_ptr<base_type>()); 
-		}
+		virtual ~Index() = default;
 
 	public:	
 		Index() = default;
@@ -77,7 +75,10 @@ namespace ben {
 		Index& operator=(self_type&& rhs) = delete;
 	
 		//constness of this pointer preventing creation of nonconst iterator	
-		iterator find(const id_type address) const { return iterator( index.find(address) ); }
+		iterator find(const id_type address) const { 
+		//this const cast is ok because Index does not own the Singletons is manages
+			return iterator( index.find(address) ); 
+		}
 		singleton_type& elem(const id_type address) const {
 		//throw an exception if address does not exist?
 		//this is not safe to use unless you already know that address exists in this index
@@ -85,71 +86,45 @@ namespace ben {
 			return *static_cast<singleton_type*>(iter->second);
 		}
 		
-		iterator begin() { return iterator( index.begin() ); }
-		iterator end()   { return iterator( index.end() ); }
-		const_iterator begin() const { return const_iterator( index.begin() ); }
-		const_iterator end() const   { return const_iterator( index.end() ); }
+		iterator begin() const { return iterator( index.begin() ); }
+		iterator end() const { return iterator( index.end() ); }
 	}; //class Index
 	
 	
-	template<typename U> std::ostream& operator<<(std::ostream& out, const typename Index<U>::const_iterator& iter);
+	template<typename U> 
+	std::ostream& operator<<(std::ostream& out, const typename Index<U>::iterator& iter);
 
 	template<typename S>
-	class Index<S>::const_iterator : public std::iterator<std::forward_iterator_tag, singleton_type> {
+	class Index<S>::iterator : public std::iterator<std::forward_iterator_tag, singleton_type> {
 	protected:
 		typename map_type::iterator current;
 		friend class Index;
-		friend std::ostream& operator<< <S>(std::ostream& out, const const_iterator& iter);
-		const_iterator(const typename map_type::iterator iter)
-			: current(iter) {}
-		const_iterator(const typename map_type::const_iterator iter)
+		friend std::ostream& operator<< <S>(std::ostream& out, const iterator& iter);
+		iterator(const typename map_type::iterator iter)
 			: current(iter) {}
 			
 	public:
-		const_iterator() = default;
-		const_iterator(const const_iterator& rhs) = default;
-		const_iterator& operator=(const const_iterator& rhs) = default;
-		virtual ~const_iterator() = default;
+		iterator() = default;
+		iterator(const iterator& rhs) = default;
+		iterator& operator=(const iterator& rhs) = default;
+		~iterator() = default;
 		
-		const singleton_type& operator*() const 
-			{ return *static_cast<singleton_type*>(current->second); } 
-		const singleton_type* operator->() const 
-			{ return static_cast<singleton_type*>(current->second); }
-		
-		const_iterator& operator++() { ++current; return *this; }
-		const_iterator  operator++(int) { 
-			auto temp = current;
-			++current;
-			return temp;
-		}
-		
-		bool operator==(const const_iterator& rhs) const
-			{ return current==rhs.current; }
-		bool operator!=(const const_iterator& rhs) const
-			{ return !( (*this) == rhs ); }
-	}; //class const_iterator
-
-	template<typename S>
-	class Index<S>::iterator : public Index<S>::const_iterator {
-	private:
-		typedef const_iterator base_type;
-		using base_type::current;
-		friend class Index;
-		iterator(const typename map_type::iterator iter)
-			: base_type(iter) {}
-		
-	public:	
 		singleton_type& operator*() const 
 			{ return *static_cast<singleton_type*>(current->second); } 
 		singleton_type* operator->() const 
 			{ return static_cast<singleton_type*>(current->second); }
 		
-		iterator& operator++() { const_iterator::operator++(); }
+		iterator& operator++() { ++current; return *this; }
 		iterator  operator++(int) { 
 			auto temp = current;
 			++current;
 			return temp;
 		}
+		
+		bool operator==(const iterator& rhs) const
+			{ return current==rhs.current; }
+		bool operator!=(const iterator& rhs) const
+			{ return !( (*this) == rhs ); }
 	}; //class iterator
 
 	template<typename U>
@@ -165,23 +140,25 @@ namespace ben {
 	//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
 	//either transfers all Singletons or none
 	//this method can be used to emulate move semantics
-		static_assert(std::is_base_of<Index<typename T::singleton_type>, T>::value,
+		typedef typename T::singleton_type singleton_type;
+		static_assert(std::is_base_of<Index<singleton_type>, T>::value,
 				"Only Index-derived classes can be used");
 
 		if(two == one) return false; //redundant, but clear
 		if(two->size() == 0) return true; 
-		for(auto x : two.index) if( one->manages(x.first) ) return false;
+		for(auto x : two->index) if( one->manages(x.first) ) return false;
 	
 		//begin merge, leaving the process reversible
 		auto it = two->index.begin(), ite = two->index.end();
-		auto self_ptr = it->second->get_index(); 
+		auto self_ptr = static_cast<singleton_type*>(it->second)->get_index(); 
 		while(it != ite) {
 			//does not call add or remove!
 			one->index.insert( std::make_pair(it->first, it->second) );
 			it->second->update_index(one);
 		}
-	
-		bool status = one->perform_merge(*two);
+
+		//need the explicit up-cast because derived classes are not friended	
+		bool status = std::static_pointer_cast< Index<singleton_type> >(one)->perform_merge(*two);
 	
 		it = two->index.begin();
 		if(status) two->index.erase(it, ite); //finish merge

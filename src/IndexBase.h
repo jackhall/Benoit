@@ -60,15 +60,15 @@ namespace ben {
 		bool update_singleton(Singleton* ptr);
 
 	protected:
-		IndexBase()=default;
+		IndexBase() = default;
 		IndexBase(const self_type& rhs) = delete;
 		IndexBase(self_type&& rhs) = delete;
 		self_type& operator=(const self_type& rhs) = delete;
 		self_type& operator=(self_type&& rhs) = delete;
-		virtual ~IndexBase() = default; 
-
+		virtual ~IndexBase();
+ 
 		typedef std::unordered_map<id_type, Singleton*> map_type;
-		map_type index;
+		mutable map_type index;
 		
 		bool add(Singleton* ptr); 
 		bool remove(const id_type address);

@@ -40,7 +40,7 @@ namespace ben {
 	template<typename S> class Index;
 	
 	template<typename T> 
-	bool merge(std::shared_ptr< Index<T> > one, std::shared_ptr< Index<T> > two);
+	bool merge(std::shared_ptr<T> one, std::shared_ptr<T> two);
 
 	class Singleton {
 	public:
@@ -56,7 +56,8 @@ namespace ben {
 		static id_type get_new_ID() { return IDCOUNT.fetch_add(1); }
 
 		template<typename T>
-		friend bool merge(std::shared_ptr< Index<T> >, std::shared_ptr< Index<T> >); //circular!
+		friend bool merge(std::shared_ptr<T>, std::shared_ptr<T>); 
+		friend index_type; //only for safety in IndexBase destructor
 
 		std::shared_ptr<index_type> index_ptr;
 		id_type uniqueID;
