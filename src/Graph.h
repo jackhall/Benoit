@@ -39,9 +39,9 @@ namespace ben {
 	private:
 		typedef Index<N> base_type;
 
-		bool perform_add(Singleton* ptr) {}
+		bool perform_add(Singleton* ptr) { return true; }
 		void perform_remove(Singleton* ptr) {} //clean-up of links is performed by the Node calling remove
-		bool perform_merge(base_type& other) {} //no work necessary; links are left intact
+		bool perform_merge(base_type& other) { return true; } //no work necessary; links are left intact
 	
 	public:
 		typedef N 	node_type;

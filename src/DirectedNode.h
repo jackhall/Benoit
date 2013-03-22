@@ -73,7 +73,7 @@ namespace ben {
 			      "Ports using different unique ID types");
 	
 		//std::mutex node_mutex; //would need this to alter graph structure in multiple threads
-		void perform_leave() { clear; }
+		void perform_leave() { clear(); }
 		
 	public:
 		LinkManager<self_type, input_type> inputs; //interface for LinkManagers is now restricted

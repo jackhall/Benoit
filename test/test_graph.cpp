@@ -144,9 +144,8 @@ namespace {
 			EXPECT_FALSE(output_port_ptr->is_ghost());
 
 			//destruction
-			delete input_port_ptr, output_port_ptr;
-			input_port_ptr = nullptr;
-			output_port_ptr = nullptr;
+			delete input_port_ptr; input_port_ptr = nullptr;
+			delete output_port_ptr; output_port_ptr = nullptr;
 			EXPECT_FALSE(output_port2.is_ghost());
 			EXPECT_FALSE(input_port2.is_ghost());
 			EXPECT_FALSE(output_port3.is_ghost());
@@ -318,10 +317,10 @@ namespace {
 
 			//testing ownership semantics of graph
 			graph1_ptr.reset();
-			EXPECT_EQ(4, node1.size_inputs() + node1.size_outputs());
-			EXPECT_EQ(2, node2.size_inputs() + node2.size_outputs());
-			EXPECT_EQ(2, node3.size_inputs() + node3.size_outputs());
-			EXPECT_EQ(4, node4.size_inputs() + node4.size_outputs());
+			EXPECT_EQ(0, node1.size_inputs() + node1.size_outputs());
+			EXPECT_EQ(1, node2.size_inputs() + node2.size_outputs());
+			EXPECT_EQ(0, node3.size_inputs() + node3.size_outputs());
+			EXPECT_EQ(3, node4.size_inputs() + node4.size_outputs());
 			EXPECT_TRUE(node1.is_managed());
 			EXPECT_TRUE(node2.is_managed());
 			EXPECT_TRUE(node3.is_managed());
@@ -515,10 +514,10 @@ namespace {
 
 			//testing ownership semantics of graph
 			graph1_ptr.reset();
-			EXPECT_EQ(4, node1.size());
-			EXPECT_EQ(2, node2.size());
-			EXPECT_EQ(1, node3.size());
-			EXPECT_EQ(2, node4.size());
+			EXPECT_EQ(0, node1.size());
+			EXPECT_EQ(1, node2.size());
+			EXPECT_EQ(0, node3.size());
+			EXPECT_EQ(1, node4.size());
 			EXPECT_TRUE(node1.is_managed());
 			EXPECT_TRUE(node2.is_managed());
 			EXPECT_TRUE(node3.is_managed());
@@ -618,18 +617,30 @@ namespace {
 			typedef Graph<node_type> graph_type;
 			auto graph1_ptr = std::make_shared<graph_type>();
 			auto graph2_ptr = std::make_shared<graph_type>();
-			
+		
+			EXPECT_EQ(1, graph1_ptr.use_count());
+			EXPECT_EQ(1, graph2_ptr.use_count());
+
 			auto node1_ptr = new node_type(graph1_ptr, 3);
 			auto node2_ptr = new node_type(5);
 			auto node3_ptr = new node_type(7);
-
+			
 			EXPECT_TRUE(graph1_ptr->check(3, node1_ptr));
 			EXPECT_FALSE(graph1_ptr->check(5, node2_ptr));
 			EXPECT_TRUE(node2_ptr->join_index(graph1_ptr));
+
+			EXPECT_EQ(3, graph1_ptr.use_count());
+			EXPECT_EQ(1, graph2_ptr.use_count());
+
 			EXPECT_TRUE(graph1_ptr->check(5, node2_ptr));
 			EXPECT_TRUE(node3_ptr->join_index(graph1_ptr));
+
 			EXPECT_EQ(0, graph2_ptr->size());
 			EXPECT_TRUE(node2_ptr->join_index(graph2_ptr));
+			
+			EXPECT_EQ(3, graph1_ptr.use_count());
+			EXPECT_EQ(2, graph2_ptr.use_count());
+
 			EXPECT_TRUE(graph2_ptr->check(5, node2_ptr));
 			EXPECT_EQ(1, graph2_ptr->size());
 			EXPECT_EQ(2, graph1_ptr->size());
@@ -637,12 +648,20 @@ namespace {
 			node2_ptr->leave_index();
 			EXPECT_EQ(0, graph2_ptr->size());
 			EXPECT_FALSE(node2_ptr->is_managed());
+			
 			EXPECT_TRUE(node2_ptr->join_index(graph2_ptr));
+			EXPECT_EQ(3, graph1_ptr.use_count());
+			EXPECT_EQ(2, graph2_ptr.use_count());
 			EXPECT_TRUE(node2_ptr->is_managed());
 
-			delete node1_ptr, node2_ptr, node3_ptr;
-			EXPECT_TRUE(graph1_ptr.unique());
-			EXPECT_TRUE(graph2_ptr.unique());
+			delete node1_ptr; node1_ptr = nullptr;
+			EXPECT_EQ(2, graph1_ptr.use_count());
+
+			delete node2_ptr; node2_ptr = nullptr;
+			EXPECT_EQ(1, graph2_ptr.use_count());
+
+			delete node3_ptr; node3_ptr = nullptr;
+			EXPECT_EQ(1, graph1_ptr.use_count()); 
 		}
 		template<typename N>
 		void test_merge_move_destruction() {
@@ -669,7 +688,10 @@ namespace {
 			EXPECT_TRUE(node2_ptr->is_managed());
 			EXPECT_TRUE(node3_ptr->is_managed());
 
-			delete node1_ptr, node2_ptr, node3_ptr, node4_ptr;
+			delete node1_ptr; node1_ptr = nullptr;
+			delete node2_ptr; node2_ptr = nullptr;
+			delete node3_ptr; node3_ptr = nullptr;
+			delete node4_ptr; node4_ptr = nullptr;
 		}
 		template<typename N>
 		void test_content() {
