@@ -251,7 +251,7 @@ namespace {
 			using namespace ben;
 			typedef N node_type;
 			typedef Graph<node_type> graph_type;
-			graph1_ptr = std::make_shared<graph_type>();
+			auto graph1_ptr = std::make_shared<graph_type>();
 			
 			auto node1_ptr = new node_type(graph1_ptr);
 			EXPECT_EQ(0, node1_ptr->size_inputs());
@@ -273,7 +273,7 @@ namespace {
 			typedef Graph<node_type> graph_type;
 			auto graph1_ptr = std::make_shared<graph_type>();
 
-			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7), node4(*graph1_ptr, 11);
+			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7), node4(graph1_ptr, 11);
 			EXPECT_TRUE(node1.add_input(3, args...)); //creates Port/Path
 			EXPECT_TRUE(node1.contains_input(3));
 			EXPECT_TRUE(node1.contains_output(3));
@@ -334,7 +334,7 @@ namespace {
 			typedef Graph<node_type> graph_type;
 			auto graph1_ptr = std::make_shared<graph_type>();
 
-			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7), node4(*graph1_ptr, 11);
+			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7), node4(graph1_ptr, 11);
 			node1.add_input(3, args...);
 			node1.add_input(5, args...);
 			node1.add_input(7, args...);
@@ -401,7 +401,7 @@ namespace {
 
 			delete node4_ptr;
 			node4_ptr = nullptr;
-			EXPECT_FALSE(graph1_ptr->contains(11));
+			EXPECT_FALSE(graph1_ptr->manages(11));
 			EXPECT_FALSE(node1.contains_input(11));
 			EXPECT_FALSE(node1.contains_output(11));
 		}
@@ -459,9 +459,9 @@ namespace {
 			EXPECT_TRUE(graph1_ptr->check(3, node2_ptr));
 
 			auto node3_ptr = new node_type();
-			EXPECT_EQ(nullptr, &node3_ptr->get_index());
+			EXPECT_FALSE(node3_ptr->is_managed());
 			auto node4_ptr = new node_type(7);
-			EXPECT_EQ(nullptr, &node4_ptr->get_index());
+			EXPECT_FALSE(node4_ptr->is_managed());
 		}
 		template<typename N, typename... Args>
 		void test_add_remove(Args... args) {
@@ -514,7 +514,7 @@ namespace {
 			EXPECT_FALSE(node1.contains(7));
 
 			//testing ownership semantics of graph
-			graph1_ptr.reset()
+			graph1_ptr.reset();
 			EXPECT_EQ(4, node1.size());
 			EXPECT_EQ(2, node2.size());
 			EXPECT_EQ(1, node3.size());
@@ -625,22 +625,19 @@ namespace {
 
 			EXPECT_TRUE(graph1_ptr->check(3, node1_ptr));
 			EXPECT_FALSE(graph1_ptr->check(5, node2_ptr));
-			EXPECT_TRUE(graph1_ptr->add(*node2_ptr));
+			EXPECT_TRUE(node2_ptr->join_index(graph1_ptr));
 			EXPECT_TRUE(graph1_ptr->check(5, node2_ptr));
-			EXPECT_TRUE(graph1_ptr->add(*node3_ptr));
-			EXPECT_TRUE(graph2_ptr->empty());
-			EXPECT_TRUE(graph2_ptr->add(*node2_ptr));
+			EXPECT_TRUE(node3_ptr->join_index(graph1_ptr));
+			EXPECT_EQ(0, graph2_ptr->size());
+			EXPECT_TRUE(node2_ptr->join_index(graph2_ptr));
 			EXPECT_TRUE(graph2_ptr->check(5, node2_ptr));
-			EXPECT_FALSE(graph2_ptr->empty());
 			EXPECT_EQ(1, graph2_ptr->size());
-			EXPECT_FALSE(graph1_ptr->empty());
 			EXPECT_EQ(2, graph1_ptr->size());
 
-			EXPECT_TRUE(graph2_ptr->remove(5));
-			EXPECT_FALSE(graph1_ptr->remove(5));
-			EXPECT_TRUE(graph2_ptr->empty());
+			node2_ptr->leave_index();
+			EXPECT_EQ(0, graph2_ptr->size());
 			EXPECT_FALSE(node2_ptr->is_managed());
-			EXPECT_TRUE(graph2_ptr->add(*node2_ptr));
+			EXPECT_TRUE(node2_ptr->join_index(graph2_ptr));
 			EXPECT_TRUE(node2_ptr->is_managed());
 
 			delete node1_ptr, node2_ptr, node3_ptr;
@@ -660,9 +657,9 @@ namespace {
 			auto node3_ptr = new node_type(graph2_ptr, 7);
 			auto node4_ptr = new node_type(graph2_ptr, 11);
 
-			EXPECT_TRUE(graph2_ptr->merge_into(graph1));
+			EXPECT_TRUE(merge(graph1_ptr, graph2_ptr));
 			EXPECT_EQ(4, graph1_ptr->size());
-			EXPECT_TRUE(graph2_ptr->empty());
+			EXPECT_EQ(0, graph2_ptr->size());
 			EXPECT_EQ(graph1_ptr, node1_ptr->get_index());
 			EXPECT_EQ(graph1_ptr, node2_ptr->get_index());
 
@@ -690,8 +687,8 @@ namespace {
 				EXPECT_TRUE(graph1_ptr->check(x.ID(), &x));
 			}
 			
-			EXPECT_TRUE(graph1_ptr->contains(7));
-			EXPECT_FALSE(graph2_ptr->contains(7));
+			EXPECT_TRUE(graph1_ptr->manages(7));
+			EXPECT_FALSE(graph2_ptr->manages(7));
 
 			EXPECT_TRUE(graph2_ptr->end() == graph2_ptr->find(3));
 			auto iter = graph1_ptr->begin();

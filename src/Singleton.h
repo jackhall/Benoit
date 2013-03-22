@@ -37,7 +37,7 @@ namespace ben {
  * circularity prevents the use of an Index<> reference here. Child classes cannot violate 
  * encapsulation, but the protected interface is semantically complete. 
  */
-	template<typename S> class Index;
+	template<typename S> class Index; //is the forward declaration necessary now that merge is fully templated?
 	
 	template<typename T> 
 	bool merge(std::shared_ptr<T> one, std::shared_ptr<T> two);
@@ -49,6 +49,7 @@ namespace ben {
 		bool is_managed() const { return static_cast<bool>(index_ptr); }
 		void leave_index() { 
 			if(index_ptr) { 
+				perform_leave();
 				index_ptr->remove(uniqueID); 
 				index_ptr.reset();
 			}
@@ -69,6 +70,7 @@ namespace ben {
 		//std::mutex? maybe later
 		
 		void update_index(const std::shared_ptr<index_type>& ptr) { index_ptr = ptr; }
+		virtual void perform_leave() = 0;
 	
 	protected:
 		Singleton(const id_type id=get_new_ID())
@@ -85,7 +87,7 @@ namespace ben {
 		self_type& operator=(const self_type& rhs) = delete;
 		self_type& operator=(self_type&& rhs);
 
-		virtual ~Singleton() { leave_index(); }
+		virtual ~Singleton() { if(index_ptr) index_ptr->remove(uniqueID); }
 	
 		bool join_index(std::shared_ptr<index_type> ptr);
 
@@ -105,15 +107,17 @@ namespace ben {
 	}
 
 	bool Singleton::join_index(std::shared_ptr<index_type> ptr) {
-		auto originalID = ID();
-		while( ptr->manages(uniqueID) ) uniqueID = get_new_ID(); 
-		bool status = ptr->add(this);
-		if(status) {
-			//since ID has changed, can't delegate to leave_index()
-			if(index_ptr) index_ptr->remove(originalID); 
-			index_ptr = ptr;
-		} else uniqueID = originalID;
-		return status;
+		if(ptr != index_ptr) {
+			auto originalID = ID();
+			while( ptr->manages(uniqueID) ) uniqueID = get_new_ID(); 
+			bool status = ptr->add(this);
+			if(status) {
+				//since ID has changed, can't delegate to leave_index()
+				if(index_ptr) index_ptr->remove(originalID); 
+				index_ptr = ptr;
+			} else uniqueID = originalID;
+			return status;
+		} else return true;
 	}
 	
 } //namespace ben

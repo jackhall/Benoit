@@ -49,7 +49,10 @@ namespace {
 		typedef typename base_type::iterator iterator;
 	};
 
-	struct DerivedSingleton : public ben::Singleton {
+	class DerivedSingleton : public ben::Singleton {
+	private:
+		void perform_leave() {}
+	public:
 		typedef DerivedIndex<DerivedSingleton> index_type;
 		typedef ben::Singleton base_type;
 

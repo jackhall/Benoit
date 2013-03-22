@@ -35,40 +35,29 @@ namespace ben {
  * See Index and IndexBase for more information. Graph adds very little to these base classes. 
  */	
 	template<typename N> 
-	struct Graph : public Index<N> {
+	class Graph : public Index<N> {
+	private:
+		typedef Index<N> base_type;
+
+		bool perform_add(Singleton* ptr) {}
+		void perform_remove(Singleton* ptr) {} //clean-up of links is performed by the Node calling remove
+		bool perform_merge(base_type& other) {} //no work necessary; links are left intact
+	
+	public:
 		typedef N 	node_type;
 		typedef N* 	pointer;
 		typedef N&	reference;
 		typedef size_t	size_type;
 		typedef typename N::id_type id_type;
-		typedef Index<N> base_type;
 		typedef typename base_type::singleton_type singleton_type;
 		//typedef typename base_type::iterator iterator; //necessary?
 
 		Graph() = default;
 		Graph(const Graph& rhs) = delete; //identity semantics
 		Graph& operator=(const Graph& rhs) = delete; 
-		Graph(Graph&& rhs) : base_type( std::move(rhs) ) {}
-		Graph& operator=(Graph&& rhs) { base_type::operator=( std::move(rhs) ); }
-		virtual ~Graph() { clear(); } 
-		//It shouldn't be necessary to call clear in this destructor, since it's called
-		//in ~IndexBase and it's virtual. But the tests don't run without it...
-		
-		virtual bool remove(const id_type address) {
-			//erases all links to and from the corresponding node, stops tracking it, and
-			//leaves it with a null pointer to index
-			auto iter = this->find(address);
-			if(iter != base_type::end()) iter->clear(); //break links with the rest of the graph
-			else return false;
-			
-			base_type::remove(address);
-			return true;
-		}
-		virtual void clear() {
-			//since all Nodes become unmanaged, all links must be deleted
-			for(node_type& x : *this) x.clear();
-			base_type::clear();
-		}
+		Graph(Graph&& rhs) = delete;
+		Graph& operator=(Graph&& rhs) = delete;
+		~Graph() = default; 
 	}; //class Graph
 
 } //namespace ben

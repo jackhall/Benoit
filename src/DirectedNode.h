@@ -73,6 +73,7 @@ namespace ben {
 			      "Ports using different unique ID types");
 	
 		//std::mutex node_mutex; //would need this to alter graph structure in multiple threads
+		void perform_leave() { clear; }
 		
 	public:
 		LinkManager<self_type, input_type> inputs; //interface for LinkManagers is now restricted
@@ -82,8 +83,8 @@ namespace ben {
 		//This generated ID is only guaranteed to be unique if that generation method is used exclusively.
 		DirectedNode() : base_type(), inputs(ID()), outputs(ID()) {} 
 		explicit DirectedNode(const id_type id) : base_type(id), inputs(id), outputs(id) {}
-		explicit DirectedNode(index_type& graph) : base_type(graph), inputs(ID()), outputs(ID()) {}
-		DirectedNode(index_type& graph, const id_type id) : base_type(graph, id), inputs(id), outputs(id) {}
+		explicit DirectedNode(std::shared_ptr<index_type> graph) : base_type(graph), inputs(ID()), outputs(ID()) {}
+		DirectedNode(std::shared_ptr<index_type> graph, const id_type id) : base_type(graph, id), inputs(id), outputs(id) {}
 		DirectedNode(const self_type& rhs) = delete; //identity semantics
 		DirectedNode& operator=(const self_type& rhs) = delete;
 		DirectedNode(self_type&& rhs) : base_type(std::move(rhs)), inputs(std::move(rhs.inputs)),
@@ -102,11 +103,9 @@ namespace ben {
 		//bool try_lock() { return node_mutex.try_lock(); }
 		//void unlock() { node_mutex.unlock(); }
 		
-		using base_type::ID;
-		const index_type& get_index() const 
-			{ return static_cast<const index_type&>(base_type::get_index()); }
-		using base_type::is_managed;
-		bool is_managed_by(const index_type& x) const { return base_type::is_managed_by(x); }
+		bool join_index(std::shared_ptr<index_type> ptr) { return base_type::join_index(ptr); }
+		std::shared_ptr<index_type> get_index() const 
+			{ return std::static_pointer_cast<index_type>(base_type::get_index()); }
 
 		input_iterator find_input(const id_type address) { return inputs.find(address); }
 		const_input_iterator find_input(const id_type address) const { return inputs.find(address); }
@@ -116,14 +115,14 @@ namespace ben {
 		template<typename... ARGS>	
 		bool add_input(const id_type address, ARGS... args) {
 			//the type safety for this function comes in LinkManager::add
-			if( get_index().contains(address) ) {
-				return inputs.add(get_index().elem(address).outputs, args...);
+			if( get_index()->manages(address) ) {
+				return inputs.add(get_index()->elem(address).outputs, args...);
 			} else return false;
 		}
 		template<typename... ARGS>
 		bool add_output(const id_type address, ARGS... args) {//see add_input
-			if( get_index().contains(address) ) {
-				return outputs.add(get_index().elem(address).inputs, args...);
+			if( get_index()->manages(address) ) {
+				return outputs.add(get_index()->elem(address).inputs, args...);
 			} else return false;
 		}
 		//cloning DirectedNodes is not well-defined for all cases without allowing redundant links 
@@ -170,7 +169,7 @@ namespace ben {
 			//a way to copy the pattern of links instead of the links themselves
 			//links-to-self are preserved as such, links between this and other are untouched, as 
 			//this would violate const-ness of other and the principle of least surprise
-			if( other.is_managed_by(get_index()) ) {
+			if( get_index() == other.get_index() ) {
 				//the code in each of these lambdas would have to be written twice
 				auto clear_inputs_except = [this](const id_type id, const index_type& index) {
 					for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) 
@@ -194,19 +193,19 @@ namespace ben {
 					//this case saves both links
 					auto input_temp = *input_iter;
 					auto output_temp = *output_iter; 
-					clear_inputs_except(other.ID(), get_index());
-					clear_outputs_except(other.ID(), get_index());
+					clear_inputs_except(other.ID(), *get_index());
+					clear_outputs_except(other.ID(), *get_index());
 					inputs.restore(input_temp, other.outputs); 
 					outputs.restore(output_temp, other.inputs);
 				} else if(input_iter != iend() and output_iter == oend()) { 
 					//if other had an input from this, but not an output...
 					auto input_temp = *input_iter; //save a copy of the Port
-					clear_inputs_except(other.ID(), get_index()); //deletes all Ports, but does not clean up after other
+					clear_inputs_except(other.ID(), *get_index()); //deletes all Ports, but does not clean up after other
 					inputs.restore(input_temp, other.outputs); //add the copy back
 				} else if(input_iter == iend() and output_iter != oend()) { 
 					//mirror of the last case
 					auto output_temp = *output_iter;
-					clear_outputs_except(other.ID(), get_index());
+					clear_outputs_except(other.ID(), *get_index());
 					outputs.restore(output_temp, other.inputs);
 				} else clear(); //no unusual problems
 
@@ -216,7 +215,7 @@ namespace ben {
 					if(currentID != ID()) { //these links shouldn't be touched 
 						if(currentID == other.ID()) inputs.add_clone_of(x, outputs); //only do this once 
 						else {
-							auto& source = get_index().elem(currentID);
+							auto& source = get_index()->elem(currentID);
 							inputs.add_clone_of(x, source.outputs);
 						}
 					}
@@ -226,7 +225,7 @@ namespace ben {
 				for(const auto& x : other.outputs) {
 					id_type currentID = x.get_address();
 					if(currentID != ID() and currentID != other.ID()) { //links-to-self already copied
-						auto& target = get_index().elem(currentID);
+						auto& target = get_index()->elem(currentID);
 						outputs.add_clone_of(x, target.inputs);
 					}
 				}
@@ -242,14 +241,14 @@ namespace ben {
 		}
 		void remove_input(const id_type address) {
 			//O(n), must search for the right port
-			inputs.remove(get_index().elem(address).outputs);
+			inputs.remove(get_index()->elem(address).outputs);
 		}
 		void remove_output(const output_iterator iter) { //see remove_input
 			auto address = iter->get_address();
 			outputs.remove(walk(iter).inputs, iter);
 		}
 		void remove_output(const id_type address) { //see remove_input
-			outputs.remove(get_index().elem(address).inputs);
+			outputs.remove(get_index()->elem(address).inputs);
 		}
 		
 		void clear_inputs() { 
@@ -278,7 +277,7 @@ namespace ben {
 					std::is_same<T, output_iterator>::value or
 					std::is_same<T, const_output_iterator>::value,
 					"cannot call walk without an iterator type");
-			return get_index().elem(iter->get_address()); 
+			return get_index()->elem(iter->get_address()); 
 		}
 		input_iterator  ibegin() { return inputs.begin(); }
 		const_input_iterator ibegin() const { return inputs.begin(); }

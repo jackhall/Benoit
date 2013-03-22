@@ -52,12 +52,14 @@ namespace ben {
 
 		LinkManager<self_type, link_type> links;
 		//std::mutex
+
+		void perform_leave() { clear(); }
 	
 	public:
 		UndirectedNode() : base_type(), links(ID()) {}
 		explicit UndirectedNode(const id_type id) : base_type(id), links(id) {}
-		explicit UndirectedNode(index_type& graph) : base_type(graph), links(ID()) {}
-		UndirectedNode(index_type& graph, const id_type id) : base_type(graph, id), links(id) {}
+		explicit UndirectedNode(std::shared_ptr<index_type> graph) : base_type(graph), links(ID()) {}
+		UndirectedNode(std::shared_ptr<index_type> graph, const id_type id) : base_type(graph, id), links(id) {}
 		UndirectedNode(const self_type& rhs) = delete; //identity semantics
 		UndirectedNode& operator=(const self_type& rhs) = delete;
 		UndirectedNode(self_type&& rhs) : base_type(std::move(rhs)), links(std::move(rhs.links)) {}
@@ -67,13 +69,11 @@ namespace ben {
 				links = std::move(rhs.links);
 			}
 		}
-		virtual ~UndirectedNode() { clear(); } //might want to lock while deleting links
+		~UndirectedNode() { clear(); } //might want to lock while deleting links
 
-		using base_type::ID; //access method
-		const index_type& get_index() const //ensures proper type casting of the index pointer 
-			{ return static_cast<const index_type&>(base_type::get_index()); }
-		using base_type::is_managed;
-		bool is_managed_by(const index_type& x) const { return base_type::is_managed_by(x); }
+		bool join_index(std::shared_ptr<index_type> ptr) { return base_type::join_index(ptr); }
+		std::shared_ptr<index_type> get_index() const //ensures proper type casting of the index pointer 
+			{ return std::static_pointer_cast<index_type>(base_type::get_index()); }
 
 		iterator find(const id_type address) { return links.find(address); } 
 		const_iterator find(const id_type address) const { return links.find(address); }
@@ -84,14 +84,14 @@ namespace ben {
 			//add should only be instantiated with arguments matching the Path constructor
 			static_assert(std::is_same< typename link_type::construction_types, ConstructionTypes<Args...> >::value,
 					"extra arguments for UndirectedNode::add must match link_type::construction_types");
-			auto node_iter = get_index().find(address); 
-			if(node_iter != get_index().end()) return links.add(node_iter->links, args...);
+			auto node_iter = get_index()->find(address); 
+			if(node_iter != get_index()->end()) return links.add(node_iter->links, args...);
 			else return false;
 		}
 		bool mirror(const self_type& other) { 
 			//links-to-self are cloned to preserve the pattern - if other has a link-to-self, then
 			//this will also have a link-to-self, not a link to other 
-			if( other.is_managed_by(get_index()) ) {
+			if( get_index() == other.get_index() ) {
 				auto path_iter = find(other.ID());
 				if(path_iter != end()) { //if other contains a link to this node...
 					auto temp = *path_iter;
@@ -107,7 +107,7 @@ namespace ben {
 					if(currentID != ID()) { //if this link was there, it is left alone 
 						if(currentID == other.ID()) links.add_self_link_clone_of(x); 
 						else {
-							auto& target = get_index().elem(currentID);
+							auto& target = get_index()->elem(currentID);
 							links.add_clone_of(x, target.links);
 						}
 					}
@@ -118,7 +118,7 @@ namespace ben {
 		void remove(const iterator iter) {
 			//gets an iterator to the other node and lets LinkManager::remove do the rest
 			//of the work
-			auto node_iter = get_index().find(iter->get_address());
+			auto node_iter = get_index()->find(iter->get_address());
 			links.remove(node_iter->links, iter);
 		}
 		void remove(const id_type address) {
@@ -130,7 +130,7 @@ namespace ben {
 		void clear() {
 			//removes all link complements before deleting the local copy of the links, thereby
 			//preventing iterator invalidation
-			for(auto& x : links) get_index().elem(x.get_address()).links.clean_up(ID());
+			for(auto& x : links) get_index()->elem(x.get_address()).links.clean_up(ID());
 			links.clear();
 		}
 		
@@ -140,7 +140,7 @@ namespace ben {
 		self_type& walk(const const_iterator iter) const { 
 			//returns a reference to the node that iter points to: walks the graph
 			//iterator is implicitly cast to const_iterator
-			return get_index().elem(iter->get_address()); 
+			return get_index()->elem(iter->get_address()); 
 		}
 		iterator begin() { return links.begin(); }
 		const_iterator begin() const { return links.begin(); }
