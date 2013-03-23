@@ -60,15 +60,11 @@ BOOST_PYTHON_MODULE(benoitpy) {
 
 	typedef unsigned int id_type;
 
-	class_< message_graph, boost::noncopyable >("message_graph", init<>()) 
+	class_< message_graph, boost::noncopyable, std::shared_ptr<message_graph> >("message_graph", noinit) 
 		.def("__iter__", iterator<message_graph>()) 
-		.def("contains", &message_graph::contains)
-		.def("size", &message_graph::size)
+		.def("manages", &message_graph::manages)
+		.def("size", &message_graph::size);
 		//.def("__getitem__", &associative_access<message_graph>::get) //could use a helper struct for safety checks
-		.def("add", &message_graph::add)
-		.def("remove", &message_graph::remove)
-		.def("merge_into", &message_graph::merge_into)
-		.def("clear", &message_graph::clear);
 	
 	class_< message_node, boost::noncopyable >("message_node", init<>()) //missing walk and find
 		.def( init< id_type >() )
