@@ -61,6 +61,8 @@ namespace ben {
 		typedef typename std::vector<link_type>::iterator iterator; 
 		typedef typename std::vector<link_type>::const_iterator const_iterator;
 		
+		~LinkManagerHelper() = default;
+
 	private:
 		friend class LinkManagerHelper<N, link_complement_type, ConstructionTypes<ARGS...> >; //for noncircular calls to add/remove
 		friend class type_wrapper<N>::type; //allow the owning node access to private methods
@@ -80,7 +82,6 @@ namespace ben {
 				links = std::move(rhs.links);
 			}
 		} 
-		~LinkManagerHelper() = default;
 
 		bool add(complement_type& other, const ARGS... args) {
 			if( contains(other.nodeID) ) return false; //there is already a link to this other Node/LinkManager

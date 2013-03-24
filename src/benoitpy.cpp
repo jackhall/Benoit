@@ -18,29 +18,14 @@
 	The author may be reached at jackhall@utexas.edu.
 */
 
-#include <boost/python.hpp>
+#include "python_utils.h"
 #include "Graph.h"
 #include "UndirectedNode.h"
 #include "DirectedNode.h"
 #include "Port.h"
 #include "Path.h"
 
-void IndexError() { PyErr_SetString(PyExc_IndexError, "No element with that ID"); }
-
-template<class T>
-struct associative_access { //helper class for element access
-	typedef typename T::node_type V;
-	typedef typename T::id_type id_type;
-
-	static V& get(const T& x, id_type i) {
-		auto iter = x.find(i);
-		if(iter != x.end()) return *iter;
-		else IndexError();
-	}
-};
-
-
-BOOST_PYTHON_MODULE(benoitpy) {
+BOOST_PYTHON_MODULE(benpy) {
 	using namespace boost::python;
 	using namespace ben;
 	
@@ -60,79 +45,84 @@ BOOST_PYTHON_MODULE(benoitpy) {
 
 	typedef unsigned int id_type;
 
-	class_< message_graph, boost::noncopyable, std::shared_ptr<message_graph> >("message_graph", noinit) 
+	class_< message_graph, boost::noncopyable, std::shared_ptr<message_graph> >("message_graph", no_init) 
+		.def("create", &std::make_shared<message_graph>)
+		.staticmethod("create")
 		.def("__iter__", iterator<message_graph>()) 
 		.def("manages", &message_graph::manages)
 		.def("size", &message_graph::size);
-		//.def("__getitem__", &associative_access<message_graph>::get) //could use a helper struct for safety checks
+		//.def("__getitem__", &associative_access<message_graph>::get, return_value_policy<reference_existing_object>); //could use a helper struct for safety checks
+
+	def("merge", &merge<message_graph>);
+
+	class_< input_port >("input_port", init<const input_port&>()) 
+		.add_property("address", &input_port::get_address)
+		.add_property("ready", &input_port::is_ready)
+		.def("pull", &input_port::pull);
 	
+	class_< output_port >("output_port", init<const output_port&>()) 
+		.add_property("address", &output_port::get_address)
+		.add_property("ready", &output_port::is_ready)
+		.def("pull", &output_port::push);
+
+	class_< input_manager, boost::noncopyable >("input_manager", no_init)
+		.def("__iter__", iterator<input_manager>())
+		.def("__getitem__", &wrap_link_find<input_manager>::get, return_value_policy<return_by_value>())
+		.def("contains", &input_manager::contains)
+		.def("size", &input_manager::size);
+
+	class_< output_manager, boost::noncopyable >("output_manager", no_init)
+		.def("__iter__", iterator<output_manager>())
+		.def("__getitem__", &wrap_link_find<output_manager>::get, return_value_policy<return_by_value>())
+		.def("contains", &output_manager::contains)
+		.def("size", &output_manager::size);
+
 	class_< message_node, boost::noncopyable >("message_node", init<>()) //missing walk and find
 		.def( init< id_type >() )
-		.def( init< message_graph& >() )
-		.def( init< message_graph&, id_type >() )
+		.def( init< std::shared_ptr<message_graph> >() )
+		.def( init< std::shared_ptr<message_graph>, id_type >() )
 		.add_property("ID", &message_node::ID)
 		.add_property("index", &message_node::get_index)
-		.def("add_input", &message_node::add_input)
-		.def("remove_input", &message_node::remove_input)
-		.def("add_output", &message_node::add_output)
-		.def("remove_output", &message_node::remove_output)
+		.def("add_input", &wrap_input<message_node>::add)
+		.def("remove_input", &wrap_input<message_node>::remove)
+		.def("add_output", &wrap_output<message_node>::add)
+		.def("remove_output", &wrap_output<message_node>::remove)
 		.def("clear", &message_node::clear)
 		.def("clear_inputs", &message_node::clear_inputs)
-		.def("clear_outputs", &message_node::clear_outputs);
-		//.def_readonly("inputs", &message_node::inputs)
-		//.def_readonly("outputs", &message_node::outputs);
-/*
-	class_< input_manager, boost::noncopyable >("input_manager")
-		.def("__iter__", iterator<input_manager>())
-		.def("contains", &input_manager::contains)
-		.def("size", &input_manager::size); //need a helper struct to give associative access
+		.def("clear_outputs", &message_node::clear_outputs)
+		.def("join_index", &message_node::join_index)
+		.def("leave_index", &message_node::leave_index)
+		.def_readonly("inputs", &message_node::inputs)
+		.def_readonly("outputs", &message_node::outputs); 
 
-	class_< output_manager, boost::noncopyable >("output_manager")
-		.def("__iter__", iterator<output_manager>())
-		.def("contains", &output_manager::contains)
-		.def("size", &output_manager::size); //need a helper struct to give associative access
-
-	class_< input_port >("input_port")
-		.def( self == self )
-		.def( self != self )
-		.def("pull", &input_port::pull)
-		.add_property("ready", &input_port::is_ready)
-		.add_property("address", &input_port::get_address);
-	
-	class_< output_port >("output_port")
-		.def( self == self )
-		.def( self != self )
-		.def("push", &output_port::push)
-		.add_property("ready", &output_port::is_ready)
-		.add_property("address", &output_port::get_address);
-	
-	class_< undirected_graph, boost::noncopyable >("undirected_graph", init<>()) 
+	class_< undirected_graph, boost::noncopyable, std::shared_ptr<undirected_graph> >("undirected_graph", no_init) 
+		.def("create", std::make_shared<undirected_graph>)
+		.staticmethod("create")
 		.def("__iter__", iterator<undirected_graph>()) 
-		.def("contains", &undirected_graph::contains)
-		.def("size", &undirected_graph::size)
-		.def("__getitem__", &associative_access<undirected_graph>::get) //could use a helper struct for safety checks
-		.def("add", &undirected_graph::add)
-		.def("remove", &undirected_graph::remove)
-		.def("merge_into", &undirected_graph::merge_into)
-		.def("clear", &undirected_graph::clear);
+		.def("manages", &undirected_graph::manages)
+		.def("size", &undirected_graph::size);
+		//.def("__getitem__", &associative_access<undirected_graph>::get) //could use a helper struct for safety checks
+
+	def("merge", &merge<undirected_graph>);
+
+	class_< path >("path", init<const path&>())
+		.add_property("value", &path::get_value, &path::set_value)
+		.add_property("address", &path::get_address);
 
 	class_< undirected_node, boost::noncopyable >("undirected_node", init<>()) //missing walk and find
 		.def( init< id_type >() )
-		.def( init< undirected_graph& >() )
-		.def( init< undirected_graph&, id_type >() )
+		.def( init< std::shared_ptr<undirected_graph> >() )
+		.def( init< std::shared_ptr<undirected_graph>, id_type >() )
 		.add_property("ID", &undirected_node::ID)
 		.add_property("index", &undirected_node::get_index)
-		.def("add", &undirected_node::add)
-		.def("remove", &undirected_node::remove)
+		.def("add", &wrap_links<undirected_node>::add)
+		.def("remove", &wrap_links<undirected_node>::remove)
 		.def("clear", &undirected_node::clear)
 		.def("__iter__", iterator<undirected_node>())
 		.def("contains", &undirected_node::contains)
-		.def("size", &undirected_node::size);
+		.def("size", &undirected_node::size)
+		.def("join_index", &undirected_node::join_index)
+		.def("leave_index", &undirected_node::leave_index);
 
-	class_< path >("path")
-		.def( self==self )
-		.def( self!=self )
-		.add_property("value", &path::get_value, &path::set_value)
-		.add_property("address", &path::get_address);
-*/
-}
+} //BOOST_PYTHON_MODULE
+
