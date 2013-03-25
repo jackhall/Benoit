@@ -100,4 +100,97 @@ namespace ben {
 	
 } //namespace ben
 
+
+//This macro expands a path type into a boost.python translation.
+//Directions for this and the following macros:
+//TO USE: pass in type names for the appropriate arguments
+//NOTE: use type names that also work as type names in python!
+//NOTE:these macros should all be used either inside the "ben" namespace or with 
+//a "using namespace ben;" active
+//NOTE:each use of each macro should be unique to avoid naming collisions
+#define BENOIT_TRANSLATE_PATH(PATH) { \
+class_< PATH >(#PATH, init<const PATH&>()) \
+	.add_property("value", &PATH::get_value, &PATH::set_value) \
+	.add_property("address", &path::get_address); }
+
+
+//macro for UndirectedNode, missing walk and find, including a corresponding graph
+//the graph is missing associative access to managed nodes
+#define BENOIT_TRANSLATE_UNDIRECTEDNODE(NODE, GRAPH) { \
+class_< Graph<NODE>, boost::noncopyable, std::shared_ptr< Graph<NODE> > >(#GRAPH, no_init) \
+	 .def("create", std::make_shared< Graph<NODE> >) \
+	 .staticmethod("create") \
+	 .def("__iter__", iterator< Graph<NODE> >()) \
+	 .def("manages", &Graph<NODE>::manages) \
+	 .def("size", &Graph<NODE>::size); \
+def("merge", &merge< Graph<NODE> >); \
+class_< NODE, boost::noncopyable >(#NODE, init<>()) \
+	.def( init< typename NODE::id_type >() ) \
+	.def( init< std::shared_ptr< Graph<NODE> > >() ) \
+	.def( init< std::shared_ptr< Graph<NODE> >, typename NODE::id_type >() ) \
+	.add_property("ID", &NODE::ID) \
+	.add_property("index", &NODE::get_index) \
+	.def("add", &wrap_links<NODE>::add) \
+	.def("remove", &wrap_links<NODE>::remove) \
+	.def("clear", &NODE::clear) \
+	.def("__iter__", iterator<NODE>()) \
+	.def("contains", &NODE::contains) \
+	.def("size", &NODE::size) \
+	.def("join_index", &NODE::join_index) \
+	.def("leave_index", &NODE::leave_index); }
+
+
+//macros for input and output ports for message_nodes
+#define BENOIT_TRANSLATE_INPUTPORT(PORT) { \
+class_< PORT >(#PORT, init<const PORT&>()) \
+	.add_property("address", &PORT::get_address) \
+	.add_property("ready", &PORT::is_ready) \
+	.def("pull", &PORT::pull); }
+
+#define BENOIT_TRANSLATE_OUTPUTPORT(PORT) { \
+class_< PORT >(#PORT, init<const PORT&>()) \
+	.add_property("address", &PORT::get_address) \
+	.add_property("ready", &PORT::is_ready) \
+	.def("push", &PORT::push); }
+
+
+//macro for DirectedNode and a corresponding graph, missing walk and find methods
+//the graph is missing associative access to managed nodes
+#define BENOIT_TRANSLATE_DIRECTEDNODE(NODE, GRAPH) { \
+class_< Graph<NODE>, boost::noncopyable, std::shared_ptr< Graph<NODE> > >(#GRAPH, no_init) \
+	.def("create", std::make_shared< Graph<NODE> >) \
+	.staticmethod("create") \
+	.def("__iter__", iterator< Graph<NODE> >()) \
+	.def("manages", &Graph<NODE>::manages) \
+	.def("size", &Graph<NODE>::size); \
+def("merge", &merge< Graph<NODE> >); \
+class_< LinkManager<NODE, typename NODE::input_type>, boost::noncopyable >("NODE ## _input_manager", no_init) \
+	.def("__iter__", iterator< LinkManager<NODE, typename NODE::input_type> >()) \
+	.def("__getitem__", &wrap_link_find< LinkManager<NODE, typename NODE::input_type> >::get, return_value_policy<return_by_value>()) \
+	.def("contains", &LinkManager<NODE, typename NODE::input_type>::contains) \
+	.def("size", &LinkManager<NODE, typename NODE::input_type>::size); \
+class_< LinkManager<NODE, typename NODE::output_type>, boost::noncopyable >("NODE ## _output_manager", no_init) \
+	.def("__iter__", iterator< LinkManager<NODE, typename NODE::output_type> >()) \
+	.def("__getitem__", &wrap_link_find< LinkManager<NODE, typename NODE::output_type> >::get, return_value_policy<return_by_value>()) \
+	.def("contains", &LinkManager<NODE, typename NODE::output_type>::contains) \
+	.def("size", &LinkManager<NODE, typename NODE::output_type>::size); \
+class_< NODE, boost::noncopyable >(#NODE, init<>()) \
+	.def( init< typename NODE::id_type >() ) \
+	.def( init< std::shared_ptr< Graph<NODE> > >() ) \
+	.def( init< std::shared_ptr< Graph<NODE> >, typename NODE::id_type >() ) \
+	.add_property("ID", &NODE::ID) \
+	.add_property("index", &NODE::get_index) \
+	.def("add_input", &wrap_input<NODE>::add) \
+	.def("remove_input", &wrap_input<NODE>::remove) \
+	.def("add_output", &wrap_output<NODE>::add) \
+	.def("remove_output", &wrap_output<NODE>::remove) \
+	.def("clear", &NODE::clear) \
+	.def("clear_inputs", &NODE::clear_inputs) \
+	.def("clear_outputs", &NODE::clear_outputs) \
+	.def("join_index", &NODE::join_index) \
+	.def("leave_index", &NODE::leave_index) \
+	.def_readonly("inputs", &NODE::inputs) \
+	.def_readonly("outputs", &NODE::outputs); }
+
 #endif
+
