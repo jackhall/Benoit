@@ -118,11 +118,11 @@ class_< PATH >(#PATH, init<const PATH&>()) \
 //the graph is missing associative access to managed nodes
 #define BENOIT_TRANSLATE_UNDIRECTEDNODE(NODE, GRAPH) { \
 class_< Graph<NODE>, boost::noncopyable, std::shared_ptr< Graph<NODE> > >(#GRAPH, no_init) \
-	 .def("create", std::make_shared< Graph<NODE> >) \
-	 .staticmethod("create") \
-	 .def("__iter__", iterator< Graph<NODE> >()) \
-	 .def("manages", &Graph<NODE>::manages) \
-	 .def("size", &Graph<NODE>::size); \
+	.def("create", std::make_shared< Graph<NODE> >) \
+	.staticmethod("create") \
+	.def("__iter__", iterator< Graph<NODE> >()) \
+	.def("manages", &Graph<NODE>::manages) \
+	.def("__len__", &Graph<NODE>::size); \
 def("merge", &merge< Graph<NODE> >); \
 class_< NODE, boost::noncopyable >(#NODE, init<>()) \
 	.def( init< typename NODE::id_type >() ) \
@@ -135,7 +135,7 @@ class_< NODE, boost::noncopyable >(#NODE, init<>()) \
 	.def("clear", &NODE::clear) \
 	.def("__iter__", iterator<NODE>()) \
 	.def("contains", &NODE::contains) \
-	.def("size", &NODE::size) \
+	.def("__len__", &NODE::size) \
 	.def("join_index", &NODE::join_index) \
 	.def("leave_index", &NODE::leave_index); }
 
@@ -162,18 +162,18 @@ class_< Graph<NODE>, boost::noncopyable, std::shared_ptr< Graph<NODE> > >(#GRAPH
 	.staticmethod("create") \
 	.def("__iter__", iterator< Graph<NODE> >()) \
 	.def("manages", &Graph<NODE>::manages) \
-	.def("size", &Graph<NODE>::size); \
+	.def("__len__", &Graph<NODE>::size); \
 def("merge", &merge< Graph<NODE> >); \
 class_< LinkManager<NODE, typename NODE::input_type>, boost::noncopyable >("NODE ## _input_manager", no_init) \
 	.def("__iter__", iterator< LinkManager<NODE, typename NODE::input_type> >()) \
 	.def("__getitem__", &wrap_link_find< LinkManager<NODE, typename NODE::input_type> >::get, return_value_policy<return_by_value>()) \
 	.def("contains", &LinkManager<NODE, typename NODE::input_type>::contains) \
-	.def("size", &LinkManager<NODE, typename NODE::input_type>::size); \
+	.def("__len__", &LinkManager<NODE, typename NODE::input_type>::size); \
 class_< LinkManager<NODE, typename NODE::output_type>, boost::noncopyable >("NODE ## _output_manager", no_init) \
 	.def("__iter__", iterator< LinkManager<NODE, typename NODE::output_type> >()) \
 	.def("__getitem__", &wrap_link_find< LinkManager<NODE, typename NODE::output_type> >::get, return_value_policy<return_by_value>()) \
 	.def("contains", &LinkManager<NODE, typename NODE::output_type>::contains) \
-	.def("size", &LinkManager<NODE, typename NODE::output_type>::size); \
+	.def("__len__", &LinkManager<NODE, typename NODE::output_type>::size); \
 class_< NODE, boost::noncopyable >(#NODE, init<>()) \
 	.def( init< typename NODE::id_type >() ) \
 	.def( init< std::shared_ptr< Graph<NODE> > >() ) \
