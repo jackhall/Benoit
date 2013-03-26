@@ -38,12 +38,7 @@ BOOST_PYTHON_MODULE(benpy) {
 	typedef stdUndirectedNode<value_type> undirected_node;
 	typedef undirected_node::link_type path;
 
-	typedef unsigned int id_type;
-
-	BENOIT_TRANSLATE_INPUTPORT(input_port)
-	BENOIT_TRANSLATE_OUTPUTPORT(output_port)
-
-	BENOIT_TRANSLATE_DIRECTEDNODE(message_node, message_graph)
+	BENOIT_EXPOSE_DIRECTEDGRAPH(input_port, output_port, message_node, message_graph)
 
 //	class_< undirected_graph, boost::noncopyable, std::shared_ptr<undirected_graph> >("undirected_graph", no_init) 
 //		.def("create", std::make_shared<undirected_graph>)
@@ -53,9 +48,7 @@ BOOST_PYTHON_MODULE(benpy) {
 //		.def("size", &undirected_graph::size);
 		//.def("__getitem__", &associative_access<undirected_graph>::get) //could use a helper struct for safety checks
 
-	BENOIT_TRANSLATE_PATH(path) //no semicolon!
-
-	BENOIT_TRANSLATE_UNDIRECTEDNODE(undirected_node, undirected_graph)
+	BENOIT_EXPOSE_UNDIRECTEDGRAPH(path, undirected_node, undirected_graph)
 
 } //BOOST_PYTHON_MODULE
 

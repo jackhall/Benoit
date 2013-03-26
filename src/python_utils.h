@@ -101,96 +101,97 @@ namespace ben {
 } //namespace ben
 
 
-//This macro expands a path type into a boost.python translation.
+//These macros expands a path type and names for node and graph into a boost.python translation.
 //Directions for this and the following macros:
-//TO USE: pass in type names for the appropriate arguments
+//TO USE: pass in type names for the appropriate arguments, and type-compatible strings for the rest
 //NOTE: use type names that also work as type names in python!
 //NOTE:these macros should all be used either inside the "ben" namespace or with 
 //a "using namespace ben;" active
 //NOTE:each use of each macro should be unique to avoid naming collisions
-#define BENOIT_TRANSLATE_PATH(PATH) { \
-class_< PATH >(#PATH, init<const PATH&>()) \
-	.add_property("value", &PATH::get_value, &PATH::set_value) \
-	.add_property("address", &path::get_address); }
-
 
 //macro for UndirectedNode, missing walk and find, including a corresponding graph
 //the graph is missing associative access to managed nodes
-#define BENOIT_TRANSLATE_UNDIRECTEDNODE(NODE, GRAPH) { \
-class_< Graph<NODE>, boost::noncopyable, std::shared_ptr< Graph<NODE> > >(#GRAPH, no_init) \
-	.def("create", std::make_shared< Graph<NODE> >) \
+#define BENOIT_EXPOSE_UNDIRECTEDGRAPH(PATH, NODE, GRAPH) { \
+class_< PATH >(#PATH, init<const PATH&>()) \
+	.add_property("value", &PATH::get_value, &PATH::set_value) \
+	.add_property("address", &path::get_address); \
+class_< Graph< UndirectedNode<PATH> >, boost::noncopyable, std::shared_ptr< Graph< UndirectedNode<PATH> > > >(#GRAPH, no_init) \
+	.def("create", std::make_shared< Graph< UndirectedNode<PATH> > >) \
 	.staticmethod("create") \
-	.def("__iter__", iterator< Graph<NODE> >()) \
-	.def("manages", &Graph<NODE>::manages) \
-	.def("__len__", &Graph<NODE>::size); \
-def("merge", &merge< Graph<NODE> >); \
-class_< NODE, boost::noncopyable >(#NODE, init<>()) \
-	.def( init< typename NODE::id_type >() ) \
-	.def( init< std::shared_ptr< Graph<NODE> > >() ) \
-	.def( init< std::shared_ptr< Graph<NODE> >, typename NODE::id_type >() ) \
-	.add_property("ID", &NODE::ID) \
-	.add_property("index", &NODE::get_index) \
-	.def("add", &wrap_links<NODE>::add) \
-	.def("remove", &wrap_links<NODE>::remove) \
-	.def("clear", &NODE::clear) \
-	.def("__iter__", iterator<NODE>()) \
-	.def("contains", &NODE::contains) \
-	.def("__len__", &NODE::size) \
-	.def("join_index", &NODE::join_index) \
-	.def("leave_index", &NODE::leave_index); }
-
-
-//macros for input and output ports for message_nodes
-#define BENOIT_TRANSLATE_INPUTPORT(PORT) { \
-class_< PORT >(#PORT, init<const PORT&>()) \
-	.add_property("address", &PORT::get_address) \
-	.add_property("ready", &PORT::is_ready) \
-	.def("pull", &PORT::pull); }
-
-#define BENOIT_TRANSLATE_OUTPUTPORT(PORT) { \
-class_< PORT >(#PORT, init<const PORT&>()) \
-	.add_property("address", &PORT::get_address) \
-	.add_property("ready", &PORT::is_ready) \
-	.def("push", &PORT::push); }
+	.def("__iter__", iterator< Graph< UndirectedNode<PATH> > >()) \
+	.def("manages", &Graph< UndirectedNode<PATH> >::manages) \
+	.def("__len__", &Graph< UndirectedNode<PATH> >::size); \
+def("merge", &merge< Graph< UndirectedNode<PATH> > >); \
+class_< UndirectedNode<PATH>, boost::noncopyable >(#NODE, init<>()) \
+	.def( init< typename UndirectedNode<PATH>::id_type >() ) \
+	.def( init< std::shared_ptr< Graph< UndirectedNode<PATH> > > >() ) \
+	.def( init< std::shared_ptr< Graph< UndirectedNode<PATH> > >, typename UndirectedNode<PATH>::id_type >() ) \
+	.add_property("ID", &UndirectedNode<PATH>::ID) \
+	.def("is_managed", &UndirectedNode<PATH>::is_managed) \
+	.add_property("index", &UndirectedNode<PATH>::get_index) \
+	.def("add", &wrap_links<UndirectedNode<PATH>>::add) \
+	.def("remove", &wrap_links<UndirectedNode<PATH>>::remove) \
+	.def("clear", &UndirectedNode<PATH>::clear) \
+	.def("__iter__", iterator<UndirectedNode<PATH>>()) \
+	.def("contains", &UndirectedNode<PATH>::contains) \
+	.def("__len__", &UndirectedNode<PATH>::size) \
+	.def("join_index", &UndirectedNode<PATH>::join_index) \
+	.def("leave_index", &UndirectedNode<PATH>::leave_index); }
 
 
 //macro for DirectedNode and a corresponding graph, missing walk and find methods
 //the graph is missing associative access to managed nodes
-#define BENOIT_TRANSLATE_DIRECTEDNODE(NODE, GRAPH) { \
-class_< Graph<NODE>, boost::noncopyable, std::shared_ptr< Graph<NODE> > >(#GRAPH, no_init) \
-	.def("create", std::make_shared< Graph<NODE> >) \
+#define BENOIT_EXPOSE_DIRECTEDGRAPH(INPUT, OUTPUT, NODE, GRAPH) { \
+class_< INPUT >(#INPUT, init<const INPUT&>()) \
+	.add_property("address", &INPUT::get_address) \
+	.add_property("ready", &INPUT::is_ready) \
+	.def("pull", &INPUT::pull); \
+class_< OUTPUT >(#OUTPUT, init<const OUTPUT&>()) \
+	.add_property("address", &OUTPUT::get_address) \
+	.add_property("ready", &OUTPUT::is_ready) \
+	.def("push", &OUTPUT::push); \
+class_< Graph< DirectedNode<INPUT, OUTPUT> >, boost::noncopyable, std::shared_ptr< Graph< DirectedNode<INPUT, OUTPUT> > > >(#GRAPH, no_init) \
+	.def("create", std::make_shared< Graph< DirectedNode<INPUT, OUTPUT> > >) \
 	.staticmethod("create") \
-	.def("__iter__", iterator< Graph<NODE> >()) \
-	.def("manages", &Graph<NODE>::manages) \
-	.def("__len__", &Graph<NODE>::size); \
-def("merge", &merge< Graph<NODE> >); \
-class_< LinkManager<NODE, typename NODE::input_type>, boost::noncopyable >("NODE ## _input_manager", no_init) \
-	.def("__iter__", iterator< LinkManager<NODE, typename NODE::input_type> >()) \
-	.def("__getitem__", &wrap_link_find< LinkManager<NODE, typename NODE::input_type> >::get, return_value_policy<return_by_value>()) \
-	.def("contains", &LinkManager<NODE, typename NODE::input_type>::contains) \
-	.def("__len__", &LinkManager<NODE, typename NODE::input_type>::size); \
-class_< LinkManager<NODE, typename NODE::output_type>, boost::noncopyable >("NODE ## _output_manager", no_init) \
-	.def("__iter__", iterator< LinkManager<NODE, typename NODE::output_type> >()) \
-	.def("__getitem__", &wrap_link_find< LinkManager<NODE, typename NODE::output_type> >::get, return_value_policy<return_by_value>()) \
-	.def("contains", &LinkManager<NODE, typename NODE::output_type>::contains) \
-	.def("__len__", &LinkManager<NODE, typename NODE::output_type>::size); \
-class_< NODE, boost::noncopyable >(#NODE, init<>()) \
-	.def( init< typename NODE::id_type >() ) \
-	.def( init< std::shared_ptr< Graph<NODE> > >() ) \
-	.def( init< std::shared_ptr< Graph<NODE> >, typename NODE::id_type >() ) \
-	.add_property("ID", &NODE::ID) \
-	.add_property("index", &NODE::get_index) \
-	.def("add_input", &wrap_input<NODE>::add) \
-	.def("remove_input", &wrap_input<NODE>::remove) \
-	.def("add_output", &wrap_output<NODE>::add) \
-	.def("remove_output", &wrap_output<NODE>::remove) \
-	.def("clear", &NODE::clear) \
-	.def("clear_inputs", &NODE::clear_inputs) \
-	.def("clear_outputs", &NODE::clear_outputs) \
-	.def("join_index", &NODE::join_index) \
-	.def("leave_index", &NODE::leave_index) \
-	.def_readonly("inputs", &NODE::inputs) \
-	.def_readonly("outputs", &NODE::outputs); }
+	.def("__iter__", iterator< Graph< DirectedNode<INPUT, OUTPUT> > >()) \
+	.def("manages", &Graph< DirectedNode<INPUT, OUTPUT> >::manages) \
+	.def("__len__", &Graph< DirectedNode<INPUT, OUTPUT> >::size); \
+def("merge", &merge< Graph< DirectedNode<INPUT, OUTPUT> > >); \
+class_< LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT>, boost::noncopyable >("NODE ## _input_manager", no_init) \
+	.def("__iter__", iterator< LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT> >()) \
+	.def("__getitem__", &wrap_link_find< LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT> >::get, return_value_policy<return_by_value>()) \
+	.def("contains", &LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT>::contains) \
+	.def("__len__", &LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT>::size); \
+class_< LinkManager<DirectedNode<INPUT, OUTPUT>, OUTPUT>, boost::noncopyable >("NODE ## _output_manager", no_init) \
+	.def("__iter__", iterator< LinkManager<DirectedNode<INPUT, OUTPUT>, OUTPUT> >()) \
+	.def("__getitem__", &wrap_link_find< LinkManager<DirectedNode<INPUT, OUTPUT>, OUTPUT> >::get, return_value_policy<return_by_value>()) \
+	.def("contains", &LinkManager<DirectedNode<INPUT, OUTPUT>, OUTPUT>::contains) \
+	.def("__len__", &LinkManager<DirectedNode<INPUT, OUTPUT>, OUTPUT>::size); \
+class_< DirectedNode<INPUT, OUTPUT>, boost::noncopyable >(#NODE, init<>()) \
+	.def( init< typename DirectedNode<INPUT, OUTPUT>::id_type >() ) \
+	.def( init< std::shared_ptr< Graph< DirectedNode<INPUT, OUTPUT> > > >() ) \
+	.def( init< std::shared_ptr< Graph< DirectedNode<INPUT, OUTPUT> > >, typename DirectedNode<INPUT, OUTPUT>::id_type >() ) \
+	.add_property("ID", &DirectedNode<INPUT, OUTPUT>::ID) \
+	.def("is_managed", &DirectedNode<INPUT, OUTPUT>::is_managed) \
+	.add_property("index", &DirectedNode<INPUT, OUTPUT>::get_index) \
+	.def("add_input", &wrap_input<DirectedNode<INPUT, OUTPUT>>::add) \
+	.def("remove_input", &wrap_input<DirectedNode<INPUT, OUTPUT>>::remove) \
+	.def("add_output", &wrap_output<DirectedNode<INPUT, OUTPUT>>::add) \
+	.def("remove_output", &wrap_output<DirectedNode<INPUT, OUTPUT>>::remove) \
+	.def("clear", &DirectedNode<INPUT, OUTPUT>::clear) \
+	.def("clear_inputs", &DirectedNode<INPUT, OUTPUT>::clear_inputs) \
+	.def("clear_outputs", &DirectedNode<INPUT, OUTPUT>::clear_outputs) \
+	.def("join_index", &DirectedNode<INPUT, OUTPUT>::join_index) \
+	.def("leave_index", &DirectedNode<INPUT, OUTPUT>::leave_index) \
+	.def_readonly("inputs", &DirectedNode<INPUT, OUTPUT>::inputs) \
+	.def_readonly("outputs", &DirectedNode<INPUT, OUTPUT>::outputs); }
+
+//issues with python version: 
+//	graph == node.index is not true if graph.manages(node.ID) is true
+//		(and node.index == node.index is not true either)
+//	graph iterators don't work, probably because they require node copying
+//	message_node.add_input sometimes fails for no discernible reason
+//	python interpreter sometimes segfaults on exit
 
 #endif
 
