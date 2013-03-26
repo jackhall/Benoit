@@ -97,6 +97,19 @@ namespace ben {
 
 	template<typename N>
 	using wrap_links = wrap_link_helper<N, typename N::link_type::construction_types>;
+
+	
+	//compare operators for graph
+	template<typename T>
+	struct wrap_compare {
+		static bool equal(T& x, T& y) {
+			return &x == &y;
+		}
+
+		static bool not_equal(T& x, T& y) {
+			return &x != &y;
+		}
+	};
 	
 } //namespace ben
 
@@ -118,7 +131,8 @@ class_< PATH >(#PATH, init<const PATH&>()) \
 class_< Graph< UndirectedNode<PATH> >, boost::noncopyable, std::shared_ptr< Graph< UndirectedNode<PATH> > > >(#GRAPH, no_init) \
 	.def("create", std::make_shared< Graph< UndirectedNode<PATH> > >) \
 	.staticmethod("create") \
-	.def("__iter__", iterator< Graph< UndirectedNode<PATH> > >()) \
+	.def("__eq__", &wrap_compare< Graph< UndirectedNode<PATH> > >::equal) \
+	.def("__ne__", &wrap_compare< Graph< UndirectedNode<PATH> > >::not_equal) \
 	.def("manages", &Graph< UndirectedNode<PATH> >::manages) \
 	.def("__len__", &Graph< UndirectedNode<PATH> >::size); \
 def("merge", &merge< Graph< UndirectedNode<PATH> > >); \
@@ -138,6 +152,8 @@ class_< UndirectedNode<PATH>, boost::noncopyable >(#NODE, init<>()) \
 	.def("join_index", &UndirectedNode<PATH>::join_index) \
 	.def("leave_index", &UndirectedNode<PATH>::leave_index); }
 
+//GRAPH.def("__iter__", iterator< Graph< UndirectedNode<PATH> > >()) \
+
 
 //macro for DirectedNode and a corresponding graph, missing walk and find methods
 //the graph is missing associative access to managed nodes
@@ -153,7 +169,8 @@ class_< OUTPUT >(#OUTPUT, init<const OUTPUT&>()) \
 class_< Graph< DirectedNode<INPUT, OUTPUT> >, boost::noncopyable, std::shared_ptr< Graph< DirectedNode<INPUT, OUTPUT> > > >(#GRAPH, no_init) \
 	.def("create", std::make_shared< Graph< DirectedNode<INPUT, OUTPUT> > >) \
 	.staticmethod("create") \
-	.def("__iter__", iterator< Graph< DirectedNode<INPUT, OUTPUT> > >()) \
+	.def("__eq__", &wrap_compare< Graph< DirectedNode<INPUT, OUTPUT> > >::equal) \
+	.def("__ne__", &wrap_compare< Graph< DirectedNode<INPUT, OUTPUT> > >::not_equal) \
 	.def("manages", &Graph< DirectedNode<INPUT, OUTPUT> >::manages) \
 	.def("__len__", &Graph< DirectedNode<INPUT, OUTPUT> >::size); \
 def("merge", &merge< Graph< DirectedNode<INPUT, OUTPUT> > >); \
@@ -186,12 +203,12 @@ class_< DirectedNode<INPUT, OUTPUT>, boost::noncopyable >(#NODE, init<>()) \
 	.def_readonly("inputs", &DirectedNode<INPUT, OUTPUT>::inputs) \
 	.def_readonly("outputs", &DirectedNode<INPUT, OUTPUT>::outputs); }
 
+//GRAPH.def("__iter__", iterator< Graph< DirectedNode<INPUT, OUTPUT> > >()) \
+
 //issues with python version: 
-//	graph == node.index is not true if graph.manages(node.ID) is true
-//		(and node.index == node.index is not true either)
 //	graph iterators don't work, probably because they require node copying
-//	message_node.add_input sometimes fails for no discernible reason
-//	python interpreter sometimes segfaults on exit
+//	message_node.add_input sometimes fails for no discernible reason(? might be fixed)
+//	python interpreter sometimes segfaults on exit(? might be fixed)
 
 #endif
 

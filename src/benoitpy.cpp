@@ -30,13 +30,17 @@ BOOST_PYTHON_MODULE(benpy) {
 	using namespace ben;
 	
 	typedef double 	signal_type;
-	typedef stdMessageNode<signal_type> message_node;
-	typedef message_node::input_type input_port;
-	typedef message_node::output_type output_port;
+	//typedef stdMessageNode<signal_type> message_node;
+	//typedef message_node::input_type input_port;
+	//typedef message_node::output_type output_port;
+	typedef Buffer<signal_type, 1> buffer;
+	typedef InPort<buffer> input_port;
+	typedef OutPort<buffer> output_port;
 
 	typedef int value_type;
-	typedef stdUndirectedNode<value_type> undirected_node;
-	typedef undirected_node::link_type path;
+	//typedef stdUndirectedNode<value_type> undirected_node;
+	//typedef undirected_node::link_type path;
+	typedef Path<value_type> path;
 
 	BENOIT_EXPOSE_DIRECTEDGRAPH(input_port, output_port, message_node, message_graph)
 
