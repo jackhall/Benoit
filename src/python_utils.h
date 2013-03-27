@@ -2,6 +2,8 @@
 #define python_utils_h
 
 #include <memory>
+#include <string>
+#include <sstream>
 //because these definitions in the boost namespace need to be included before boost/python.hpp,
 //this file should be included in lieu of boost/python.hpp
 namespace boost {
@@ -110,6 +112,19 @@ namespace ben {
 			return &x != &y;
 		}
 	};
+
+	//print operator
+	//template<typename... ARGS>
+	//struct wrap_print {};
+
+	//template<typename... ARGS>
+	//struct wrap_print< Path<ARGS> > {
+	//	static std::string call(Path<ARGS>& x) {
+	//		std::ostringstream convert;
+	//		convert << "ID = " << x.get_address() << "value = " << x.get_value() << std::endl;
+	//		return convert.str();
+	//	}
+	//};
 	
 } //namespace ben
 
@@ -131,8 +146,7 @@ class_< PATH >(#PATH, init<const PATH&>()) \
 	.add_property("value", &PATH::get_value, &PATH::set_value) \
 	.add_property("address", &path::get_address); \
 class_< Graph< UndirectedNode<PATH> >, boost::noncopyable, std::shared_ptr< Graph< UndirectedNode<PATH> > > >(#GRAPH, no_init) \
-	.def("create", std::make_shared< Graph< UndirectedNode<PATH> > >) \
-	.staticmethod("create") \
+	.def("__init__", make_constructor(std::make_shared< Graph< UndirectedNode<PATH> > >)) \
 	.def("__eq__", &wrap_compare< Graph< UndirectedNode<PATH> > >::equal) \
 	.def("__ne__", &wrap_compare< Graph< UndirectedNode<PATH> > >::not_equal) \
 	.def("manages", &Graph< UndirectedNode<PATH> >::manages) \
@@ -175,8 +189,7 @@ class_< OUTPUT >(#OUTPUT, init<const OUTPUT&>()) \
 	.add_property("ready", &OUTPUT::is_ready) \
 	.def("push", &OUTPUT::push); \
 class_< Graph< DirectedNode<INPUT, OUTPUT> >, boost::noncopyable, std::shared_ptr< Graph< DirectedNode<INPUT, OUTPUT> > > >(#GRAPH, no_init) \
-	.def("create", std::make_shared< Graph< DirectedNode<INPUT, OUTPUT> > >) \
-	.staticmethod("create") \
+	.def("__init__", make_constructor(std::make_shared< Graph< DirectedNode<INPUT, OUTPUT> > >)) \
 	.def("__eq__", &wrap_compare< Graph< DirectedNode<INPUT, OUTPUT> > >::equal) \
 	.def("__ne__", &wrap_compare< Graph< DirectedNode<INPUT, OUTPUT> > >::not_equal) \
 	.def("manages", &Graph< DirectedNode<INPUT, OUTPUT> >::manages) \

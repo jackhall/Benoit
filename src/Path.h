@@ -21,6 +21,7 @@
     e-mail: jackwhall7@gmail.com
 */
 
+#include <iostream>
 #include <memory>
 #include <atomic>
 #include "LinkManager.h"
@@ -32,6 +33,7 @@ namespace ben {
 	//untested
 	template<typename V> bool operator==(const Path<V>& lhs, const Path<V>& rhs);
 	template<typename V> bool operator!=(const Path<V>& lhs, const Path<V>& rhs);
+	//template<typename V> std::ostream& operator<<(std::ostream& out, const Path<V>& rhs);
 
 	template<typename V>
 	class Path {
@@ -59,6 +61,7 @@ namespace ben {
 
 		friend bool operator==<V>(const self_type& lhs, const self_type& rhs);
 		friend bool operator!=<V>(const self_type& lhs, const self_type& rhs);
+		//friend std::ostream& operator<< <V>(std::ostream& out, const self_type& rhs);
 
 	public:
 		Path() = delete;
@@ -93,6 +96,11 @@ namespace ben {
 	bool operator==(const Path<V>& lhs, const Path<V>& rhs) { return lhs.value_ptr == rhs.value_ptr; }
 	template<typename V>
 	bool operator!=(const Path<V>& lhs, const Path<V>& rhs) { return !operator==(lhs, rhs); }	
+	//template<typename V> 
+	//std::ostream& operator<<(std::ostream& out, const Path<V>& rhs) {
+	//	out << "ID = " << rhs.get_address() << ", value = " << rhs.get_value() << std::endl;
+	//	return out;
+	//}
 
 }; //namespace ben
 
