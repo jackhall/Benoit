@@ -77,7 +77,7 @@ namespace ben {
 		bool is_ready() const { return data.load().ready; }
 		bool push(const signal_type& signal) { //returns true if an unread signal is overwritten
 			auto temp = data.exchange(frame_type{true, signal});
-			return temp.ready;
+			return !temp.ready;
 		}
 		
 		signal_type pull() { 
@@ -124,7 +124,7 @@ namespace ben {
 			buffer[index++] = frame_type{true, signal};
 			if(index == B-1) index = 0; //index needs to cycle (buffer is circular)
 			if(temp.ready) return next.push(temp.data);
-			else return false;
+			else return true;
 		}
 		
 		signal_type pull() { return next.pull(); }
@@ -158,7 +158,7 @@ namespace ben {
 			auto temp = buffer;
 			buffer = frame_type{true, signal};
 			if(temp.ready) return next.push(temp.data);
-			else return false; 
+			else return true; 
 		}
 		
 		signal_type pull() { return next.pull(); }

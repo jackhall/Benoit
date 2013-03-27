@@ -126,6 +126,8 @@ namespace ben {
 //the graph is missing associative access to managed nodes
 #define BENOIT_EXPOSE_UNDIRECTEDGRAPH(PATH, NODE, GRAPH) { \
 class_< PATH >(#PATH, init<const PATH&>()) \
+	.def( self==self ) \
+	.def( self!=self ) \
 	.add_property("value", &PATH::get_value, &PATH::set_value) \
 	.add_property("address", &path::get_address); \
 class_< Graph< UndirectedNode<PATH> >, boost::noncopyable, std::shared_ptr< Graph< UndirectedNode<PATH> > > >(#GRAPH, no_init) \
@@ -140,6 +142,8 @@ class_< UndirectedNode<PATH>, boost::noncopyable >(#NODE, init<>()) \
 	.def( init< typename UndirectedNode<PATH>::id_type >() ) \
 	.def( init< std::shared_ptr< Graph< UndirectedNode<PATH> > > >() ) \
 	.def( init< std::shared_ptr< Graph< UndirectedNode<PATH> > >, typename UndirectedNode<PATH>::id_type >() ) \
+	.def("__eq__", &wrap_compare< UndirectedNode<PATH> >::equal) \
+	.def("__ne__", &wrap_compare< UndirectedNode<PATH> >::not_equal) \
 	.add_property("ID", &UndirectedNode<PATH>::ID) \
 	.def("is_managed", &UndirectedNode<PATH>::is_managed) \
 	.add_property("index", &UndirectedNode<PATH>::get_index) \
@@ -159,10 +163,14 @@ class_< UndirectedNode<PATH>, boost::noncopyable >(#NODE, init<>()) \
 //the graph is missing associative access to managed nodes
 #define BENOIT_EXPOSE_DIRECTEDGRAPH(INPUT, OUTPUT, NODE, GRAPH) { \
 class_< INPUT >(#INPUT, init<const INPUT&>()) \
+	.def( self==self ) \
+	.def( self!=self ) \
 	.add_property("address", &INPUT::get_address) \
 	.add_property("ready", &INPUT::is_ready) \
 	.def("pull", &INPUT::pull); \
 class_< OUTPUT >(#OUTPUT, init<const OUTPUT&>()) \
+	.def( self==self ) \
+	.def( self!=self ) \
 	.add_property("address", &OUTPUT::get_address) \
 	.add_property("ready", &OUTPUT::is_ready) \
 	.def("push", &OUTPUT::push); \
@@ -175,11 +183,15 @@ class_< Graph< DirectedNode<INPUT, OUTPUT> >, boost::noncopyable, std::shared_pt
 	.def("__len__", &Graph< DirectedNode<INPUT, OUTPUT> >::size); \
 def("merge", &merge< Graph< DirectedNode<INPUT, OUTPUT> > >); \
 class_< LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT>, boost::noncopyable >("NODE ## _input_manager", no_init) \
+	.def("__eq__", &wrap_compare< LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT> >::equal) \
+	.def("__ne__", &wrap_compare< LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT> >::not_equal) \
 	.def("__iter__", iterator< LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT> >()) \
 	.def("__getitem__", &wrap_link_find< LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT> >::get, return_value_policy<return_by_value>()) \
 	.def("contains", &LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT>::contains) \
 	.def("__len__", &LinkManager<DirectedNode<INPUT, OUTPUT>, INPUT>::size); \
 class_< LinkManager<DirectedNode<INPUT, OUTPUT>, OUTPUT>, boost::noncopyable >("NODE ## _output_manager", no_init) \
+	.def("__eq__", &wrap_compare< LinkManager<DirectedNode<INPUT, OUTPUT>, OUTPUT> >::equal) \
+	.def("__ne__", &wrap_compare< LinkManager<DirectedNode<INPUT, OUTPUT>, OUTPUT> >::not_equal) \
 	.def("__iter__", iterator< LinkManager<DirectedNode<INPUT, OUTPUT>, OUTPUT> >()) \
 	.def("__getitem__", &wrap_link_find< LinkManager<DirectedNode<INPUT, OUTPUT>, OUTPUT> >::get, return_value_policy<return_by_value>()) \
 	.def("contains", &LinkManager<DirectedNode<INPUT, OUTPUT>, OUTPUT>::contains) \
@@ -188,6 +200,8 @@ class_< DirectedNode<INPUT, OUTPUT>, boost::noncopyable >(#NODE, init<>()) \
 	.def( init< typename DirectedNode<INPUT, OUTPUT>::id_type >() ) \
 	.def( init< std::shared_ptr< Graph< DirectedNode<INPUT, OUTPUT> > > >() ) \
 	.def( init< std::shared_ptr< Graph< DirectedNode<INPUT, OUTPUT> > >, typename DirectedNode<INPUT, OUTPUT>::id_type >() ) \
+	.def("__eq__", &wrap_compare< DirectedNode<INPUT, OUTPUT> >::equal) \
+	.def("__ne__", &wrap_compare< DirectedNode<INPUT, OUTPUT> >::not_equal) \
 	.add_property("ID", &DirectedNode<INPUT, OUTPUT>::ID) \
 	.def("is_managed", &DirectedNode<INPUT, OUTPUT>::is_managed) \
 	.add_property("index", &DirectedNode<INPUT, OUTPUT>::get_index) \
@@ -206,7 +220,7 @@ class_< DirectedNode<INPUT, OUTPUT>, boost::noncopyable >(#NODE, init<>()) \
 //GRAPH.def("__iter__", iterator< Graph< DirectedNode<INPUT, OUTPUT> > >()) \
 
 //issues with python version: 
-//	graph iterators don't work, probably because they require node copying
+//	graph iterators don't work, probably because they require node copying (removed)
 //	message_node.add_input sometimes fails for no discernible reason(? might be fixed)
 //	python interpreter sometimes segfaults on exit(? might be fixed)
 

@@ -75,9 +75,15 @@ namespace ben {
 		bool is_ready() const { return buffer_ptr->is_ready(); }
 		bool is_ghost() const { return buffer_ptr.use_count() < 2; } //necessary but not sufficient for ghost :(
 	}; //class Port
-	
 
+	template<typename B> class InPort;
 	template<typename B> class OutPort; //forward declaration to resolve circular typedefs
+
+	//untested
+	template<typename B> bool operator==(const InPort<B>& lhs, const InPort<B>& rhs);
+	template<typename B> bool operator!=(const InPort<B>& lhs, const InPort<B>& rhs);
+	template<typename B> bool operator==(const OutPort<B>& lhs, const OutPort<B>& rhs);
+	template<typename B> bool operator!=(const OutPort<B>& lhs, const OutPort<B>& rhs);
 
 	template<typename B>
 	class InPort : public Port<B> {
@@ -89,6 +95,9 @@ namespace ben {
 		using base_type::buffer_ptr;
 		
 		typename base_type::id_type sourceID;
+
+		friend bool operator==<B>(const self_type& lhs, const self_type& rhs);
+		friend bool operator!=<B>(const self_type& lhs, const self_type& rhs);
 
 	public:
 		//carrying these typedefs through inheritance is automatic only for non-template classes
@@ -139,6 +148,9 @@ namespace ben {
 		
 		typename base_type::id_type targetID;
 
+		friend bool operator==<B>(const self_type& lhs, const self_type& rhs);
+		friend bool operator!=<B>(const self_type& lhs, const self_type& rhs);
+
 	public:
 		typedef typename base_type::construction_types construction_types;
 		typedef typename base_type::id_type id_type;
@@ -174,6 +186,15 @@ namespace ben {
 		id_type get_address() const { return targetID; }
 		bool push(const signal_type& signal) { return buffer_ptr->push(signal); } //take another look at const requirements
 	}; //struct OutPort
+
+	template<typename B>
+	bool operator==(const InPort<B>& lhs, const InPort<B>& rhs) { return lhs.buffer_ptr == rhs.buffer_ptr; }
+	template<typename B>
+	bool operator!=(const InPort<B>& lhs, const InPort<B>& rhs) { return !operator==(lhs, rhs); }	
+	template<typename B>
+	bool operator==(const OutPort<B>& lhs, const OutPort<B>& rhs) { return lhs.buffer_ptr == rhs.buffer_ptr; }
+	template<typename B>
+	bool operator!=(const OutPort<B>& lhs, const OutPort<B>& rhs) { return !operator==(lhs, rhs); }	
 
 } //namespace ben
 

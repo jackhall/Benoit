@@ -49,7 +49,7 @@ namespace {
 			EXPECT_FALSE(link.is_ready());
 			PrepareSignals(N);
 			for(auto x : signals) 
-				EXPECT_FALSE(link.push(x)); 
+				EXPECT_TRUE(link.push(x)); 
 			EXPECT_TRUE(link.is_ready());
 			EXPECT_EQ(signals.front(), link.pull());
 			EXPECT_FALSE(link.is_ready());
@@ -57,16 +57,16 @@ namespace {
 			if(N>1) { 
 				std::vector<double> old_signals(std::move(signals));
 				PrepareSignals(3);
-				EXPECT_FALSE(link.push(signals[0]));
+				EXPECT_TRUE(link.push(signals[0]));
 				EXPECT_TRUE(link.is_ready());
-				EXPECT_TRUE(link.push(signals[1]));
+				EXPECT_FALSE(link.push(signals[1]));
 				EXPECT_TRUE(link.is_ready());
 				if(N < 4)
 					EXPECT_EQ(signals[0], link.pull());
 				else 
 					EXPECT_EQ(old_signals[2], link.pull());
 				EXPECT_FALSE(link.is_ready());
-				EXPECT_FALSE(link.push(signals[2]));
+				EXPECT_TRUE(link.push(signals[2]));
 				EXPECT_TRUE(link.is_ready());
 				if(N < 4)
 					EXPECT_EQ(signals[1], link.pull());
@@ -78,7 +78,7 @@ namespace {
 				PrepareSignals(3*N);
 				for(int i = 0; i<signals.size(); ++i) {
 					if(i >= N) EXPECT_EQ(signals[i-N], link.pull());
-					EXPECT_FALSE(link.push(signals[i]));
+					EXPECT_TRUE(link.push(signals[i]));
 				}
 			}
 			link.flush();
@@ -97,10 +97,17 @@ namespace {
 		Buffer<double, 2> link2;
 		Buffer<double, 4> link4;
 		
-		//Buffer
-		TestBuffer<1>(link1); 
-		TestBuffer<2>(link2);
-		TestBuffer<4>(link4);
+		//Buffer 
+		{
+			SCOPED_TRACE("Buffer length = 1");
+			TestBuffer<1>(link1); 
+		} {
+			SCOPED_TRACE("Buffer length = 2");
+			TestBuffer<2>(link2);
+		} {
+			SCOPED_TRACE("Buffer length = 4");
+			TestBuffer<4>(link4);
+		}
 	}
 
 
@@ -208,11 +215,11 @@ namespace {
 		double signal1(1.23), signal2(4.56), signal3(7.89);
 
 		EXPECT_FALSE(input_port.is_ready());
-		EXPECT_FALSE(output_port.push(signal1));
+		EXPECT_TRUE(output_port.push(signal1));
 		EXPECT_FALSE(input_port.is_ready());
-		EXPECT_FALSE(output_port.push(signal2));
+		EXPECT_TRUE(output_port.push(signal2));
 		EXPECT_TRUE(input_port.is_ready());
-		EXPECT_TRUE(output_port.push(signal3));
+		EXPECT_FALSE(output_port.push(signal3));
 		EXPECT_TRUE(input_port.is_ready());
 		EXPECT_EQ(signal2, input_port.pull());
 		EXPECT_EQ(0, input_port.pull());

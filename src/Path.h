@@ -27,6 +27,12 @@
 
 namespace ben {
 
+	template<typename V> class Path;
+
+	//untested
+	template<typename V> bool operator==(const Path<V>& lhs, const Path<V>& rhs);
+	template<typename V> bool operator!=(const Path<V>& lhs, const Path<V>& rhs);
+
 	template<typename V>
 	class Path {
 /* Value-storing counterpart to Ports. Directionality is given only by the Node-level interface.
@@ -50,6 +56,9 @@ namespace ben {
 		typedef Path self_type;
 		id_type otherID;
 		std::shared_ptr< std::atomic<value_type> > value_ptr;
+
+		friend bool operator==<V>(const self_type& lhs, const self_type& rhs);
+		friend bool operator!=<V>(const self_type& lhs, const self_type& rhs);
 
 	public:
 		Path() = delete;
@@ -79,6 +88,11 @@ namespace ben {
 		value_type get_value() const { return value_ptr->load(); }
 		void set_value(const value_type& v) { value_ptr->store(v); }
 	}; //class Path
+
+	template<typename V>
+	bool operator==(const Path<V>& lhs, const Path<V>& rhs) { return lhs.value_ptr == rhs.value_ptr; }
+	template<typename V>
+	bool operator!=(const Path<V>& lhs, const Path<V>& rhs) { return !operator==(lhs, rhs); }	
 
 }; //namespace ben
 
