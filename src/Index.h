@@ -74,9 +74,8 @@ namespace ben {
 		Index(self_type&& rhs) = delete;
 		Index& operator=(self_type&& rhs) = delete;
 	
-		//constness of this pointer preventing creation of nonconst iterator	
 		iterator find(const id_type address) const { 
-		//this const cast is ok because Index does not own the Singletons is manages
+		//this is ok as const because Index does not own the Singletons is manages
 			return iterator( index.find(address) ); 
 		}
 		singleton_type& elem(const id_type address) const {

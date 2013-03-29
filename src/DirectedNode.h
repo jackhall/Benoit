@@ -76,6 +76,9 @@ namespace ben {
 		void perform_leave() { clear(); }
 		
 	public:
+		//although these are public, do not count on the type staying the same, just that there
+		//exist "inputs" and "outputs" data members providing observer functions
+		//with auto keyword, knowing the type should never be necessary
 		LinkManager<self_type, input_type> inputs; //interface for LinkManagers is now restricted
 		LinkManager<self_type, output_type> outputs;
 
@@ -107,23 +110,31 @@ namespace ben {
 		std::shared_ptr<index_type> get_index() const 
 			{ return std::static_pointer_cast<index_type>(base_type::get_index()); }
 
-		input_iterator find_input(const id_type address) { return inputs.find(address); }
-		const_input_iterator find_input(const id_type address) const { return inputs.find(address); }
-		output_iterator find_output(const id_type address) { return outputs.find(address); }
-		const_output_iterator find_output(const id_type address) const { return outputs.find(address); }
+		//input_iterator find_input(const id_type address) { return inputs.find(address); }
+		//const_input_iterator find_input(const id_type address) const { return inputs.find(address); }
+		//output_iterator find_output(const id_type address) { return outputs.find(address); }
+		//const_output_iterator find_output(const id_type address) const { return outputs.find(address); }
 	
 		template<typename... ARGS>	
 		bool add_input(const id_type address, ARGS... args) {
 			//the type safety for this function comes in LinkManager::add
-			if( get_index()->manages(address) ) {
-				return inputs.add(get_index()->elem(address).outputs, args...);
-			} else return false;
+			auto iter = get_index()->find(address);
+			if( iter == get_index()->end() ) return false;
+			else return inputs.add(iter->outputs, args...);
+
+			//if( get_index()->manages(address) ) {
+			//	return inputs.add(get_index()->elem(address).outputs, args...);
+			//} else return false;
 		}
 		template<typename... ARGS>
 		bool add_output(const id_type address, ARGS... args) {//see add_input
-			if( get_index()->manages(address) ) {
-				return outputs.add(get_index()->elem(address).inputs, args...);
-			} else return false;
+			auto iter = get_index()->find(address);
+			if( iter == get_index()->end() ) return false;
+			else return outputs.add(iter->inputs, args...);
+
+			//if( get_index()->manages(address) ) {
+			//	return outputs.add(get_index()->elem(address).inputs, args...);
+			//} else return false;
 		}
 		//cloning DirectedNodes is not well-defined for all cases without allowing redundant links 
 		/*bool clone_links(const self_type& other) {
@@ -187,9 +198,9 @@ namespace ben {
 
 				//take care of links between this and other, which would ordinarily
 				//be deleted before the mirror operation
-				auto input_iter = find_input(ID());
-				auto output_iter = find_output(ID());
-				if(input_iter != iend() and output_iter != oend()) {
+				auto input_iter = inputs.find(ID());
+				auto output_iter = outputs.find(ID());
+				if(input_iter != inputs.end() and output_iter != outputs.end()) {
 					//this case saves both links
 					auto input_temp = *input_iter;
 					auto output_temp = *output_iter; 
@@ -197,12 +208,12 @@ namespace ben {
 					clear_outputs_except(other.ID(), *get_index());
 					inputs.restore(input_temp, other.outputs); 
 					outputs.restore(output_temp, other.inputs);
-				} else if(input_iter != iend() and output_iter == oend()) { 
+				} else if(input_iter != inputs.end() and output_iter == outputs.end()) { 
 					//if other had an input from this, but not an output...
 					auto input_temp = *input_iter; //save a copy of the Port
 					clear_inputs_except(other.ID(), *get_index()); //deletes all Ports, but does not clean up after other
 					inputs.restore(input_temp, other.outputs); //add the copy back
-				} else if(input_iter == iend() and output_iter != oend()) { 
+				} else if(input_iter == inputs.end() and output_iter != outputs.end()) { 
 					//mirror of the last case
 					auto output_temp = *output_iter;
 					clear_outputs_except(other.ID(), *get_index());
@@ -241,37 +252,45 @@ namespace ben {
 		}
 		void remove_input(const id_type address) {
 			//O(n), must search for the right port
-			inputs.remove(get_index()->elem(address).outputs);
+			auto node_iter = get_index()->find(address);
+			if( node_iter == get_index()->end() ) return;
+			else inputs.remove(node_iter->outputs);
+			//inputs.remove(get_index()->elem(address).outputs);
 		}
 		void remove_output(const output_iterator iter) { //see remove_input
 			auto address = iter->get_address();
 			outputs.remove(walk(iter).inputs, iter);
 		}
 		void remove_output(const id_type address) { //see remove_input
-			outputs.remove(get_index()->elem(address).inputs);
+			auto node_iter = get_index()->find(address);
+			if( node_iter == get_index()->end() ) return;
+			else outputs.remove(node_iter->inputs);
+			//outputs.remove(get_index()->elem(address).inputs);
 		}
 		
 		void clear_inputs() { 
 			//cleaning up after all links before deleting them prevents iterator invalidation
-			for(auto iter=ibegin(); iter!=iend(); ++iter) walk(iter).outputs.clean_up(ID());
+			for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) walk(iter).outputs.clean_up(ID());
 			inputs.clear();
 		}
 		void clear_outputs() { //see clear_inputs
-			for(auto iter=obegin(); iter!=oend(); ++iter) walk(iter).inputs.clean_up(ID());
+			for(auto iter=outputs.begin(); iter!=outputs.end(); ++iter) walk(iter).inputs.clean_up(ID());
 			outputs.clear();
 		}
 		void clear() { clear_inputs(); clear_outputs(); }
 		
-		size_t size_inputs() const { return inputs.size(); }
-		size_t size_outputs() const { return outputs.size(); }
+		//these i/o specific observer functions are now exposed directly
+		//size_t size_inputs() const { return inputs.size(); }
+		//size_t size_outputs() const { return outputs.size(); }
 		
-		bool contains_input(const id_type address) const { return inputs.contains(address); }
-		bool contains_output(const id_type address) const { return outputs.contains(address); }
+		//bool contains_input(const id_type address) const { return inputs.contains(address); }
+		//bool contains_output(const id_type address) const { return outputs.contains(address); }
 		//other std::vector methods - assign, swap
 
 		template<typename T>
 		self_type& walk(const T iter) const { 
 			//returns a reference to the node that iter points to: walks the graph
+			//existence of the target node is implicit: if it had been destroyed, so would iter
 			static_assert(	std::is_same<T, input_iterator>::value or
 					std::is_same<T, const_input_iterator>::value or
 					std::is_same<T, output_iterator>::value or
@@ -279,14 +298,14 @@ namespace ben {
 					"cannot call walk without an iterator type");
 			return get_index()->elem(iter->get_address()); 
 		}
-		input_iterator  ibegin() { return inputs.begin(); }
-		const_input_iterator ibegin() const { return inputs.begin(); }
-		input_iterator  iend() 	 { return inputs.end(); }
-		const_input_iterator iend() const { return inputs.end(); }
-		output_iterator obegin() { return outputs.begin(); }
-		const_output_iterator obegin() const { return outputs.begin(); }
-		output_iterator oend() 	 { return outputs.end(); }
-		const_output_iterator oend() const { return outputs.end(); }
+		//input_iterator  ibegin() { return inputs.begin(); }
+		//const_input_iterator ibegin() const { return inputs.begin(); }
+		//input_iterator  iend() 	 { return inputs.end(); }
+		//const_input_iterator iend() const { return inputs.end(); }
+		//output_iterator obegin() { return outputs.begin(); }
+		//const_output_iterator obegin() const { return outputs.begin(); }
+		//output_iterator oend() 	 { return outputs.end(); }
+		//const_output_iterator oend() const { return outputs.end(); }
 		
 		//is there a way to provide begin() and end() compatible with range-based for loops?
 		//template<typename T>
