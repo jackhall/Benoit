@@ -1,30 +1,22 @@
-Benoit is an extremely flexible framework and representation for distributed networks and graphs. I plan to use it as the basis for a multithreaded neural networks library, among other things. Benoit is great for when you want heterogeneous software objects to talk via a polymorphic interface. The objects need know nothing about each other, save that they each own a ben::Node of the same type. 
+Benoit is a heavily templated (and therefore extremely flexible) framework for distributed networks and graphs. Instead of treating a graph as a collection that owns its nodes, node ownership is specified by client code and the nodes have shared ownership of the graph. This implementation is easier to integrate into other code, and potentially thread-safe. I plan to use it as the basis for a multithreaded neural networks library, among other things. 
 
-Benoit is licensed under the GPL v3, copyright John Wendell Hall 7/23/2011. Current release date: 2/12/2012. 
-Version numbers are three-field like so: benoit-x.y.z
-x will only change with major overhauls. 
-y will change when functionality is modified. 
-z will change with bug fixes and other minor alterations. 
-The current version is: 1.2.2 
+Benoit is licensed under the GPL v3, copyright John Wendell Hall 7/23/2011. Current release date: 3/28/2013. 
+Version numbers follow the semantic versioning scheme.
+The current version is: 2.0.0 
 
-To test, compile test/test_benoit.cpp with:
-	g++ -std=c++0x -g -I ../src test_benoit.cpp -o test
-and run the result with:
-	./test
+To test, use make test_singleton and test_graph in the test directory and run the resulting executables.
 
-Benoit is made up of three templated classes: Node, Link, and Index. All classes exist in the "ben" namespace. Since Benoit is a header-only library, all you have to do is #include Benoit.h to use it. Implementation details are documented in the source files, but I've included a quick overview here.
+The class templates Benoit defines are as follows:
+Graph<typename NODE>: serves as an index to manage the distributed nodes of the graph, but does not own them. 
+DirectedNode<typename INPUT, typename OUTPUT>: the node of a directed graph. The INPUT and OUTPUT types are Ports or Paths as described below.
+UndirectedNode<typename PATH>: the node of an undirected graph. PATH types are described below.
+InPort<typename BUFFER>, OutPort<typename BUFFER>: paired types that share ownership of a Buffer. For a given link, the source node owns an OutPort and the target node owns an InPort.
+Buffer<typename SIGNAL, size_t SIZE>: implements a buffer to pass values between port objects.
+Path<typename VALUE>: similar to Ports, except they store values instead of sending messages. Paired with itself. 
 
-Node instances are the verticies of the directed graph. They are intended to network across threads; Benoit will be thread-safe and multithreaded (by version 2 if not 1). Make it a member of any class which you want to communicate across a distributed network. A given class may contain any number of Nodes for connecting to different networks. Data to be sent is pushed into the Node, and data to be received is pulled out. Nodes may be publicly constructed and deleted. Safe destruction is ensured by signalling the Index to clean up after it.
+All classes exist in the "ben" namespace. Since Benoit is a header-only library, all you have to do is #include Benoit.h to use it. Interface and implementation details are documented in the source files. Since these files are related to one another through type parameterization, they are completely modular. There is no reason not to define your own Port type, for instance, if you don't like the default. The header for each class template describes which parts of its interface are required by other class templates.
 
-Link instances are invisible to the user. They implement thread-safe message passing between Nodes. Links may be manipulated indirectly through one of the Nodes it links by creating a port object, which is a cross between a stream and an iterator. 
-
-Index instances manage a subset of Nodes and the Links between them. Nodes may not link between Indicies. An Index is required to work with any Nodes, but default construction of a Node will automatically use a static Index for ease of use. Nodes may be swapped between Indicies, but all Links involving that Node will be deleted unless the entire network is transferred. These rules limit the possibility for semantic errors. 
-
-Changes for version 2.x.x:
-
--Transfer ownership of Links to the Index class. This make much more sense semantically and would allow more efficient memory management at the Node level. The drawback is that I would have to write an allocator class for Index to use. The upsides are less fragmented memory and possibly quicker access to Links through the Nodes. 
-
--Possibly remove Node::bias and Link::weight. While these are likely to be connected semantically to the network, the main purpose of Benoit is to transmit data, not store it. Storage may not even be necessary much of the time. The rest of Benoit ignores these values, and they add clutter to the interface. 
+Python bindings exist and are demonstrated in src/benoitpy.cpp. It may also be necessary to alter src/python_utils.h. These files make use of boost.python. See the makefile in the home directory for compilation instructions (or just type "make" if everything is in order).
 
 My email is jackwhall7@gmail.com. 
 
