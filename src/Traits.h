@@ -26,16 +26,51 @@
 
 namespace ben {
 	
-	template<typename X>
-	class LessThanComparable { //test this before writing any more concept checks for member functions
-		template <void (X::*)()> struct Empty {};
-		template<class T> static constexpr bool Helper(Empty< &T::operator< >*) { return true; }
-		template<class T> static constexpr bool Helper(...) { return false; } //what does this mean?
-	public:
-		static constexpr bool result() { return Helper<X>(0); }
+	//template<typename X>
+	//class LessThanComparable { //test this before writing any more concept checks for member functions
+	//	template <void (X::*)()> struct Empty {};
+	//	template<class T> static constexpr bool Helper(Empty< &T::operator< >*) { return true; }
+	//	template<class T> static constexpr bool Helper(...) { return false; } //what does this mean?
+	//public:
+	//	static constexpr bool result() { return Helper<X>(0); }
+	//};
+
+	//the struct carries around its template argument pack, like a variadic typedef
+	template<typename... ARGS> struct ConstructionTypes {};
+
+	template<typename T> 
+	struct path_traits {
+		typedef typename T::id_type id_type;
+		typedef typename T::complement_type complement_type;
+		typedef typename T::construction_types construction_types;
+
+		template<typename... ARGS> struct test_construction { static constexpr bool value = false; };
+		template<typename... ARGS> struct test_construction< ConstructionTypes<ARGS...> > {
+			static constexpr bool value = std::is_constructible<T, const id_type, ARGS...>::value;
+		};
+
+		//template<id_type (T::*U)()> struct test_get_address { static constexpr bool value = false; };
+		//template<id_type (T::*U)()> struct test_get_address<&T::get_address> { static constexpr bool value = true; };
+		//static_assert(test_get_address<&T::get_address>::value, "Path objects need 'id_type get_address() const' member function");
+
+		static_assert(test_construction<construction_types>::value,
+				"Path objects need to be constructible from (const id_type, construction_types...)");
+		static_assert(std::is_constructible<T, complement_type&, const id_type>::value,
+				"Path objects need to be constructible from (complement_type&, const id_type)");
+		static_assert(std::is_copy_constructible<T>::value, "Path objects need a copy constructor");
+		static_assert(std::is_assignable<T, T>::value, "Path objects need an assignment operator");
+
+		//id_type (*test_get_address)() const;
+
+		//static_assert(std::is_same<decltype(&test_get_address), decltype(&T::get_address)>::value,
+		//		"Path objects need 'id_type get_address() const' member function");
+		//static_assert(std::is_same<T(const id_type) const, decltype(&T::clone)>::value,
+		//		"Path objects need '[self_type] clone(const id_type) const' member function");
+		//static_assert(std::is_member_function<decltype(&T::get_address)>::value, 
+		//path_traits() { test_construction<construction_types> test; }
 	};
 	
-	template<typename X>
+	/*template<typename X>
 	class IDTraits {
 		static_assert(std::is_default_constructible<X>::value, 
 				"An ID should be default-constructible");
@@ -122,7 +157,8 @@ namespace ben {
 		//		"A Singleton should be move-constructible");
 		//static_assert(std::is_move_assignable<X>::value,
 		//		"A Singletons should be move-assignable");
-	};	
+	};
+	*/	
 }
 
 #endif

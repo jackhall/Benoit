@@ -23,15 +23,12 @@
 
 #include <vector>
 #include <cassert>
+#include "Traits.h"
 
 namespace ben {
 
 	//this struct allows LinkManagerHelper to friend the node type that uses it
 	template<typename T> struct type_wrapper { typedef T type; };
-
-	//the struct carries around its template argument pack, like a variadic typedef
-	template<typename... ARGS> struct ConstructionTypes {};
-
 
 	template<typename N, typename P, typename... ARGS>
 	class LinkManagerHelper {
@@ -41,9 +38,9 @@ namespace ben {
 				"LinkManagerHelper needs an instance of ConstructionTypes; use LinkManager");
 	};
 
-	
+
 	template<typename N, typename P, typename... ARGS>
-	class LinkManagerHelper<N, P, ConstructionTypes<ARGS...> > { 
+	class LinkManagerHelper<N, P, ConstructionTypes<ARGS...> > : path_traits<P> { 
 /* This helper class does all the LinkManager work, but has a messier and less safe template interface
  * than it should. I use a template typedef to hide this template interface under the name LinkManager.
  * LinkManager is part of the internal machinery of Node classes, allowing the reuse of much code for
