@@ -2,7 +2,7 @@ Benoit is a heavily templated (and therefore extremely flexible) framework for d
 
 Benoit is licensed under the GPL v3, copyright John Wendell Hall 7/23/2011. Current release date: 3/28/2013. 
 Version numbers follow the semantic versioning scheme.
-The current version is: 2.0.0 
+The current version is: 2.1.0 
 
 To test, use make test_singleton and test_graph in the test directory and run the resulting executables.
 
@@ -17,6 +17,8 @@ Path<typename VALUE>: similar to Ports, except they store values instead of send
 All classes exist in the "ben" namespace. Since Benoit is a header-only library, all you have to do is #include Benoit.h to use it. Interface and implementation details are documented in the source files. Since these files are related to one another through type parameterization, they are completely modular. There is no reason not to define your own Port type, for instance, if you don't like the default. The header for each class template describes which parts of its interface are required by other class templates.
 
 Python bindings exist and are demonstrated in src/benoitpy.cpp. It may also be necessary to alter src/python_utils.h. These files make use of boost.python. See the makefile in the home directory for compilation instructions (or just type "make" if everything is in order).
+
+Coming soon: type trait checking for each class currently included in the library, to aid customization.
 
 My email is jackwhall7@gmail.com. 
 

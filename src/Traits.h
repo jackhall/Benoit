@@ -39,20 +39,21 @@ namespace ben {
 	template<typename... ARGS> struct ConstructionTypes {};
 
 	template<typename T> 
-	struct path_traits {
+	class path_traits {
+		//require typedefs
 		typedef typename T::id_type id_type;
 		typedef typename T::complement_type complement_type;
+		static_assert(std::is_same<T, typename complement_type::complement_type>::value,
+				"Path objects need to be mutually paired with a complement_type");
 		typedef typename T::construction_types construction_types;
 
+		//this partial specialization is necessary to unpack ConstructionTypes for a constructor check
 		template<typename... ARGS> struct test_construction { static constexpr bool value = false; };
 		template<typename... ARGS> struct test_construction< ConstructionTypes<ARGS...> > {
 			static constexpr bool value = std::is_constructible<T, const id_type, ARGS...>::value;
 		};
 
-		//template<id_type (T::*U)()> struct test_get_address { static constexpr bool value = false; };
-		//template<id_type (T::*U)()> struct test_get_address<&T::get_address> { static constexpr bool value = true; };
-		//static_assert(test_get_address<&T::get_address>::value, "Path objects need 'id_type get_address() const' member function");
-
+		//require constructors and assignment operator
 		static_assert(test_construction<construction_types>::value,
 				"Path objects need to be constructible from (const id_type, construction_types...)");
 		static_assert(std::is_constructible<T, complement_type&, const id_type>::value,
@@ -60,14 +61,13 @@ namespace ben {
 		static_assert(std::is_copy_constructible<T>::value, "Path objects need a copy constructor");
 		static_assert(std::is_assignable<T, T>::value, "Path objects need an assignment operator");
 
-		//id_type (*test_get_address)() const;
-
-		//static_assert(std::is_same<decltype(&test_get_address), decltype(&T::get_address)>::value,
-		//		"Path objects need 'id_type get_address() const' member function");
-		//static_assert(std::is_same<T(const id_type) const, decltype(&T::clone)>::value,
-		//		"Path objects need '[self_type] clone(const id_type) const' member function");
-		//static_assert(std::is_member_function<decltype(&T::get_address)>::value, 
-		//path_traits() { test_construction<construction_types> test; }
+		//require get_address and clone member functions
+		typedef id_type (T::*test_get_address)() const;
+		static_assert(std::is_same<test_get_address, decltype(&T::get_address)>::value, 
+				"Path objects need 'id_type get_address() const' member function");
+		typedef T (T::*test_clone)(const id_type) const;
+		static_assert(std::is_same<test_clone, decltype(&T::clone)>::value,
+				"Path objects need '[self_type] clone(const id_type) const' member function");
 	};
 	
 	/*template<typename X>
