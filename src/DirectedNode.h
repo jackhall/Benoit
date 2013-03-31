@@ -65,12 +65,6 @@ namespace ben {
 		//make debugging easier
 		static_assert(std::is_same<id_type, typename I::id_type>::value, 
 			      "Index and Port unique ID types don't match");
-		static_assert(std::is_same<I, typename O::complement_type>::value,
-			      "Port types should complement one another");
-		static_assert(std::is_same<typename I::complement_type, O>::value,
-			      "Port types should complement one another");
-		static_assert(std::is_same<typename I::id_type, typename O::id_type>::value, 
-			      "Ports using different unique ID types");
 	
 		//std::mutex node_mutex; //would need this to alter graph structure in multiple threads
 		void perform_leave() { clear(); }

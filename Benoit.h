@@ -21,6 +21,7 @@
     e-mail: jackwhall7@gmail.com
 */
 
+#include "src/Traits.h"
 #include "src/Graph.h"
 #include "src/DirectedNode.h"
 #include "src/UndirectedNode.h"

@@ -69,6 +69,7 @@ namespace ben {
 		typedef S signal_type;
 		static_assert(std::is_default_constructible<signal_type>::value, 
 			      "signals should be default-constructible"); 
+		//also copy-constructible and assignable?
 
 		Buffer() noexcept : data({false, signal_type()}) {} 
 		~Buffer() noexcept = default;

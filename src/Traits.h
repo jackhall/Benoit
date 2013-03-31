@@ -22,6 +22,7 @@
 */
 
 #include <type_traits>
+#include "Index.h"
 #include "Singleton.h"
 
 namespace ben {
@@ -45,6 +46,8 @@ namespace ben {
 		typedef typename T::complement_type complement_type;
 		static_assert(std::is_same<T, typename complement_type::complement_type>::value,
 				"Path objects need to be mutually paired with a complement_type");
+		static_assert(std::is_same<id_type, typename complement_type::id_type>::value,
+				"Complementary Path types should have the same id_type");
 		typedef typename T::construction_types construction_types;
 
 		//this partial specialization is necessary to unpack ConstructionTypes for a constructor check
@@ -69,7 +72,36 @@ namespace ben {
 		static_assert(std::is_same<test_clone, decltype(&T::clone)>::value,
 				"Path objects need '[self_type] clone(const id_type) const' member function");
 	};
-	
+
+	template<typename T>
+	class buffer_traits {
+		typedef typename T::signal_type signal_type;
+		static_assert(std::is_default_constructible<T>::value, 
+				"Buffer objects should be default-constructible");
+		typedef bool (T::*test_is_ready)() const;
+		static_assert(std::is_same<test_is_ready, decltype(&T::is_ready)>::value,
+				"Buffer objects need 'bool is_ready() const' member function");
+		typedef void (T::*test_flush)();
+		static_assert(std::is_same<test_flush, decltype(&T::flush)>::value,
+				"Buffer objects need 'void flush()' member function");
+		typedef bool (T::*test_push)(const signal_type&);
+		static_assert(std::is_same<test_push, decltype(&T::push)>::value,
+				"Buffer objects need 'bool push(const signal_type&)' member function");
+		typedef signal_type (T::*test_pull)();
+		static_assert(std::is_same<test_pull, decltype(&T::pull)>::value,
+				"Buffer objects need 'signal_type pull()' member function");
+	};
+
+	//template<typename T>
+	//class node_traits {
+	//	typedef typename T::index_type index_type;
+	//	static_assert(std::is_base_of<Index<T>, index_type>::value, 
+	//			"Node's index_type should derive from ben::Index");
+	//	static_assert(std::is_base_of<Singleton, T>::value,
+	//			"Node should derive from ben::Singleton");
+	//};
+
+
 	/*template<typename X>
 	class IDTraits {
 		static_assert(std::is_default_constructible<X>::value, 

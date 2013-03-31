@@ -47,7 +47,7 @@ namespace ben {
  * 	copy construction/assignment (for the STL)
  */
 	template<typename B, typename I=unsigned int>
-	class Port {
+	class Port : buffer_traits<B> {
 	//this is just code shared by InPort and OutPort, can't be instantiated by itself
 	public:
 		typedef B 			buffer_type;
