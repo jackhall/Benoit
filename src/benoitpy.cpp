@@ -37,7 +37,7 @@ BOOST_PYTHON_MODULE(benpy) {
 	typedef InPort<buffer> input_port;
 	typedef OutPort<buffer> output_port;
 
-	typedef int value_type;
+	typedef int value_type; //boost::python::object can't be used here because it's ctor isn't nothrow (might be fixed later)
 	//typedef stdUndirectedNode<value_type> undirected_node;
 	//typedef undirected_node::link_type path;
 	typedef Path<value_type> path;
