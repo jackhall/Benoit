@@ -115,11 +115,11 @@ namespace YAML {
 		}
 
 		static bool decode(const Node& node, Path<V>& rhs) {
-			if(!node.IsSequence() || node.size() != 2)
+			if(!node.IsMap() || node["address"] || node["value"])
 		            return false;
-			//is there a way to create a path _during_ the parse?
-         		rhs.x = node["address"].as<double>();
-         		rhs.z = node[2].as<double>();
+
+         		Path<V> path(node["address"].as<int>(), node["value"].as<V>());
+			rhs = path;
          		return true;
 		}
 	}; //struct convert<>
