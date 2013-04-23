@@ -104,4 +104,19 @@ namespace ben {
 
 }; //namespace ben
 
+namespace YAML {
+	template<typename V> 
+	struct convert< Path<V> > {
+		static Node encode(const Path<V>& rhs) {
+			Node node;
+			
+		}
+
+		static bool decode(const Node& node, Path<V>& rhs) {
+
+		}
+	}; //struct convert<>
+
+}; //namespace YAML
+
 #endif
