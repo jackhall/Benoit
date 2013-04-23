@@ -109,11 +109,18 @@ namespace YAML {
 	struct convert< Path<V> > {
 		static Node encode(const Path<V>& rhs) {
 			Node node;
-			
+			node["address"] = rhs.get_address();
+			node["value"] = rhs.get_value();
+			return node;
 		}
 
 		static bool decode(const Node& node, Path<V>& rhs) {
-
+			if(!node.IsSequence() || node.size() != 2)
+		            return false;
+			//is there a way to create a path _during_ the parse?
+         		rhs.x = node["address"].as<double>();
+         		rhs.z = node[2].as<double>();
+         		return true;
 		}
 	}; //struct convert<>
 
