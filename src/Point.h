@@ -31,8 +31,11 @@ namespace ben {
 	template<typename T, unsigned short N> class PointAlias;
 	
 	template<typename T, unsigned short N>
-	struct Point : public wayne::Point<T,N>, public Singleton<Space<T,N>> {
-	
+	class Point : public wayne::Point<T,N>, public Singleton {
+	private:
+		
+
+	public:	
 		typedef wayne::Point<T,N> 	point_type;
 		typedef Singleton<Space<Point>> singleton_type;
 		typedef PointAlias<T,N> 	alias_type;

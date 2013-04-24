@@ -32,17 +32,18 @@
 namespace ben {
 
 	template<typename T, unsigned short N>
-	class Space : public Index<Point<T,N>> {
+	class Space : public Index< Point<T,N> > {
+	private:
+		typedef Index< Point<T,N> > base_type;
+		typedef Space self_type;
+
 	public:
-		typedef Index<Point<T,N>> base_type;
 		typedef T coordinate_type;
 		typedef PointAlias<T,N> alias_type;
 		typedef wayne::Point<T,N> raw_point_type;
 		typedef typename std::set<singleton_type>::iterator iterator;
 		static const unsigned short dimensions = N;
 	private:
-		typedef Space self_type;
-		
 		//TMP tricks - these are kind of awkward for weird compilation reasons,
 		//but they remove increment and comparison computions from loops
 		template<unsigned short M=0, typename dummy=void> struct get_low_point {

@@ -24,6 +24,7 @@
 #include <iostream>
 #include <memory>
 #include <atomic>
+#include "yaml-cpp/yaml.h"
 #include "LinkManager.h"
 
 namespace ben {
@@ -106,24 +107,21 @@ namespace ben {
 
 namespace YAML {
 	template<typename V> 
-	struct convert< Path<V> > {
-		static Node encode(const Path<V>& rhs) {
+	struct convert< ben::Path<V> > {
+		static Node encode(const ben::Path<V>& rhs) {
 			Node node;
-			node["address"] = rhs.get_address();
-			node["value"] = rhs.get_value();
+			node["address"] >> rhs.get_address();
+			node["value"] >> rhs.get_value();
 			return node;
 		}
 
-		static bool decode(const Node& node, Path<V>& rhs) {
-			if(!node.IsMap() || node["address"] || node["value"])
-		            return false;
-
-         		Path<V> path(node["address"].as<int>(), node["value"].as<V>());
-			rhs = path;
-         		return true;
+		static bool decode(const Node& node, ben::Path<V>& rhs) {
+			if(!node.IsMap() || node["address"] || node["value"]) return false;
+			if(node["address"] != rhs.get_address()) return false;	
+			rhs.set_value(node["value"]);	
+			return true;
 		}
-	}; //struct convert<>
-
+	};
 }; //namespace YAML
 
 #endif
