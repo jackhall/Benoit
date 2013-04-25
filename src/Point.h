@@ -22,109 +22,102 @@
 */
 
 #include <array>
-#include <atomic>
-#include <initializer_list>
-#include "src/Point.h" 
+#include <functional>
+#include <algorithm>
 
 namespace ben {
 	
-	template<typename T, unsigned short N> class PointAlias;
-	
+	template<typename T, unsigned short N> 
+	class CartesianPoint {
+		typedef CartesianPoint self_type;
+		std::array<T,N> data;
+		constexpr unsigned short dimensions() { return N; }
+
+	public:
+		typedef T value_type;
+		typedef std::array<T,N>::iterator iterator;
+		typedef std::array<T,N>::const_iterator const_iterator;
+
+		CartesianPoint() = default;
+		template<typename... U>
+		CartesianPoint(U... elements) : data{elements...} {}
+		CartesianPoint(const self_type& rhs) = default;
+		CartesianPoint& operator=(const self_type& rhs) = default;
+		virtual ~CartesianPoint() = default;
+
+		value_type& operator[](const unsigned short n) { return data[n]; }
+		const value_type& operator[](const unsigned short n) const { return data[n]; }
+
+		iterator begin() { return data.begin(); }
+		const_iterator begin() const { return data.begin(); }
+		iterator end() { return data.end(); }
+		const_iterator end() const { return data.end(); }
+	};
+
+
+	template<typename T, unsigned short N> 
+	CartesianPoint<T,N> for_both(const CartesianPoint<T,N> a, const CartesianPoint<T,N> b, 
+				     std::function<T(T,T)> f) {
+		CartesianPoint<T,N> c;
+		auto i = a.begin(), j = b.begin();
+		auto g = [&i, &j](T& x) { x = f(*i, *j); ++i; ++j; }
+		std::for_each(c.begin(), c.end(), g);
+		return c;
+	}
+
+
 	template<typename T, unsigned short N>
-	class Point : public wayne::Point<T,N>, public Singleton {
+	T squared_distance(const CartesianPoint<T,N> a, const CartesianPoint<T,N> b) {
+		//create a temporary point that is the difference between a & b
+		auto c = for_both(c.begin(), c.end(), difference);
+
+		//sum the elements of the temporary
+		num_type d = 0;
+		auto sum = [&d](num_type x){ d += x; }
+		std::for_each(c.begin(), c.end(), sum);
+		return d;
+	}
+
+
+	template<typename T, unsigned short N>
+	class Point : public CartesianPoint<T,N>, public Singleton {
 	private:
-		
+		typedef Point self_type;
 
 	public:	
-		typedef wayne::Point<T,N> 	point_type;
-		typedef Singleton<Space<Point>> singleton_type;
-		typedef PointAlias<T,N> 	alias_type;
-		typedef typename singleton_type::id_type id_type;
-		typedef T coordinate_type;
+		typedef CartesianPoint<T,N> 		point_type;
+		typedef typename point_type::value_type value_type;
+		typedef typename Singleton::id_type 	id_type;
 
 		Point() = default;
-		explicit Point(index_type& space) 
-			: singleton_type(space), point_type() {}
-		Point(index_type& space, const id_type id)
-			: singleton_type(space, id), point_type() {} 
-		Point(index_type& space, std::initializer_list<coordinate_type> coords)
-			: singleton_type(space), point_type(coords) {}
-		Point(index_type& space, std::initializer_list<coordinate_type> coords, const id_type id) 
-			: singleton_type(space, id), point_type(coords) {}
-		Point(const Point& rhs)
-			: singleton_type(*rhs.index), point_type(rhs) {}
-		Point(const Point& rhs, const id_type id)
-			: singleton_type(*rhs.index, id), point_type(rhs) {}
-		Point(index_type& space, const alias_type& alias) 
-			: singleton_type(space), point_type(alias) {}
-		Point(index_type& space, const alias_type& alias, const id_Type id) 
+		explicit Point(std::shared_ptr<index_type> space_ptr) 
+			: singleton_type(space_ptr), point_type() {}
+		Point(std::shared_ptr<index_type> space_ptr, const id_type id)
+			: singleton_type(space_ptr, id), point_type() {} 
+		template<typename... U>
+		Point(std::shared_ptr<index_type> space_ptr, U... coords) : Singleton(space_ptr), point_type(coords...) {}
+		template<typename... U>
+		Point(index_type& space, const id_type id, U... coords) : Singleton(space_ptr, id), point_type(coords...) {}
+		Point(std::shared_ptr<index_type>, space_ptr, const point_type& alias) 
+			: Singleton(space_ptr), point_type(alias) {}
+		Point(std::shared_ptr<index_type> space_ptr, const id_type id, const point_type& alias)
 			: singleton_type(space, id), point_type(alias) {}
-		Point& operator=(const Point& rhs) {
+		Point(const self_type& rhs) = delete;
+		Point(self_type&& rhs) : Singleton(std::move(rhs)), point_type(rhs) {}
+		self_type& operator=(self_type&& rhs) {
 			if(this != &rhs) {
-				if( switch_index(rhs.index) ) point_type::operator=(rhs);
-				//else reset id?
-			}
-			return *this;
-		}
-		Point& operator=(const point_type& rhs) {
-			if(this != &rhs) { 
+				Singleton::operator=(std::move(rhs));	
 				point_type::operator=(rhs);
 			}
 			return *this;
 		}
-		virtual ~Point() = default;
+		~Point() = default;
 		
 		//void lock() { point_mutex.lock(); }
 		//bool try_lock() { return point_mutex.try_lock(); }
 		//void unlock() { point_mutex.unlock(); }
 		
 	}; //class Point
-	
-	
-	template<typename T, unsigned short N>
-	class PointAlias : public wayne::Point<double,N> {
-	public:
-		typedef unsigned int id_type;
-		typedef T coordinate_type;	
-		typedef wayne::Point<double,N> base_type;
-	
-	private:
-		template<unsigned short M=0, typename dummy=void> struct compareLT {
-			static bool call(const PointAlias& one, const PointAlias& two) {
-				if( one.template elem<M>() < two.template elem<M>() ) {
-					return true;
-				} else if( one.template elem<M>() > two.template elem<M>() ) {
-					return false;
-				} else return compareLT<M+1>::call(one, two);
-			}
-		};
-		
-		template<typename dummy> struct compareLT<N-1,dummy> {
-			static bool call(const PointAlias& one, const PointAlias& two) {
-				if( one.template elem<N-1>() < two.template elem<N-1>() ) {
-					return true;
-				} else if( one.template elem<N-1>() > two.template elem<N-1>() ) {
-					return false;
-				} else return one.pointID < two.pointID; //points are otherwise equal
-			}
-		};
-
-		id_type pointID;
-		
-	public:
-		PointAlias() : base_type(), pointID(0) {}
-		explicit PointAlias(const id_type nID) : base_type(), pointID(nID) {} //empty set
-		PointAlias(std::initializer_list<coordinate_type> coords, const id_type nID)
-			: base_type(coords), pointID(nID) {}
-		PointAlias(const Point<T,N>* rhs) : base_type(rhs), pointID(rhs.ID()) {}
-		PointAlias(const PointAlias& rhs) : base_type(rhs), pointID(rhs.pointID) {}
-		PointAlias& operator=(const PointAlias& rhs) = default;
-		virtual ~PointAlias() noexcept = default;
-		
-		bool operator<(const PointAlias& rhs) const {
-			return compareLT<>::call(*this, rhs);
-		}
-	}; 
 	
 } //namespace ben
 
