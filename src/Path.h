@@ -104,7 +104,7 @@ namespace ben {
 	//}
 
 }; //namespace ben
-
+/*
 namespace YAML {
 	template<typename V> 
 	struct convert< ben::Path<V> > {
@@ -123,5 +123,5 @@ namespace YAML {
 		}
 	};
 }; //namespace YAML
-
+*/
 #endif
