@@ -1,5 +1,5 @@
 /*
-	Eiffel: the simulation of a self-organizing network of trusses
+	Benoit: a library for distributed graphs
 	Copyright (C) 2012  John Wendell Hall
 
 	This program is free software: you can redistribute it and/or modify
