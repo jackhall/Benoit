@@ -34,7 +34,7 @@ namespace ben {
  * like a directory. Like all of the high-level objects in Benoit, IndexBase has identity semantics and 
  * cannot be copied. Inheriting from Commons provides readers/writer locking.
  */
-	class IndexBase : public wayne::Commons {
+	class IndexBase : public Commons {
 	public: 
 		typedef unsigned int id_type;
 		friend class Singleton;
