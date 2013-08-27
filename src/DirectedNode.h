@@ -84,8 +84,10 @@ namespace ben {
 		DirectedNode(std::shared_ptr<index_type> graph, const id_type id) : base_type(graph, id), inputs(id), outputs(id) {}
 		DirectedNode(const self_type& rhs) = delete; //identity semantics
 		DirectedNode& operator=(const self_type& rhs) = delete;
-		DirectedNode(self_type&& rhs) : base_type(std::move(rhs)), inputs(std::move(rhs.inputs)),
-					       outputs(std::move(rhs.outputs)) {}
+		DirectedNode(self_type&& rhs) 
+			: base_type(std::move(rhs)), 
+			  inputs(std::move(rhs.inputs)),
+		      outputs(std::move(rhs.outputs)) {}
 		DirectedNode& operator=(self_type&& rhs) {
 			if(this != &rhs) {
 				base_type::operator=( std::move(rhs) );
