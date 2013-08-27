@@ -45,9 +45,9 @@ namespace ben {
 		typedef typename T::id_type id_type;
 		typedef typename T::complement_type complement_type;
 		static_assert(std::is_same<T, typename complement_type::complement_type>::value,
-				"Path objects need to be mutually paired with a complement_type");
+			"Path objects need to be mutually paired with a complement_type");
 		static_assert(std::is_same<id_type, typename complement_type::id_type>::value,
-				"Complementary Path types should have the same id_type");
+			"Complementary Path types should have the same id_type");
 		typedef typename T::construction_types construction_types;
 
 		//this partial specialization is necessary to unpack ConstructionTypes for a constructor check
@@ -58,38 +58,32 @@ namespace ben {
 
 		//require constructors and assignment operator
 		static_assert(test_construction<construction_types>::value,
-				"Path objects need to be constructible from (const id_type, construction_types...)");
+			"Path objects need to be constructible from (const id_type, construction_types...)");
 		static_assert(std::is_constructible<T, complement_type&, const id_type>::value,
-				"Path objects need to be constructible from (complement_type&, const id_type)");
+			"Path objects need to be constructible from (complement_type&, const id_type)");
 		static_assert(std::is_copy_constructible<T>::value, "Path objects need a copy constructor");
 		static_assert(std::is_assignable<T, T>::value, "Path objects need an assignment operator");
 
 		//require get_address and clone member functions
 		typedef id_type (T::*test_get_address)() const;
 		static_assert(std::is_same<test_get_address, decltype(&T::get_address)>::value, 
-				"Path objects need 'id_type get_address() const' member function");
+			"Path objects need 'id_type get_address() const' member function");
 		typedef T (T::*test_clone)(const id_type) const;
 		static_assert(std::is_same<test_clone, decltype(&T::clone)>::value,
-				"Path objects need '[self_type] clone(const id_type) const' member function");
+			"Path objects need '[self_type] clone(const id_type) const' member function");
 	};
 
 	template<typename T>
 	class buffer_traits {
 		typedef typename T::signal_type signal_type;
 		static_assert(std::is_default_constructible<T>::value, 
-				"Buffer objects should be default-constructible");
-		typedef bool (T::*test_is_ready)() const;
-		static_assert(std::is_same<test_is_ready, decltype(&T::is_ready)>::value,
-				"Buffer objects need 'bool is_ready() const' member function");
-		typedef void (T::*test_flush)();
-		static_assert(std::is_same<test_flush, decltype(&T::flush)>::value,
-				"Buffer objects need 'void flush()' member function");
+			"Buffer objects should be default-constructible");
 		typedef bool (T::*test_push)(const signal_type&);
 		static_assert(std::is_same<test_push, decltype(&T::push)>::value,
-				"Buffer objects need 'bool push(const signal_type&)' member function");
-		typedef signal_type (T::*test_pull)();
+			"Buffer objects need 'bool push(const signal_type&)' member function");
+		typedef bool (T::*test_pull)(signal_type&);
 		static_assert(std::is_same<test_pull, decltype(&T::pull)>::value,
-				"Buffer objects need 'signal_type pull()' member function");
+			"Buffer objects need 'signal_type pull()' member function");
 	};
 
 	//template<typename T>

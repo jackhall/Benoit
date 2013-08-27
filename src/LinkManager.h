@@ -72,7 +72,8 @@ namespace ben {
 		LinkManagerHelper(const id_type id) : nodeID(id) {}
 		LinkManagerHelper(const self_type& rhs) = delete; //identity semantics
 		self_type& operator=(const self_type& rhs) = delete;
-		LinkManagerHelper(self_type&& rhs) : nodeID(rhs.nodeID), links(std::move(rhs.links)) {}
+		LinkManagerHelper(self_type&& rhs) 
+			: nodeID(rhs.nodeID), links(std::move(rhs.links)) {}
 		self_type& operator=(self_type&& rhs) {
 			if(this != &rhs) {
 				nodeID = rhs.nodeID;

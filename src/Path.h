@@ -24,7 +24,7 @@
 #include <iostream>
 #include <memory>
 #include <atomic>
-#include "yaml-cpp/yaml.h"
+//#include "yaml-cpp/yaml.h"
 #include "LinkManager.h"
 
 namespace ben {

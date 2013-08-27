@@ -72,7 +72,6 @@ namespace ben {
 		virtual ~Port() = default;
 	
 	public:
-		bool is_ready() const { return buffer_ptr->is_ready(); }
 		bool is_ghost() const { return buffer_ptr.use_count() < 2; } //necessary but not sufficient for ghost :(
 	}; //class Port
 
@@ -133,7 +132,7 @@ namespace ben {
 		}
 	
 		id_type get_address() const { return sourceID; }
-		signal_type pull() const { return buffer_ptr->pull(); }
+		bool pull(signal_type& signal) const { return buffer_ptr->pull(signal); }
 	}; //struct InPort
 	
 	

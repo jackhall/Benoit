@@ -74,19 +74,18 @@ namespace ben {
 		Buffer() noexcept : data({false, signal_type()}) {} 
 		~Buffer() noexcept = default;
 		
-		void flush() { data.store(frame_type{false, signal_type()}); }
-		bool is_ready() const { return data.load().ready; }
 		bool push(const signal_type& signal) { //returns true if an unread signal is overwritten
 			auto temp = data.exchange(frame_type{true, signal});
 			return !temp.ready;
 		}
 		
-		signal_type pull() { 
+		bool pull(signal_type& signal) { 
 			//it may be faster and safer to return as a pair with a boolean
 			//that way, the buffer can't be altered between calls to is_ready
 			//and pull
 			auto temp = data.exchange(frame_type{false, signal_type()}); //leave the buffer blank
-			return temp.data; 
+			if(temp.ready) signal = temp.data; 
+			return temp.ready;
 		}
 	}; //class Buffer (length 1 specialization)
 	
@@ -113,13 +112,6 @@ namespace ben {
 		Buffer() noexcept : next(), buffer(), index(0) { reset_buffer(); } 
 		~Buffer() noexcept = default;
 		
-		void flush() { 
-			next.flush();
-			reset_buffer();
-		} 
-		
-		bool is_ready() const { return next.is_ready(); }
-		
 		bool push(const signal_type& signal) { //returns true if unread data is overwritten
 			auto temp = buffer[index];
 			buffer[index++] = frame_type{true, signal};
@@ -128,7 +120,7 @@ namespace ben {
 			else return true;
 		}
 		
-		signal_type pull() { return next.pull(); }
+		bool pull(signal_type& signal) { return next.pull(signal); }
 	}; //class Buffer (length n specialization)
 	
 	
@@ -150,11 +142,6 @@ namespace ben {
 		Buffer() noexcept : next(), buffer{false, signal_type()} {} 
 		~Buffer() noexcept = default;
 		
-		void flush() { 
-			next.flush();
-			buffer = frame_type{false, signal_type()}; 
-		}
-		bool is_ready() const { return next.is_ready(); }
 		bool push(const signal_type& signal) { //returns true if an unread signal is overwritten
 			auto temp = buffer;
 			buffer = frame_type{true, signal};
@@ -162,7 +149,7 @@ namespace ben {
 			else return true; 
 		}
 		
-		signal_type pull() { return next.pull(); }
+		bool pull(signal_type& signal) { return next.pull(signal); }
 	}; //class Buffer (length 2 specialization)
 	
 } //namespace ben
