@@ -52,7 +52,7 @@ namespace ben {
 	public:
 		typedef B 			buffer_type;
 		typedef typename B::signal_type signal_type;
-        typedef typename B::construction_types construction_types;//tells LinkManager how to construct a Port
+        typedef typename B::construction_types construction_types; //tells LinkManager how to construct a Port
 		typedef I 			id_type;
 	
 	protected:
@@ -105,8 +105,9 @@ namespace ben {
 		typedef B buffer_type;
 		typedef typename buffer_type::signal_type signal_type;
 		typedef OutPort<buffer_type> complement_type;
-	
-		InPort(id_type nSource) : base_type(new buffer_type()), sourceID(nSource) {} //new link, new shared_ptr
+
+        template<typename... ARGS>
+		InPort(id_type nSource, ARGS... args) : base_type(new buffer_type(args...)), sourceID(nSource) {} //new link, new shared_ptr
 		InPort(const complement_type& other, id_type nSource) : base_type(other), sourceID(nSource) {} //matching link, old shared_ptr
 		InPort(const self_type& rhs) : base_type(rhs), sourceID(rhs.sourceID) {} //necessary for stl internals
 		InPort(self_type&& rhs) : base_type( std::move(rhs) ), sourceID(rhs.sourceID) {}
@@ -156,8 +157,9 @@ namespace ben {
 		typedef typename B::signal_type signal_type;
 		typedef InPort<B> complement_type;
 		typedef B buffer_type;
-	
-		OutPort(id_type nTarget) : base_type(new buffer_type()), targetID(nTarget) {} //new link, new shared_ptr
+
+        template<typename... ARGS>
+		OutPort(id_type nTarget, ARS... args) : base_type(new buffer_type(args...)), targetID(nTarget) {} //new link, new shared_ptr
 		OutPort(const complement_type& other, id_type nTarget) : base_type(other), targetID(nTarget) {} //matches existing complement
 		OutPort(const self_type& rhs) : base_type(rhs), targetID(rhs.targetID) {}
 		OutPort(self_type&& rhs) : base_type( std::move(rhs) ), targetID(rhs.targetID) {}
