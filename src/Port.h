@@ -52,8 +52,8 @@ namespace ben {
 	public:
 		typedef B 			buffer_type;
 		typedef typename B::signal_type signal_type;
+        typedef typename B::construction_types construction_types;//tells LinkManager how to construct a Port
 		typedef I 			id_type;
-		typedef ConstructionTypes<>	construction_types; //tells LinkManager how to construct a Port
 	
 	protected:
 		std::shared_ptr<buffer_type> buffer_ptr;//reference-counted smart pointer

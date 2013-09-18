@@ -66,6 +66,7 @@ namespace ben {
 		std::atomic<frame_type> data;
 		
 	public:
+        typedef ConstructionTypes<> construction_types;
 		typedef S signal_type;
 		static_assert(std::is_default_constructible<signal_type>::value, 
 			      "signals should be default-constructible"); 
@@ -109,6 +110,7 @@ namespace ben {
 		}
 		
 	public:
+        typedef ConstructionTypes<> construction_types;
 		Buffer() noexcept : next(), buffer(), index(0) { reset_buffer(); } 
 		~Buffer() noexcept = default;
 		
@@ -139,6 +141,7 @@ namespace ben {
 		frame_type buffer;
 	
 	public:
+        typedef ConstructionTypes<> construction_types;
 		Buffer() noexcept : next(), buffer{false, signal_type()} {} 
 		~Buffer() noexcept = default;
 		
