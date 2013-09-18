@@ -76,10 +76,12 @@ namespace ben {
 	template<typename T>
 	class buffer_traits {
 		typedef typename T::signal_type signal_type;
-		static_assert(std::is_default_constructible<T>::value, 
-			"Buffer objects should be default-constructible");
-		typedef bool (T::*test_push)(const signal_type&);
-		static_assert(std::is_same<test_push, decltype(&T::push)>::value,
+		//static_assert(std::is_default_constructible<T>::value, 
+		//	"Buffer objects should be default-constructible");
+		typedef bool (T::*test_push_constref)(const signal_type&);
+        typedef bool (T::*test_push_value)(signal_type);
+		static_assert(std::is_same<test_push_constref, decltype(&T::push)>::value
+                      || std::is_same<test_push_value, decltype(&T::push)>::value,
 			"Buffer objects need 'bool push(const signal_type&)' member function");
 		typedef bool (T::*test_pull)(signal_type&);
 		static_assert(std::is_same<test_pull, decltype(&T::pull)>::value,
