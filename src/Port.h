@@ -159,7 +159,7 @@ namespace ben {
 		typedef B buffer_type;
 
         template<typename... ARGS>
-		OutPort(id_type nTarget, ARS... args) : base_type(new buffer_type(args...)), targetID(nTarget) {} //new link, new shared_ptr
+		OutPort(id_type nTarget, ARGS... args) : base_type(new buffer_type(args...)), targetID(nTarget) {} //new link, new shared_ptr
 		OutPort(const complement_type& other, id_type nTarget) : base_type(other), targetID(nTarget) {} //matches existing complement
 		OutPort(const self_type& rhs) : base_type(rhs), targetID(rhs.targetID) {}
 		OutPort(self_type&& rhs) : base_type( std::move(rhs) ), targetID(rhs.targetID) {}
