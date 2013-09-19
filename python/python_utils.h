@@ -180,13 +180,11 @@ class_< INPUT >(#INPUT, init<const INPUT&>()) \
 	.def( self==self ) \
 	.def( self!=self ) \
 	.add_property("address", &INPUT::get_address) \
-	.add_property("ready", &INPUT::is_ready) \
 	.def("pull", &INPUT::pull); \
 class_< OUTPUT >(#OUTPUT, init<const OUTPUT&>()) \
 	.def( self==self ) \
 	.def( self!=self ) \
 	.add_property("address", &OUTPUT::get_address) \
-	.add_property("ready", &OUTPUT::is_ready) \
 	.def("push", &OUTPUT::push); \
 class_< Graph< DirectedNode<INPUT, OUTPUT> >, boost::noncopyable, std::shared_ptr< Graph< DirectedNode<INPUT, OUTPUT> > > >(#GRAPH, no_init) \
 	.def("__init__", make_constructor(std::make_shared< Graph< DirectedNode<INPUT, OUTPUT> > >)) \
