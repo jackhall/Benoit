@@ -25,6 +25,7 @@
 #include <array>
 #include <type_traits>
 #include <initializer_list>
+#include "Traits.h"
 
 namespace ben {
 /* Buffers are for the messages passed between Nodes. They're templated for both the
