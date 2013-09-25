@@ -1,8 +1,8 @@
 Benoit is a heavily templated (and therefore extremely flexible) framework for distributed networks and graphs. Instead of treating a graph as a collection that owns its nodes, node ownership is specified by client code and the nodes have shared ownership of the graph. This implementation is easier to integrate into other code, and potentially thread-safe. I plan to use it as the basis for a multithreaded neural networks library, among other things. 
 
-Benoit is licensed under the GPL v3, copyright John Wendell Hall 7/23/2011. Current release date: 3/28/2013. 
+Benoit is licensed under the GPL v3, copyright John Wendell Hall 7/23/2011. Current release date: 9/25/2013. 
 Version numbers follow the semantic versioning scheme.
-The current version is: 2.1.0 
+The current version is: 2.2.0 
 
 To test, use make test_singleton and test_graph in the test directory and run the resulting executables.
 

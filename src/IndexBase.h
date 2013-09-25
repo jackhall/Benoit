@@ -23,7 +23,7 @@
 
 #include <unordered_map>
 #include <memory>
-#include "Commons.h"
+//#include "Commons.h"
 
 namespace ben {
 	
@@ -34,7 +34,7 @@ namespace ben {
  * like a directory. Like all of the high-level objects in Benoit, IndexBase has identity semantics and 
  * cannot be copied. Inheriting from Commons provides readers/writer locking.
  */
-	class IndexBase : public Commons {
+	class IndexBase {
 	public: 
 		typedef unsigned int id_type;
 		friend class Singleton;

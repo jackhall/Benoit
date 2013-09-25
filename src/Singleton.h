@@ -23,6 +23,7 @@
 
 #include "IndexBase.h"
 #include <memory>
+#include <atomic>
 
 namespace ben {
 	

@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -std=c++11 -lpthread -lgtest -lboost_system -g -march=native
+CFLAGS = -std=c++11 -lgtest -g -march=native
 PATHS = -I../src -I../build -I../Wayne/src
 SRC = ../src
 
