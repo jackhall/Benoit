@@ -39,42 +39,87 @@ namespace ben {
 	//the struct carries around its template argument pack, like a variadic typedef
 	template<typename... ARGS> struct ConstructionTypes {};
 
-	template<typename T> 
-	class path_traits {
-		//require typedefs
-		typedef typename T::id_type id_type;
-		typedef typename T::complement_type complement_type;
-		static_assert(std::is_same<T, typename complement_type::complement_type>::value,
-			"Path objects need to be mutually paired with a complement_type");
-		static_assert(std::is_same<id_type, typename complement_type::id_type>::value,
-			"Complementary Path types should have the same id_type");
-		typedef typename T::construction_types construction_types;
+    template<typename T>
+    class value_traits {
+		static_assert(std::is_copy_constructible<T>::value, "Path objects need a copy constructor");
+		static_assert(std::is_assignable<T, T>::value, "Path objects need an assignment operator");
+    };
+
+    template<typename T>
+    class buffer_constructor_checker {
+        typedef typename T::construction_types construction_types;
 
 		//this partial specialization is necessary to unpack ConstructionTypes for a constructor check
 		template<typename... ARGS> struct test_construction { static constexpr bool value = false; };
 		template<typename... ARGS> struct test_construction< ConstructionTypes<ARGS...> > {
-			static constexpr bool value = std::is_constructible<T, const id_type, ARGS...>::value;
+			static constexpr bool value = std::is_constructible<T, ARGS...>::value;
 		};
 
-		//require constructors and assignment operator
-		static_assert(test_construction<construction_types>::value,
-			"Path objects need to be constructible from (const id_type, construction_types...)");
-		static_assert(std::is_constructible<T, complement_type&, const id_type>::value,
-			"Path objects need to be constructible from (complement_type&, const id_type)");
-		static_assert(std::is_copy_constructible<T>::value, "Path objects need a copy constructor");
-		static_assert(std::is_assignable<T, T>::value, "Path objects need an assignment operator");
+        static_assert(test_construction<construction_types>::value,
+            "Objects of this type need to be constructible from construction_types");
+    };
 
-		//require get_address and clone member functions
-		typedef id_type (T::*test_get_address)() const;
+    template<typename T>
+    class path_constructor_checker {
+        typedef typename T::construction_types construction_types;
+
+		//this partial specialization is necessary to unpack ConstructionTypes for a constructor check
+		template<typename... ARGS> struct test_construction { static constexpr bool value = false; };
+		template<typename... ARGS> struct test_construction< ConstructionTypes<ARGS...> > {
+			static constexpr bool value = std::is_constructible<T, id_type, ARGS...>::value;
+		};
+
+        static_assert(test_construction<construction_types>::value,
+            "Objects of this type need to be constructible from construction_types");
+    };
+
+    template<typename T>
+    class path_method_checker {
+        typedef typename T::id_type (T::*test_get_address)() const;
 		static_assert(std::is_same<test_get_address, decltype(&T::get_address)>::value, 
 			"Path objects need 'id_type get_address() const' member function");
 		typedef T (T::*test_clone)(const id_type) const;
 		static_assert(std::is_same<test_clone, decltype(&T::clone)>::value,
 			"Path objects need '[self_type] clone(const id_type) const' member function");
+
+    };
+
+    template<typename T>
+    class node_traits {
+        static_assert(std::is_same<typename T::id_type, typename T::input_type::id_type>,
+            "Node and Port id_types should match.");
+        static_assert(std::is_same<typename T::id_type, typename T::graph_type::id_type>,
+            "Node and Graph id_types should match.");
+    };
+
+    template<typename IN, typename OUT>
+    class port_traits 
+        : public path_construction_checker<IN>, public path_construction_checker<OUT>,
+          public value_traits<IN>,              public value_traits<OUT>,
+          public path_method_checker<IN>,       public path_method_checker<OUT> {
+        static_assert(std::is_same<typename IN::id_type, typename OUT::id_type>::value,
+            "Paired Port types should have identical id_types");
+        static_assert(std::is_same<IN, typename OUT::complement_type>::value
+                   && std::is_same<OUT, typename IN::complement_type>::value,
+			"Port objects need to be mutually paired with a complement_type");
+        static_assert(std::is_constructible<IN, OUT&, typename IN::id_type>::value
+                   && std::is_constructible<OUT, IN&, typename OUT::id_type>::value,
+            "Port objects need to be constructible from their complement_type and id_type.");
+    };
+
+	template<typename T> 
+	class path_traits 
+        : public path_construction_checker<T>, 
+          public value_traits<T>, 
+          public path_method_checker<T> {
+		static_assert(std::is_same<T, typename T::complement_type>::value,
+			"Path objects should be their own complement.");
+		static_assert(std::is_constructible<T, T&, const id_type>::value,
+			"Path objects need to be constructible from (self_type&, id_type)");
 	};
 
 	template<typename T>
-	class buffer_traits {
+	class buffer_traits : public buffer_construction_checker<T> {
 		typedef typename T::signal_type signal_type;
 		//static_assert(std::is_default_constructible<T>::value, 
 		//	"Buffer objects should be default-constructible");
@@ -85,18 +130,8 @@ namespace ben {
 			"Buffer objects need 'bool push(const signal_type&)' member function");
 		typedef bool (T::*test_pull)(signal_type&);
 		static_assert(std::is_same<test_pull, decltype(&T::pull)>::value,
-			"Buffer objects need 'signal_type pull()' member function");
+			"Buffer objects need 'void pull(signal_type&)' member function");
 	};
-
-	//template<typename T>
-	//class node_traits {
-	//	typedef typename T::index_type index_type;
-	//	static_assert(std::is_base_of<Index<T>, index_type>::value, 
-	//			"Node's index_type should derive from ben::Index");
-	//	static_assert(std::is_base_of<Singleton, T>::value,
-	//			"Node should derive from ben::Singleton");
-	//};
-
 
 	/*template<typename X>
 	class IDTraits {

@@ -47,7 +47,7 @@ namespace ben {
  * 	copy construction/assignment (for the STL)
  */
 	template<typename B, typename I=unsigned int>
-	class Port : buffer_traits<B> {
+	class Port {
 	//this is just code shared by InPort and OutPort, can't be instantiated by itself
 	public:
 		typedef B 			buffer_type;
@@ -85,13 +85,12 @@ namespace ben {
 	template<typename B> bool operator!=(const OutPort<B>& lhs, const OutPort<B>& rhs);
 
 	template<typename B>
-	class InPort : public Port<B> {
+	class InPort {
 /*This version allows pulling but not pushing, enforcing the directedness of messages
  */
 	private:
-		typedef Port<B> base_type;
 		typedef InPort self_type;
-		using base_type::buffer_ptr;
+        std::shared_ptr<B> buffer_ptr;
 		
 		typename base_type::id_type sourceID;
 
@@ -135,7 +134,6 @@ namespace ben {
 		id_type get_address() const { return sourceID; }
 		bool pull(signal_type& signal) const { return buffer_ptr->pull(signal); }
 	}; //struct InPort
-	
 	
 	template<typename B>
 	class OutPort : public Port<B> {
@@ -196,6 +194,8 @@ namespace ben {
 	bool operator==(const OutPort<B>& lhs, const OutPort<B>& rhs) { return lhs.buffer_ptr == rhs.buffer_ptr; }
 	template<typename B>
 	bool operator!=(const OutPort<B>& lhs, const OutPort<B>& rhs) { return !operator==(lhs, rhs); }	
+
+    port_traits<InPort, OutPort>
 
 } //namespace ben
 
