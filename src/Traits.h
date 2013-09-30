@@ -46,39 +46,17 @@ namespace ben {
     };
 
     template<typename T>
-    class buffer_constructor_checker {
-        typedef typename T::construction_types construction_types;
-
-		//this partial specialization is necessary to unpack ConstructionTypes for a constructor check
-		template<typename... ARGS> struct test_construction { static constexpr bool value = false; };
-		template<typename... ARGS> struct test_construction< ConstructionTypes<ARGS...> > {
-			static constexpr bool value = std::is_constructible<T, ARGS...>::value;
-		};
-
-        static_assert(test_construction<construction_types>::value,
-            "Objects of this type need to be constructible from construction_types");
-    };
+    class buffer_constructor_checker {};
 
     template<typename T>
-    class path_constructor_checker {
-        typedef typename T::construction_types construction_types;
-
-		//this partial specialization is necessary to unpack ConstructionTypes for a constructor check
-		template<typename... ARGS> struct test_construction { static constexpr bool value = false; };
-		template<typename... ARGS> struct test_construction< ConstructionTypes<ARGS...> > {
-			static constexpr bool value = std::is_constructible<T, id_type, ARGS...>::value;
-		};
-
-        static_assert(test_construction<construction_types>::value,
-            "Objects of this type need to be constructible from construction_types");
-    };
+    class path_constructor_checker {};
 
     template<typename T>
     class path_method_checker {
         typedef typename T::id_type (T::*test_get_address)() const;
 		static_assert(std::is_same<test_get_address, decltype(&T::get_address)>::value, 
 			"Path objects need 'id_type get_address() const' member function");
-		typedef T (T::*test_clone)(const id_type) const;
+		typedef T (T::*test_clone)(typename T::id_type) const;
 		static_assert(std::is_same<test_clone, decltype(&T::clone)>::value,
 			"Path objects need '[self_type] clone(const id_type) const' member function");
 
@@ -86,15 +64,15 @@ namespace ben {
 
     template<typename T>
     class node_traits {
-        static_assert(std::is_same<typename T::id_type, typename T::input_type::id_type>,
+        static_assert(std::is_same<typename T::id_type, typename T::input_type::id_type>::value,
             "Node and Port id_types should match.");
-        static_assert(std::is_same<typename T::id_type, typename T::graph_type::id_type>,
+        static_assert(std::is_same<typename T::id_type, typename T::graph_type::id_type>::value,
             "Node and Graph id_types should match.");
     };
 
     template<typename IN, typename OUT>
     class port_traits 
-        : public path_construction_checker<IN>, public path_construction_checker<OUT>,
+        : public path_constructor_checker<IN>, public path_constructor_checker<OUT>,
           public value_traits<IN>,              public value_traits<OUT>,
           public path_method_checker<IN>,       public path_method_checker<OUT> {
         static_assert(std::is_same<typename IN::id_type, typename OUT::id_type>::value,
@@ -109,17 +87,17 @@ namespace ben {
 
 	template<typename T> 
 	class path_traits 
-        : public path_construction_checker<T>, 
+        : public path_constructor_checker<T>, 
           public value_traits<T>, 
           public path_method_checker<T> {
 		static_assert(std::is_same<T, typename T::complement_type>::value,
 			"Path objects should be their own complement.");
-		static_assert(std::is_constructible<T, T&, const id_type>::value,
+		static_assert(std::is_constructible<T, T&, typename T::id_type>::value,
 			"Path objects need to be constructible from (self_type&, id_type)");
 	};
 
 	template<typename T>
-	class buffer_traits : public buffer_construction_checker<T> {
+	class buffer_traits : public buffer_constructor_checker<T> {
 		typedef typename T::signal_type signal_type;
 		//static_assert(std::is_default_constructible<T>::value, 
 		//	"Buffer objects should be default-constructible");

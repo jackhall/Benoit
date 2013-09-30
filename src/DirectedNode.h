@@ -27,7 +27,6 @@
 #include <atomic>
 #include <mutex>
 #include "Singleton.h"
-#include "Buffer.h"
 #include "Path.h"
 #include "Port.h"
 #include "LinkManager.h"
@@ -45,7 +44,9 @@ namespace ben {
  * can't be known at compile-time, and the second because if links are actually stored in a DirectedNode, 
  * thread safety is impossible (simultaneously moving two connected nodes at one time would give undefined behavior).  
  */
-	template<typename I, typename O>
+	
+    //should inherit from port_traits<I,O>
+    template<typename I, typename O>
 	class DirectedNode : public Singleton { 
 	private:
 		typedef DirectedNode 	self_type;
@@ -106,11 +107,6 @@ namespace ben {
 		std::shared_ptr<index_type> get_index() const 
 			{ return std::static_pointer_cast<index_type>(base_type::get_index()); }
 
-		//input_iterator find_input(const id_type address) { return inputs.find(address); }
-		//const_input_iterator find_input(const id_type address) const { return inputs.find(address); }
-		//output_iterator find_output(const id_type address) { return outputs.find(address); }
-		//const_output_iterator find_output(const id_type address) const { return outputs.find(address); }
-	
 		template<typename... ARGS>	
 		bool add_input(const id_type address, ARGS... args) {
 			//the type safety for this function comes in LinkManager::add
@@ -132,114 +128,75 @@ namespace ben {
 			//	return outputs.add(get_index()->elem(address).inputs, args...);
 			//} else return false;
 		}
-		//cloning DirectedNodes is not well-defined for all cases without allowing redundant links 
-		/*bool clone_links(const self_type& other) {
-			//a way to explicitly copy a set of links, replaces the copy constructor for this purpose
-			//how should links-to-self be cloned? need two versions of clone?
-			if( other.is_managed_by(get_index()) ) {
-				//these are not correct yet! do they have to be coupled?
-				auto input_iter = find_input(other.ID());
-				auto output_iter = find_output(other.ID());
-				if(input_iter != iend() and output_iter != oend()) {
-					auto input_temp = *input_iter;
-					auto output_temp = *output_iter; //which should be used?
-					clear();
-					inputs.add_clone_of(input_temp, outputs); //these two lines result in two links-to-self!
-					outputs.add_clone_of(output_temp, inputs);
-				} else if(input_iter == iend() and output_iter != oend()) { //if other had an input from this, but not an output...
-					auto output_temp = *output_iter;//save the endangered link
-					clear();
-					outputs.add_clone_of(output_temp, inputs);//add it back (it's now a link-to-self)
-				} else if(input_iter != iend() and output_iter == oend()) { //mirror of the last case
-					auto input_temp = *input_iter;
-					clear();
-					inputs.add_clone_of(input_temp, outputs);
-				} else clear(); //no unusual problems
+        //pass in a function that clones links?
+        //bool mirror(const self_type& other) { //should other be guaranteed const?
+		//	//a way to copy the pattern of links instead of the links themselves
+		//	//links-to-self are preserved as such, links between this and other are untouched, as 
+		//	//this would violate const-ness of other and the principle of least surprise
+		//	if( get_index() == other.get_index() ) {
+		//		//the code in each of these lambdas would have to be written twice
+		//		auto clear_inputs_except = [this](const id_type id, const index_type& index) {
+		//			for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) 
+		//				if(iter->get_address() != id) 
+		//					index.elem(iter->get_address()).outputs.clean_up(ID());
+		//			inputs.clear();
+		//		};
 
-				//copy all inputs
-				for(const auto& x : other.inputs) {
-					id_type currentID = x.get_address();
-					auto& source = get_index().elem(currentID);
-					inputs.add_clone_of(x, source.outputs);
-				}
-				//and all outputs
-				for(const auto& x : other.outputs) {
-					currentID = x.get_address();
-					auto& target = get_index().elem(currentID);
-					outputs.add_clone_of(x, target.inputs);
-				}
+		//		auto clear_outputs_except = [this](const id_type id, const index_type& index) {
+		//			for(auto iter=outputs.begin(); iter!=outputs.end(); ++iter) 
+		//				if(iter->get_address() != id) 
+		//					index.elem(iter->get_address()).inputs.clean_up(ID());
+		//			outputs.clear();
+		//		};
 
-				return true;
-			} else return false;
-		}*/
-		bool mirror(const self_type& other) { //should other be guaranteed const?
-			//a way to copy the pattern of links instead of the links themselves
-			//links-to-self are preserved as such, links between this and other are untouched, as 
-			//this would violate const-ness of other and the principle of least surprise
-			if( get_index() == other.get_index() ) {
-				//the code in each of these lambdas would have to be written twice
-				auto clear_inputs_except = [this](const id_type id, const index_type& index) {
-					for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) 
-						if(iter->get_address() != id) 
-							index.elem(iter->get_address()).outputs.clean_up(ID());
-					inputs.clear();
-				};
+		//		//take care of links between this and other, which would ordinarily
+		//		//be deleted before the mirror operation
+		//		auto input_iter = inputs.find(ID());
+		//		auto output_iter = outputs.find(ID());
+		//		if(input_iter != inputs.end() and output_iter != outputs.end()) {
+		//			//this case saves both links
+		//			auto input_temp = *input_iter;
+		//			auto output_temp = *output_iter; 
+		//			clear_inputs_except(other.ID(), *get_index());
+		//			clear_outputs_except(other.ID(), *get_index());
+		//			inputs.restore(input_temp, other.outputs); 
+		//			outputs.restore(output_temp, other.inputs);
+		//		} else if(input_iter != inputs.end() and output_iter == outputs.end()) { 
+		//			//if other had an input from this, but not an output...
+		//			auto input_temp = *input_iter; //save a copy of the Port
+		//			clear_inputs_except(other.ID(), *get_index()); //deletes all Ports, but does not clean up after other
+		//			inputs.restore(input_temp, other.outputs); //add the copy back
+		//		} else if(input_iter == inputs.end() and output_iter != outputs.end()) { 
+		//			//mirror of the last case
+		//			auto output_temp = *output_iter;
+		//			clear_outputs_except(other.ID(), *get_index());
+		//			outputs.restore(output_temp, other.inputs);
+		//		} else clear(); //no unusual problems
 
-				auto clear_outputs_except = [this](const id_type id, const index_type& index) {
-					for(auto iter=outputs.begin(); iter!=outputs.end(); ++iter) 
-						if(iter->get_address() != id) 
-							index.elem(iter->get_address()).inputs.clean_up(ID());
-					outputs.clear();
-				};
+		//		//copy the rest of the inputs
+		//		for(const auto& x : other.inputs) {
+		//			id_type currentID = x.get_address();
+		//			if(currentID != ID()) { //these links shouldn't be touched 
+		//				if(currentID == other.ID()) inputs.add_clone_of(x, outputs); //only do this once 
+		//				else {
+		//					auto& source = get_index()->elem(currentID);
+		//					inputs.add_clone_of(x, source.outputs);
+		//				}
+		//			}
+		//		}
 
-				//take care of links between this and other, which would ordinarily
-				//be deleted before the mirror operation
-				auto input_iter = inputs.find(ID());
-				auto output_iter = outputs.find(ID());
-				if(input_iter != inputs.end() and output_iter != outputs.end()) {
-					//this case saves both links
-					auto input_temp = *input_iter;
-					auto output_temp = *output_iter; 
-					clear_inputs_except(other.ID(), *get_index());
-					clear_outputs_except(other.ID(), *get_index());
-					inputs.restore(input_temp, other.outputs); 
-					outputs.restore(output_temp, other.inputs);
-				} else if(input_iter != inputs.end() and output_iter == outputs.end()) { 
-					//if other had an input from this, but not an output...
-					auto input_temp = *input_iter; //save a copy of the Port
-					clear_inputs_except(other.ID(), *get_index()); //deletes all Ports, but does not clean up after other
-					inputs.restore(input_temp, other.outputs); //add the copy back
-				} else if(input_iter == inputs.end() and output_iter != outputs.end()) { 
-					//mirror of the last case
-					auto output_temp = *output_iter;
-					clear_outputs_except(other.ID(), *get_index());
-					outputs.restore(output_temp, other.inputs);
-				} else clear(); //no unusual problems
+		//		//and the rest of the outputs
+		//		for(const auto& x : other.outputs) {
+		//			id_type currentID = x.get_address();
+		//			if(currentID != ID() and currentID != other.ID()) { //links-to-self already copied
+		//				auto& target = get_index()->elem(currentID);
+		//				outputs.add_clone_of(x, target.inputs);
+		//			}
+		//		}
 
-				//copy the rest of the inputs
-				for(const auto& x : other.inputs) {
-					id_type currentID = x.get_address();
-					if(currentID != ID()) { //these links shouldn't be touched 
-						if(currentID == other.ID()) inputs.add_clone_of(x, outputs); //only do this once 
-						else {
-							auto& source = get_index()->elem(currentID);
-							inputs.add_clone_of(x, source.outputs);
-						}
-					}
-				}
-
-				//and the rest of the outputs
-				for(const auto& x : other.outputs) {
-					id_type currentID = x.get_address();
-					if(currentID != ID() and currentID != other.ID()) { //links-to-self already copied
-						auto& target = get_index()->elem(currentID);
-						outputs.add_clone_of(x, target.inputs);
-					}
-				}
-
-				return true;
-			} else return false;
-		}
+		//		return true;
+		//	} else return false;
+		//}
 
 		void remove_input(const input_iterator iter) {
 			//O(1); doesn't have to call LinkManager::find first
@@ -275,14 +232,6 @@ namespace ben {
 		}
 		void clear() { clear_inputs(); clear_outputs(); }
 		
-		//these i/o specific observer functions are now exposed directly
-		//size_t size_inputs() const { return inputs.size(); }
-		//size_t size_outputs() const { return outputs.size(); }
-		
-		//bool contains_input(const id_type address) const { return inputs.contains(address); }
-		//bool contains_output(const id_type address) const { return outputs.contains(address); }
-		//other std::vector methods - assign, swap
-
 		template<typename T>
 		self_type& walk(const T iter) const { 
 			//returns a reference to the node that iter points to: walks the graph
@@ -294,19 +243,6 @@ namespace ben {
 					"cannot call walk without an iterator type");
 			return get_index()->elem(iter->get_address()); 
 		}
-		//input_iterator  ibegin() { return inputs.begin(); }
-		//const_input_iterator ibegin() const { return inputs.begin(); }
-		//input_iterator  iend() 	 { return inputs.end(); }
-		//const_input_iterator iend() const { return inputs.end(); }
-		//output_iterator obegin() { return outputs.begin(); }
-		//const_output_iterator obegin() const { return outputs.begin(); }
-		//output_iterator oend() 	 { return outputs.end(); }
-		//const_output_iterator oend() const { return outputs.end(); }
-		
-		//is there a way to provide begin() and end() compatible with range-based for loops?
-		//template<typename T>
-		//struct IterRange { T::iterator begin(); T::iterator end(); };
-
 	}; //DirectedNode
 	
 	//typedefs to hide default Port and Buffer choices for message-passing graph

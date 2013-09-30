@@ -26,7 +26,6 @@
 #include <vector>
 #include <random>
 #include "gtest/gtest.h"
-#include "Buffer.h"
 #include "Port.h"
 #include "Graph.h"
 #include "DirectedNode.h"
@@ -46,14 +45,14 @@ namespace {
 		template<unsigned int N>
 		void TestBuffer(ben::Buffer<double, N>& link) {
 			double test_signal;
-			EXPECT_FALSE(link.pull(test_signal));
+			EXPECT_FALSE(link.pop(test_signal));
 			PrepareSignals(3*N);
 			for(int i = 0; i<signals.size(); ++i) {
 				if(i >= N) {
-					EXPECT_TRUE(link.pull(test_signal));
+					EXPECT_TRUE(link.pop(test_signal));
 					EXPECT_EQ(signals[i-N], test_signal);
 				}
-				EXPECT_FALSE(link.pull(test_signal));
+				EXPECT_FALSE(link.pop(test_signal));
 				EXPECT_TRUE(link.push(signals[i]));
 			}
 		}
@@ -187,12 +186,12 @@ namespace {
 		
 		double test_signal, signal1(1.23), signal2(4.56), signal3(7.89);
 
-		EXPECT_FALSE(input_port.pull(test_signal));
+		EXPECT_FALSE(input_port.pop(test_signal));
 		EXPECT_TRUE(output_port.push(signal1));
-		EXPECT_FALSE(input_port.pull(test_signal));
+		EXPECT_FALSE(input_port.pop(test_signal));
 		EXPECT_TRUE(output_port.push(signal2));
 		EXPECT_FALSE(output_port.push(signal3));
-		EXPECT_TRUE(input_port.pull(test_signal));
+		EXPECT_TRUE(input_port.pop(test_signal));
 		EXPECT_EQ(signal2, test_signal);
 	}
 	

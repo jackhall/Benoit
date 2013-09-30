@@ -22,18 +22,18 @@
 */
 
 #include <memory>
-#include "LinkManager.h"
+#include <boost/lockfree/spsc_queue.hpp>
 
 namespace ben {
 	
 /* Both the user and Node use port objects to handle Buffers. Ports serve two main 
  * purposes. The first is to abstract away Buffer handling from Nodes, making both
  * classes easier to maintain. The second is to enforce the directedness of a link
- * by only allowing outputs to push data and inputs to pull. 
+ * by only allowing outputs to push data and inputs to pop. 
  *
  * These default implementations of the Port classes provide simple pass-throughs 
  * for Buffer method calls. More complex implementations could be written to store
- * extra data, check validity of pull operations or deal with custom Buffer classes
+ * extra data, check validity of pop operations or deal with custom Buffer classes
  * in a special way. 
  * 
  * Any replacement must have:
@@ -46,156 +46,119 @@ namespace ben {
  * 	Constructor(complement_type, id_type)
  * 	copy construction/assignment (for the STL)
  */
-	template<typename B, typename I=unsigned int>
+	template<typename BUFFER>
 	class Port {
-	//this is just code shared by InPort and OutPort, can't be instantiated by itself
-	public:
-		typedef B 			buffer_type;
-		typedef typename B::signal_type signal_type;
-        typedef typename B::construction_types construction_types; //tells LinkManager how to construct a Port
-		typedef I 			id_type;
-	
-	protected:
-		std::shared_ptr<buffer_type> buffer_ptr;//reference-counted smart pointer
-		Port(buffer_type* ptr) : buffer_ptr(ptr) {}
+    public:
+		typedef unsigned int id_type;
+        typedef typename BUFFER::signal_type signal_type;
+
+    private:
+        typedef Port self_type;
+        id_type otherID;
+		std::shared_ptr<BUFFER> buffer_ptr; //children should treat this as read-only!
+
+    protected:
+        template<typename... ARGS>
+        Port(id_type ID, ARGS... args) : buffer_ptr(new BUFFER(args...)), otherID(ID) {}
+        Port(const self_type& rhs, id_type ID) : buffer_ptr(rhs.buffer_ptr), otherID(ID) {}
 		
 		Port() = delete;
-		Port(const Port& rhs) : buffer_ptr(rhs.buffer_ptr) {}
-		Port(Port&& rhs) : buffer_ptr( std::move(rhs.buffer_ptr) ) {}
-		Port& operator=(const Port& rhs) { buffer_ptr = rhs.buffer_ptr; return *this; }
-		Port& operator=(Port&& rhs) { 
-			//check for sameness would be redundant because Port
-			//assignment is only called by InPort or OutPort assignment
-			buffer_ptr = std::move( rhs.buffer_ptr );
+		Port(const self_type& rhs) = default;
+		Port(self_type&& rhs) : buffer_ptr(std::move(rhs.buffer_ptr)), otherID(rhs.otherID) {}
+		self_type& operator=(const self_type& rhs) = default;
+		self_type& operator=(self_type&& rhs) { 
+            if(this != &rhs) {
+			    buffer_ptr = std::move( rhs.buffer_ptr );
+                otherID = rhs.otherID;
+            }
 			return *this;
 		}
 		virtual ~Port() = default;
-	
+		bool push(const signal_type& signal) { return buffer_ptr->push(signal); } //take another look at const requirements
+		bool pop(signal_type& signal) const { return buffer_ptr->pop(signal); }
+    
 	public:
+		id_type get_address() const { return otherID; }
 		bool is_ghost() const { return buffer_ptr.use_count() < 2; } //necessary but not sufficient for ghost :(
+        bool operator==(const self_type& rhs) const { buffer_ptr == rhs.buffer_ptr; }
+        bool operator!=(const self_type& rhs) const { return !operator==(rhs); }
 	}; //class Port
 
-	template<typename B> class InPort;
-	template<typename B> class OutPort; //forward declaration to resolve circular typedefs
 
-	//untested
-	template<typename B> bool operator==(const InPort<B>& lhs, const InPort<B>& rhs);
-	template<typename B> bool operator!=(const InPort<B>& lhs, const InPort<B>& rhs);
-	template<typename B> bool operator==(const OutPort<B>& lhs, const OutPort<B>& rhs);
-	template<typename B> bool operator!=(const OutPort<B>& lhs, const OutPort<B>& rhs);
+	template<typename BUFFER> class InPort;
+	template<typename BUFFER> class OutPort; //forward declaration to resolve circular typedefs
 
-	template<typename B>
-	class InPort {
-/*This version allows pulling but not pushing, enforcing the directedness of messages
- */
-	private:
+
+	template<typename BUFFER>
+	class InPort : public Port<BUFFER> {
+    /*This version allows popping but not pushing, enforcing the directedness of messages
+     */
 		typedef InPort self_type;
-        std::shared_ptr<B> buffer_ptr;
-		
-		typename base_type::id_type sourceID;
+        typedef Port<BUFFER> base_type;
 
-		friend bool operator==<B>(const self_type& lhs, const self_type& rhs);
-		friend bool operator!=<B>(const self_type& lhs, const self_type& rhs);
-
-	public:
-		//carrying these typedefs through inheritance is automatic only for non-template classes
-		typedef typename base_type::construction_types construction_types;
-		typedef typename base_type::id_type id_type;
-		typedef B buffer_type;
-		typedef typename buffer_type::signal_type signal_type;
-		typedef OutPort<buffer_type> complement_type;
+    public:
+        typedef typename base_type::id_type id_type;
+		typedef OutPort<BUFFER> complement_type;
 
         template<typename... ARGS>
-		InPort(id_type nSource, ARGS... args) : base_type(new buffer_type(args...)), sourceID(nSource) {} //new link, new shared_ptr
-		InPort(const complement_type& other, id_type nSource) : base_type(other), sourceID(nSource) {} //matching link, old shared_ptr
-		InPort(const self_type& rhs) : base_type(rhs), sourceID(rhs.sourceID) {} //necessary for stl internals
-		InPort(self_type&& rhs) : base_type( std::move(rhs) ), sourceID(rhs.sourceID) {}
-		InPort& operator=(const self_type& rhs) {//increases use_count
-			if(this != &rhs) {
-				base_type::operator=(rhs);
-				sourceID = rhs.sourceID;
-			}
-			return *this;
-		}
-		InPort& operator=(self_type&& rhs) {//preserves use_count
-			if(this != &rhs) {
-				base_type::operator=( std::move(rhs) );
-				sourceID = rhs.sourceID;
-			}
-			return *this;
-		}
-	
-		self_type clone(const id_type address) const { 
-			//how to get a copy with a new shared_ptr
-			//can't use sourceID because then links-to-self could not be cloned properly
-			return self_type(address); 
-		}
-	
-		id_type get_address() const { return sourceID; }
-		bool pull(signal_type& signal) const { return buffer_ptr->pull(signal); }
+        InPort(id_type sourceID, ARGS... args) : base_type(sourceID, args...) {}
+        InPort(const complement_type& complement, id_type sourceID)
+            : base_type(complement, sourceID) {}
+
+        InPort(const self_type& rhs) = default;
+        InPort(self_type&& rhs) = default;
+        self_type& operator=(const self_type& rhs) = default;
+        self_type& operator=(self_type&& rhs) = default; 
+        ~InPort() = default;
+
+        using base_type::pop;
+        using base_type::get_address;
 	}; //struct InPort
 	
-	template<typename B>
-	class OutPort : public Port<B> {
-/*This version allows pushing but not pulling, enforcing the directedness of messages
- */
-	private:
-		typedef Port<B> base_type;
+	template<typename BUFFER>
+	class OutPort : public Port<BUFFER> {
+    /*This version allows pushing but not popping, enforcing the directedness of messages
+     */
 		typedef OutPort self_type;
-		using base_type::buffer_ptr;
-		
-		typename base_type::id_type targetID;
+        typedef Port<BUFFER> base_type;
 
-		friend bool operator==<B>(const self_type& lhs, const self_type& rhs);
-		friend bool operator!=<B>(const self_type& lhs, const self_type& rhs);
-
-	public:
-		typedef typename base_type::construction_types construction_types;
-		typedef typename base_type::id_type id_type;
-		typedef typename B::signal_type signal_type;
-		typedef InPort<B> complement_type;
-		typedef B buffer_type;
+    public:
+        typedef typename base_type::id_type id_type;
+		typedef InPort<BUFFER> complement_type;
 
         template<typename... ARGS>
-		OutPort(id_type nTarget, ARGS... args) : base_type(new buffer_type(args...)), targetID(nTarget) {} //new link, new shared_ptr
-		OutPort(const complement_type& other, id_type nTarget) : base_type(other), targetID(nTarget) {} //matches existing complement
-		OutPort(const self_type& rhs) : base_type(rhs), targetID(rhs.targetID) {}
-		OutPort(self_type&& rhs) : base_type( std::move(rhs) ), targetID(rhs.targetID) {}
-		OutPort& operator=(const self_type& rhs) {//increases shared_ptr::use_count
-			if(this != &rhs) {
-				base_type::operator=(rhs);
-				targetID = rhs.targetID;
-			}
-			return *this;
-		}
-		OutPort& operator=(self_type&& rhs) { //preserves shared_ptr::use_count
-			if(this != &rhs) {
-				base_type::operator=( std::move(rhs) );
-				targetID = rhs.targetID;
-			}
-			return *this;
-		}
-	
-		self_type clone(const id_type address) const { 
-			//how to get a copy with a new shared_ptr
-			//can't use targetID because then links-to-self could not be cloned properly
-			return self_type(address); 
-		} 
-	
-		id_type get_address() const { return targetID; }
-		bool push(const signal_type& signal) { return buffer_ptr->push(signal); } //take another look at const requirements
-	}; //struct OutPort
+        OutPort(id_type targetID, ARGS... args) : base_type(targetID, args...) {}
+        OutPort(const complement_type& complement, id_type targetID) 
+            : base_type(complement, targetID) {}
 
-	template<typename B>
-	bool operator==(const InPort<B>& lhs, const InPort<B>& rhs) { return lhs.buffer_ptr == rhs.buffer_ptr; }
-	template<typename B>
-	bool operator!=(const InPort<B>& lhs, const InPort<B>& rhs) { return !operator==(lhs, rhs); }	
-	template<typename B>
-	bool operator==(const OutPort<B>& lhs, const OutPort<B>& rhs) { return lhs.buffer_ptr == rhs.buffer_ptr; }
-	template<typename B>
-	bool operator!=(const OutPort<B>& lhs, const OutPort<B>& rhs) { return !operator==(lhs, rhs); }	
+        OutPort(const self_type& rhs) = default;
+        OutPort(self_type&& rhs) = default;
+        self_type& operator=(const self_type& rhs) = default;
+        self_type& operator=(self_type&& rhs) = default;
+        ~OutPort() = default;
 
-    port_traits<InPort, OutPort>
+        using base_type::push;
+        using base_type::get_address;
+    }; //struct OutPort
+
+
+    /* Buffers are for the messages passed between Nodes. They're templated for both the
+     * message type and buffer length. There are two partial specializations for buffer length B=1 
+     * and B=2. 
+     *
+     * B=1 requires only one atomic element and no indexing. The other specializations each
+     * have a B=1 Buffer as a member, and use it as a kind of staging area. Data can only be popped from
+     * there, and so only the output port gives access to the rest of the Buffer code. Thus data races 
+     * in the rest of the buffer are avoided, and Buffer B=1 encapsulates all atomic operations. 
+     *
+     * B=2 is special because it also needs no indexing. Larger Buffers are implemented as circular buffers. 
+     *
+     * Any replacement must match the public interface, which is the same for all specializations. 
+     */
+	template<typename SIGNAL, unsigned short SIZE> 
+    struct Buffer : boost::lockfree::spsc_queue< SIGNAL, boost::lockfree::capacity<SIZE> > {
+        typedef SIGNAL signal_type;
+    };
 
 } //namespace ben
 

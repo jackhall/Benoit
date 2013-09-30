@@ -25,54 +25,42 @@
 #include <memory>
 #include <atomic>
 //#include "yaml-cpp/yaml.h"
-#include "LinkManager.h"
 
 namespace ben {
 
-	template<typename V> class Path;
-
-	//untested
-	template<typename V> bool operator==(const Path<V>& lhs, const Path<V>& rhs);
-	template<typename V> bool operator!=(const Path<V>& lhs, const Path<V>& rhs);
-	//template<typename V> std::ostream& operator<<(std::ostream& out, const Path<V>& rhs);
-
-	template<typename V>
+	template<typename VALUE>
 	class Path {
-/* Value-storing counterpart to Ports. Directionality is given only by the Node-level interface.
- * Any replacement must have:
- * 	id_type typedef
- * 	complement_type typedef
- * 	construction_types typedef
- * 	get_address() method
- * 	clone() method
- * 	Constructor(id_type, construction_types...)
- * 	Constructor(complement_type, id_type)
- * 	copy construction/assignment (for the STL)
- */
+    /* Value-storing counterpart to Ports. Directionality is given only by the Node-level interface.
+     * Any replacement must have:
+     * 	id_type typedef
+     * 	complement_type typedef
+     * 	construction_types typedef
+     * 	get_address() method
+     * 	clone() method
+     * 	Constructor(id_type, construction_types...)
+     * 	Constructor(complement_type, id_type)
+     * 	copy construction/assignment (for the STL)
+     */
 	public:	
-		typedef V value_type;
 		typedef Path complement_type; //even for directed graphs, value links are symmetric
 		typedef unsigned int id_type;
-		typedef ConstructionTypes<value_type> construction_types; //tells LinkManager how to construct it
 		
 	private:
 		typedef Path self_type;
 		id_type otherID;
-		std::shared_ptr< std::atomic<value_type> > value_ptr;
-
-		friend bool operator==<V>(const self_type& lhs, const self_type& rhs);
-		friend bool operator!=<V>(const self_type& lhs, const self_type& rhs);
-		//friend std::ostream& operator<< <V>(std::ostream& out, const self_type& rhs);
+		std::shared_ptr< std::atomic<VALUE> > value_ptr;
 
 	public:
 		Path() = delete;
 		//1st ctor: new link, new shared_ptr
 		//2nd ctor: matches existing complement, old shared_ptr
-		Path(const id_type address, const value_type v) : otherID(address), value_ptr(new std::atomic<value_type>(v)) {} 
-		Path(complement_type& other, const id_type address) : otherID(address), value_ptr(other.value_ptr) {}
+		Path(id_type address, const VALUE& v) 
+            : otherID(address), value_ptr(new std::atomic<VALUE>(v)) {} 
+		Path(complement_type& other, id_type address) 
+            : otherID(address), value_ptr(other.value_ptr) {}
 		Path(const self_type& rhs) = default;
 		self_type& operator=(const self_type& rhs) = default;
-		Path(self_type&& rhs) : otherID(rhs.otherID), value_ptr( std::move(rhs.value_ptr) ) {}
+		Path(self_type&& rhs) = default;
 		self_type& operator=(self_type&& rhs) {
 			if(this != &rhs) {
 				otherID = rhs.otherID;
@@ -89,19 +77,12 @@ namespace ben {
 
 		bool is_ghost() const { return value_ptr.use_count() < 2; } //necessary but not sufficient condition for ghost
 		id_type get_address() const { return otherID; } //required by all Port or Path types
-		value_type get_value() const { return value_ptr->load(); }
-		void set_value(const value_type& v) { value_ptr->store(v); }
-	}; //class Path
+		VALUE get_value() const { return value_ptr->load(); }
+		void set_value(const VALUE& v) { value_ptr->store(v); }
 
-	template<typename V>
-	bool operator==(const Path<V>& lhs, const Path<V>& rhs) { return lhs.value_ptr == rhs.value_ptr; }
-	template<typename V>
-	bool operator!=(const Path<V>& lhs, const Path<V>& rhs) { return !operator==(lhs, rhs); }	
-	//template<typename V> 
-	//std::ostream& operator<<(std::ostream& out, const Path<V>& rhs) {
-	//	out << "ID = " << rhs.get_address() << ", value = " << rhs.get_value() << std::endl;
-	//	return out;
-	//}
+	    bool operator==(const self_type& rhs) const { return value_ptr == rhs.value_ptr; }
+	    bool operator!=(const self_type& rhs) const { return !operator==(rhs); }	
+	}; //class Path
 
 }; //namespace ben
 /*

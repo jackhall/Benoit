@@ -26,7 +26,7 @@
 #include "LinkManager.h"
 
 namespace ben {
-	
+	//should inherit from path_traits<P>
 	template<typename P>
 	class UndirectedNode : public Singleton { 
 /* UndirectedNode is the counterpart to DirectedNode. Between them, it should be possible to represent
@@ -78,43 +78,43 @@ namespace ben {
 		iterator find(const id_type address) { return links.find(address); } 
 		const_iterator find(const id_type address) const { return links.find(address); }
 
-		template<typename... Args>
-		bool add(const id_type address, Args... args) {
+		template<typename... ARGS>
+		bool add(id_type address, ARGS... args) {
 			//returns false if the address does not exist or a link is already there
 			//add should only be instantiated with arguments matching the Path constructor
-			static_assert(std::is_same< typename link_type::construction_types, ConstructionTypes<Args...> >::value,
-					"extra arguments for UndirectedNode::add must match link_type::construction_types");
+            static_assert(std::is_constructible<P, id_type, ARGS...>::value,
+                "Path object should be constructible from arguments to UndirectedNode::add");
 			auto node_iter = get_index()->find(address); 
 			if(node_iter != get_index()->end()) return links.add(node_iter->links, args...);
 			else return false;
 		}
-		bool mirror(const self_type& other) { 
-			//links-to-self are cloned to preserve the pattern - if other has a link-to-self, then
-			//this will also have a link-to-self, not a link to other 
-			if( get_index() == other.get_index() ) {
-				auto path_iter = find(other.ID());
-				if(path_iter != end()) { //if other contains a link to this node...
-					auto temp = *path_iter;
-					for(auto iter=begin(); iter!=end(); ++iter) 
-						if(iter->get_address() != other.ID()) //clean up all except links to other
-							walk(iter).links.clean_up(ID());
-					links.clear();
-					links.restore(temp, other.links);//add back the saved link 
-				} else clear(); //would have deleted one of the links we're trying to copy
+		//bool mirror(const self_type& other) { 
+		//	//links-to-self are cloned to preserve the pattern - if other has a link-to-self, then
+		//	//this will also have a link-to-self, not a link to other 
+		//	if( get_index() == other.get_index() ) {
+		//		auto path_iter = find(other.ID());
+		//		if(path_iter != end()) { //if other contains a link to this node...
+		//			auto temp = *path_iter;
+		//			for(auto iter=begin(); iter!=end(); ++iter) 
+		//				if(iter->get_address() != other.ID()) //clean up all except links to other
+		//					walk(iter).links.clean_up(ID());
+		//			links.clear();
+		//			links.restore(temp, other.links);//add back the saved link 
+		//		} else clear(); //would have deleted one of the links we're trying to copy
 
-				for(const auto& x : other.links) {
-					id_type currentID = x.get_address(); 
-					if(currentID != ID()) { //if this link was there, it is left alone 
-						if(currentID == other.ID()) links.add_self_link_clone_of(x); 
-						else {
-							auto& target = get_index()->elem(currentID);
-							links.add_clone_of(x, target.links);
-						}
-					}
-				}
-				return true;
-			} else return false;
-		}
+		//		for(const auto& x : other.links) {
+		//			id_type currentID = x.get_address(); 
+		//			if(currentID != ID()) { //if this link was there, it is left alone 
+		//				if(currentID == other.ID()) links.add_self_link_clone_of(x); 
+		//				else {
+		//					auto& target = get_index()->elem(currentID);
+		//					links.add_clone_of(x, target.links);
+		//				}
+		//			}
+		//		}
+		//		return true;
+		//	} else return false;
+		//}
 		void remove(const iterator iter) {
 			//gets an iterator to the other node and lets LinkManager::remove do the rest
 			//of the work

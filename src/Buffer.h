@@ -25,6 +25,7 @@
 #include <array>
 #include <type_traits>
 #include <initializer_list>
+#include <boost/lockfree/spsc_queue.hpp>
 #include "Traits.h"
 
 namespace ben {
@@ -41,18 +42,12 @@ namespace ben {
  *
  * Any replacement must match the public interface, which is the same for all specializations. 
  */
-	template<typename S> 
-	struct Frame {
-	/*
-		POD Frame hopefully allows more compiler optimizations.
-		This version of Frame is an aggregate, so the compiler will generate move and copy ctors!
-	*/
-		bool ready;
-		S data;
-	}; //struct Frame
 	
-	
-	template<typename S, unsigned short B> class Buffer;
+	template<typename S, unsigned short B> 
+    struct Buffer : boost::lockfree::spsc_queue< S, boost::lockfree::capacity<B> > {
+        typedef S signal_type;
+        typedef ConstructionTypes<> construction_types;
+    };
 
 	
 	template<typename S>

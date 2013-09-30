@@ -27,52 +27,43 @@
 
 namespace ben {
 
-	//this struct allows LinkManagerHelper to friend the node type that uses it
+	//this struct allows LinkManager to friend the node type that uses it
 	template<typename T> struct type_wrapper { typedef T type; };
 
-	template<typename N, typename P, typename... ARGS>
-	class LinkManagerHelper {
-		//Don't let this compile! Only the specialization taking a ConstructionTypes struct
-		//should be used. The static_assert here doesn't quite say the right thing...
-		static_assert(!std::is_same<typename P::construction_types, ARGS...>::value, 
-				"LinkManagerHelper needs an instance of ConstructionTypes; use LinkManager");
-	};
-
-
-	template<typename N, typename P, typename... ARGS>
-	class LinkManagerHelper<N, P, ConstructionTypes<ARGS...> > : path_traits<P> { 
-/* This helper class does all the LinkManager work, but has a messier and less safe template interface
- * than it should. I use a template typedef to hide this template interface under the name LinkManager.
- * LinkManager is part of the internal machinery of Node classes, allowing the reuse of much code for
- * handling ports/paths/links. Unlike the rest of Benoit, I do not recommend customizing or replacing this
- * class during normal use of the library. 
- *
- * When writing Node classes, remember to initialize LinkManagers with the node's ID. When writing Port
- * classes, remember to typedef an instance of ConstructionTypes as construction_types. 
- */
+	template<typename NODE, typename PORT>
+	class LinkManager { 
+    /* This helper class does all the LinkManager work, but has a messier and less safe template interface
+     * than it should. I use a template typedef to hide this template interface under the name LinkManager.
+     * LinkManager is part of the internal machinery of Node classes, allowing the reuse of much code for
+     * handling ports/paths/links. Unlike the rest of Benoit, I do not recommend customizing or replacing this
+     * class during normal use of the library. 
+     *
+     * When writing Node classes, remember to initialize LinkManagers with the node's ID. When writing Port
+     * classes, remember to typedef an instance of ConstructionTypes as construction_types. 
+     */
 	public:
-		typedef P link_type;
+		typedef PORT link_type;
 		typedef typename link_type::complement_type link_complement_type;
-		typedef typename P::id_type id_type;
-		typedef LinkManagerHelper<N, typename link_type::complement_type, ConstructionTypes<ARGS...> > complement_type;
+		typedef typename PORT::id_type id_type;
+		typedef LinkManager<NODE, link_complement_type> complement_type;
 		typedef typename std::vector<link_type>::iterator iterator; 
 		typedef typename std::vector<link_type>::const_iterator const_iterator;
 		
-		~LinkManagerHelper() = default;
+		~LinkManager() = default;
 
 	private:
-		friend class LinkManagerHelper<N, link_complement_type, ConstructionTypes<ARGS...> >; //for noncircular calls to add/remove
-		friend class type_wrapper<N>::type; //allow the owning node access to private methods
+		friend class LinkManager<NODE, link_complement_type>; //for noncircular calls to add/remove
+		friend class type_wrapper<NODE>::type; //allow the owning node access to private methods
 		std::vector<link_type> links; 
-		id_type nodeID; //needed to initialize complement Ports, public because LinkManager is internal to Node
+		id_type nodeID; //needed to initialize complement Ports
 
-		typedef LinkManagerHelper self_type;
+		typedef LinkManager self_type;
 
-		LinkManagerHelper() = delete;
-		LinkManagerHelper(const id_type id) : nodeID(id) {}
-		LinkManagerHelper(const self_type& rhs) = delete; //identity semantics
+		LinkManager() = delete;
+		LinkManager(const id_type id) : nodeID(id) {}
+		LinkManager(const self_type& rhs) = delete; //identity semantics
 		self_type& operator=(const self_type& rhs) = delete;
-		LinkManagerHelper(self_type&& rhs) 
+		LinkManager(self_type&& rhs) 
 			: nodeID(rhs.nodeID), links(std::move(rhs.links)) {}
 		self_type& operator=(self_type&& rhs) {
 			if(this != &rhs) {
@@ -81,30 +72,20 @@ namespace ben {
 			}
 		} 
 
+        template<typename... ARGS>
 		bool add(complement_type& other, const ARGS... args) {
 			if( contains(other.nodeID) ) return false; //there is already a link to this other Node/LinkManager
 			links.push_back( link_type(other.nodeID, args...) );
 			other.links.push_back( link_complement_type(links.back(), nodeID) ); 
 			return true;
 		}
-		void add_clone_of(const link_type& x, complement_type& other) {
-			//for copying the links of a Node
-			//this member does little work because undirected links can't be treated
-			//the same as directed links
-			links.push_back(x.clone(other.nodeID));
-			other.links.push_back( link_complement_type(links.back(), nodeID) ); //link-to-self
-		}
-		bool add_self_link(const ARGS... args) {
+		template<typename... ARGS>
+        bool add_self_link(const ARGS... args) {
 			//without this, UndirectedNodes either end up violating encapsulation of LinkManager
 			//or having two copies of every link-to-self
 			if( contains(nodeID) ) return false;
 			links.push_back( link_type(nodeID, args...) );
 			return true;
-		}
-		void add_self_link_clone_of(const link_type& x) {
-			//without this, UndirectedNodes either end up violating encapsulation of LinkManager
-			//or having two copies of every link-to-self
-			links.push_back( x.clone(nodeID) );
 		}
 		bool restore(link_type x, const complement_type& other) {
 			//this method allows client code to save and then restore a Port
@@ -160,10 +141,6 @@ namespace ben {
 		iterator end() { return links.end(); }
 		const_iterator end() const { return links.end(); }
 	}; //class LinkManager
-
-	//this alias significantly cleans up the interface and makes it safer
-	template<typename N, typename P>
-	using LinkManager = LinkManagerHelper<N, P, typename P::construction_types>;
 
 } //namespace ben
 
