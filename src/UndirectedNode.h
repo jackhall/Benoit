@@ -88,33 +88,37 @@ namespace ben {
 			if(node_iter != get_index()->end()) return links.add(node_iter->links, args...);
 			else return false;
 		}
-		//bool mirror(const self_type& other) { 
-		//	//links-to-self are cloned to preserve the pattern - if other has a link-to-self, then
-		//	//this will also have a link-to-self, not a link to other 
-		//	if( get_index() == other.get_index() ) {
-		//		auto path_iter = find(other.ID());
-		//		if(path_iter != end()) { //if other contains a link to this node...
-		//			auto temp = *path_iter;
-		//			for(auto iter=begin(); iter!=end(); ++iter) 
-		//				if(iter->get_address() != other.ID()) //clean up all except links to other
-		//					walk(iter).links.clean_up(ID());
-		//			links.clear();
-		//			links.restore(temp, other.links);//add back the saved link 
-		//		} else clear(); //would have deleted one of the links we're trying to copy
+		template<typename FUNC>
+        bool mirror(const self_type& other, FUNC function) { 
+			//links-to-self are cloned to preserve the pattern - if other has a link-to-self, then
+			//this will also have a link-to-self, not a link to other 
+			if( get_index() == other.get_index() ) {
 
-		//		for(const auto& x : other.links) {
-		//			id_type currentID = x.get_address(); 
-		//			if(currentID != ID()) { //if this link was there, it is left alone 
-		//				if(currentID == other.ID()) links.add_self_link_clone_of(x); 
-		//				else {
-		//					auto& target = get_index()->elem(currentID);
-		//					links.add_clone_of(x, target.links);
-		//				}
-		//			}
-		//		}
-		//		return true;
-		//	} else return false;
-		//}
+                //remove old links
+				auto path_iter = find(other.ID());
+				if(path_iter != end()) { //if other contains a link to this node...
+					auto temp = *path_iter;
+					for(auto iter=begin(); iter!=end(); ++iter) 
+						if(iter->get_address() != other.ID()) //clean up all except links to other
+							walk(iter).links.clean_up(ID());
+					links.clear();
+					links.restore(temp, other.links);//add back the saved link 
+				} else clear(); //would have deleted one of the links we're trying to copy
+
+                //add new links
+				for(const auto& x : other.links) {
+					id_type currentID = x.get_address(); 
+					if(currentID != ID()) { //if this link was there, it is left alone 
+						if(currentID == other.ID()) links.add_self_link_clone_of(x); 
+						else {
+							auto& target = get_index()->elem(currentID);
+							links.add_clone_of(x, target.links);
+						}
+					}
+				}
+				return true;
+			} else return false;
+		}
 		void remove(const iterator iter) {
 			//gets an iterator to the other node and lets LinkManager::remove do the rest
 			//of the work
