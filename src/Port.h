@@ -55,7 +55,7 @@ namespace ben {
     private:
         typedef Port self_type;
         id_type otherID;
-		std::shared_ptr<BUFFER> buffer_ptr; //children should treat this as read-only!
+		std::shared_ptr<BUFFER> buffer_ptr; 
 
     protected:
         template<typename... ARGS>

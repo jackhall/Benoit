@@ -79,14 +79,6 @@ namespace ben {
 			other.links.push_back( link_complement_type(links.back(), nodeID) ); 
 			return true;
 		}
-		template<typename... ARGS>
-        bool add_self_link(const ARGS... args) {
-			//without this, UndirectedNodes either end up violating encapsulation of LinkManager
-			//or having two copies of every link-to-self
-			if( contains(nodeID) ) return false;
-			links.push_back( link_type(nodeID, args...) );
-			return true;
-		}
 		bool restore(link_type x, const complement_type& other) {
 			//this method allows client code to save and then restore a Port
 			//the second argument is solely for running checks on the validity of the data structure

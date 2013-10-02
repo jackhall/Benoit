@@ -1,5 +1,5 @@
-#ifndef BenoitDirectedNode_h
-#define BenoitDirectedNode_h
+#ifndef BenoitNode_h
+#define BenoitNode_h
 
 /*
     Benoit: a flexible framework for distributed graphs and spaces
@@ -32,71 +32,83 @@
 #include "LinkManager.h"
 
 namespace ben {	
-/* A DirectedNode is the vertex of a distributed directed graph structure. Each is managed by an Index, 
- * but it is designed to be owned by any object the programmer wishes. The DirectedNodes are connected by 
+/* A Node is the vertex of a distributed directed graph structure. Each is managed by an Index, 
+ * but it is designed to be owned by any object the programmer wishes. The Nodes are connected by 
  * Buffers, which are abstracted away through Ports. These port objects are accessed by bidirectional 
- * iterators. Would there be problems treating them as streams? An owning object treats the DirectedNode as a 
+ * iterators. Would there be problems treating them as streams? An owning object treats the Node as a 
  * message passer; handling the Buffers is abstracted away from the user as well.
  *
  * Ports are stored in vectors (inside LinkManagers) for good cache optimization; copying them is designed to be cheap. There
- * are two layers of indirection between a DirectedNode and its links: one to access ports in their vector, and
+ * are two layers of indirection between a Node and its links: one to access ports in their vector, and
  * one to dereference the shared_ptr in each link. The first is necessary because the number of links
- * can't be known at compile-time, and the second because if links are actually stored in a DirectedNode, 
+ * can't be known at compile-time, and the second because if links are actually stored in a Node, 
  * thread safety is impossible (simultaneously moving two connected nodes at one time would give undefined behavior).  
  */
 	
-    //should inherit from port_traits<I,O>
-    template<typename I, typename O>
-	class DirectedNode : public Singleton { 
+    //should inherit from port_traits<IN,OUT>
+    template<typename IN, typename OUT>
+	class Node : public Singleton { 
 	private:
-		typedef DirectedNode 	self_type;
+		typedef Node 	self_type;
 		typedef Singleton 	base_type;
 
 	public:
-		typedef Graph<DirectedNode> 	index_type;
-		typedef I 			input_type;
-		typedef O 			output_type;
+		typedef Graph<Node> 	index_type;
+		typedef IN 			input_type;
+		typedef OUT 		output_type;
 		typedef typename LinkManager<self_type, input_type>::iterator input_iterator;
 		typedef typename LinkManager<self_type, input_type>::const_iterator const_input_iterator;
 		typedef typename LinkManager<self_type, output_type>::iterator output_iterator;
 		typedef typename LinkManager<self_type, output_type>::const_iterator const_output_iterator;
 		
 	private:
-		//Benoit would probably not compile anyway, but these assertions should
-		//make debugging easier
-		static_assert(std::is_same<id_type, typename I::id_type>::value, 
-			      "Index and Port unique ID types don't match");
-	
+		LinkManager<self_type, input_type> inputs; 
+		LinkManager<self_type, output_type> outputs;
 		//std::mutex node_mutex; //would need this to alter graph structure in multiple threads
+        
 		void perform_leave() { clear(); }
+		template<typename T>
+		self_type& walk(const T iter) const { 
+			//returns a reference to the node that iter points to: walks the graph
+			//existence of the target node is implicit: if it had been destroyed, so would iter
+			static_assert(	std::is_same<T, input_iterator>::value or
+					std::is_same<T, const_input_iterator>::value or
+					std::is_same<T, output_iterator>::value or
+					std::is_same<T, const_output_iterator>::value,
+					"cannot call walk without an iterator type");
+			return get_index()->elem(iter->get_address()); 
+		}
 		
 	public:
-		//although these are public, do not count on the type staying the same, just that there
-		//exist "inputs" and "outputs" data members providing observer functions
-		//with auto keyword, knowing the type should never be necessary
-		LinkManager<self_type, input_type> inputs; //interface for LinkManagers is now restricted
-		LinkManager<self_type, output_type> outputs;
-
 		//For the ctors lacking an id_type argument, Singleton automatically generates a unique ID.
 		//This generated ID is only guaranteed to be unique if that generation method is used exclusively.
-		DirectedNode() : base_type(), inputs(ID()), outputs(ID()) {} 
-		explicit DirectedNode(const id_type id) : base_type(id), inputs(id), outputs(id) {}
-		explicit DirectedNode(std::shared_ptr<index_type> graph) : base_type(graph), inputs(ID()), outputs(ID()) {}
-		DirectedNode(std::shared_ptr<index_type> graph, const id_type id) : base_type(graph, id), inputs(id), outputs(id) {}
-		DirectedNode(const self_type& rhs) = delete; //identity semantics
-		DirectedNode& operator=(const self_type& rhs) = delete;
-		DirectedNode(self_type&& rhs) 
+		Node() : base_type(), inputs(ID()), outputs(ID()) {} 
+		explicit Node(id_type id) : base_type(id), inputs(id), outputs(id) {}
+		explicit Node(std::shared_ptr<index_type> graph) 
+            : base_type(graph), inputs(ID()), outputs(ID()) {}
+		Node(std::shared_ptr<index_type> graph, const id_type id) 
+            : base_type(graph, id), inputs(id), outputs(id) {}
+		Node(const self_type& rhs) = delete; //identity semantics
+		Node& operator=(const self_type& rhs) = delete;
+		Node(self_type&& rhs) 
 			: base_type(std::move(rhs)), 
 			  inputs(std::move(rhs.inputs)),
 		      outputs(std::move(rhs.outputs)) {}
-		DirectedNode& operator=(self_type&& rhs) {
+		Node& operator=(self_type&& rhs) {
 			if(this != &rhs) {
 				base_type::operator=( std::move(rhs) );
 				inputs = std::move(rhs.inputs);
 				outputs = std::move(rhs.outputs);
 			}
 		}
-		virtual ~DirectedNode() { clear(); } //might want to lock while deleting links 
+		virtual ~Node() { 
+            clear(); 
+            auto it = outputs.begin(), ite = outputs.end();
+            while(it != ite) {
+                walk(it).remove(ID());
+                ++it;
+            }
+        } //might want to lock while deleting links 
 	
 		//locking should probably be internal when I do add it...	
 		//void lock() { node_mutex.lock(); }
@@ -108,25 +120,36 @@ namespace ben {
 			{ return std::static_pointer_cast<index_type>(base_type::get_index()); }
 
 		template<typename... ARGS>	
-		bool add_input(const id_type address, ARGS... args) {
-			//the type safety for this function comes in LinkManager::add
-			auto iter = get_index()->find(address);
-			if( iter == get_index()->end() ) return false;
-			else return inputs.add(iter->outputs, args...);
-
-			//if( get_index()->manages(address) ) {
-			//	return inputs.add(get_index()->elem(address).outputs, args...);
-			//} else return false;
+		bool add(const id_type address, ARGS... args) {
+            //lock this node
+			auto node_iter = get_index()->find(address);
+            //is there a node with this address?
+			if( node_iter == get_index()->end() ) return false;
+            //is there already a link to this other Node?
+            if( !inputs.contains(address) ) return false;
+            auto& new_port = inputs.add(address, args...);
+            //unlock this node here, or at the end? do I need a pair lock? probably
+            //lock other node
+            node_iter->outputs.add(new_port, ID());
+            //unlock other node
+            return true;
 		}
-		template<typename... ARGS>
-		bool add_output(const id_type address, ARGS... args) {//see add_input
-			auto iter = get_index()->find(address);
-			if( iter == get_index()->end() ) return false;
-			else return outputs.add(iter->inputs, args...);
-
-			//if( get_index()->manages(address) ) {
-			//	return outputs.add(get_index()->elem(address).inputs, args...);
-			//} else return false;
+		void remove(const id_type address) {
+			//O(n), must search for the right port
+            //lock this node
+			auto node_iter = get_index()->find(address);
+            //is there a node with this address?
+			if( node_iter == get_index()->end() ) return;
+            //do I have a link to this node?
+            if( !inputs.contains(address) ) return;
+			inputs.remove(address);
+            //unlock this node here, or at the end? should match pattern in add
+            node_iter->outputs.remove(ID());
+		}
+		void clear() { 
+			//cleaning up after all links before deleting them prevents iterator invalidation
+			for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) walk(iter).outputs.clean_up(ID());
+			inputs.clear();
 		}
         //pass in a function that clones links?
         //bool mirror(const self_type& other) { //should other be guaranteed const?
@@ -197,61 +220,15 @@ namespace ben {
 		//		return true;
 		//	} else return false;
 		//}
-
-		void remove_input(const input_iterator iter) {
-			//O(1); doesn't have to call LinkManager::find first
-			auto address = iter->get_address();
-			inputs.remove(walk(iter).outputs, iter);
-		}
-		void remove_input(const id_type address) {
-			//O(n), must search for the right port
-			auto node_iter = get_index()->find(address);
-			if( node_iter == get_index()->end() ) return;
-			else inputs.remove(node_iter->outputs);
-			//inputs.remove(get_index()->elem(address).outputs);
-		}
-		void remove_output(const output_iterator iter) { //see remove_input
-			auto address = iter->get_address();
-			outputs.remove(walk(iter).inputs, iter);
-		}
-		void remove_output(const id_type address) { //see remove_input
-			auto node_iter = get_index()->find(address);
-			if( node_iter == get_index()->end() ) return;
-			else outputs.remove(node_iter->inputs);
-			//outputs.remove(get_index()->elem(address).inputs);
-		}
-		
-		void clear_inputs() { 
-			//cleaning up after all links before deleting them prevents iterator invalidation
-			for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) walk(iter).outputs.clean_up(ID());
-			inputs.clear();
-		}
-		void clear_outputs() { //see clear_inputs
-			for(auto iter=outputs.begin(); iter!=outputs.end(); ++iter) walk(iter).inputs.clean_up(ID());
-			outputs.clear();
-		}
-		void clear() { clear_inputs(); clear_outputs(); }
-		
-		template<typename T>
-		self_type& walk(const T iter) const { 
-			//returns a reference to the node that iter points to: walks the graph
-			//existence of the target node is implicit: if it had been destroyed, so would iter
-			static_assert(	std::is_same<T, input_iterator>::value or
-					std::is_same<T, const_input_iterator>::value or
-					std::is_same<T, output_iterator>::value or
-					std::is_same<T, const_output_iterator>::value,
-					"cannot call walk without an iterator type");
-			return get_index()->elem(iter->get_address()); 
-		}
-	}; //DirectedNode
+	}; //Node
 	
 	//typedefs to hide default Port and Buffer choices for message-passing graph
 	template<typename S, typename IndexBase::id_type L = 1> 
-	using stdMessageNode = DirectedNode< InPort< Buffer<S,L> >, OutPort< Buffer<S,L> > >;
+	using stdMessageNode = Node< InPort< Buffer<S,L> >, OutPort< Buffer<S,L> > >;
 
 	//default node for value graphs
 	template<typename V>
-	using stdDirectedNode = DirectedNode< Path<V>, Path<V> >;
+	using stdNode = Node< Path<V>, Path<V> >;
 
 } //namespace ben
 
