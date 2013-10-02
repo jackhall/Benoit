@@ -21,15 +21,12 @@
     e-mail: jackwhall7@gmail.com
 */
 
-#include <iostream>
-#include <list>
 #include <vector>
-#include <atomic>
 #include <mutex>
+#include <algorithm>
 #include "Singleton.h"
 #include "Path.h"
 #include "Port.h"
-#include "LinkManager.h"
 
 namespace ben {	
 /* A Node is the vertex of a distributed directed graph structure. Each is managed by an Index, 
@@ -48,37 +45,32 @@ namespace ben {
     //should inherit from port_traits<IN,OUT>
     template<typename IN, typename OUT>
 	class Node : public Singleton { 
-	private:
 		typedef Node 	self_type;
 		typedef Singleton 	base_type;
 
 	public:
 		typedef Graph<Node> 	index_type;
-		typedef IN 			input_type;
-		typedef OUT 		output_type;
-		typedef typename LinkManager<self_type, input_type>::iterator input_iterator;
-		typedef typename LinkManager<self_type, input_type>::const_iterator const_input_iterator;
-		typedef typename LinkManager<self_type, output_type>::iterator output_iterator;
-		typedef typename LinkManager<self_type, output_type>::const_iterator const_output_iterator;
+		typedef IN 			    input_port_type;
+		typedef OUT 		    output_port_type;
 		
 	private:
-		LinkManager<self_type, input_type> inputs; 
-		LinkManager<self_type, output_type> outputs;
+		std::vector<input_port_type> inputs; 
+		std::vector<output_port_type> outputs;
+		typedef typename vector<input_port_type>::iterator input_iterator;
 		//std::mutex node_mutex; //would need this to alter graph structure in multiple threads
         
-		void perform_leave() { clear(); }
-		template<typename T>
-		self_type& walk(const T iter) const { 
-			//returns a reference to the node that iter points to: walks the graph
-			//existence of the target node is implicit: if it had been destroyed, so would iter
-			static_assert(	std::is_same<T, input_iterator>::value or
-					std::is_same<T, const_input_iterator>::value or
-					std::is_same<T, output_iterator>::value or
-					std::is_same<T, const_output_iterator>::value,
-					"cannot call walk without an iterator type");
-			return get_index()->elem(iter->get_address()); 
-		}
-		
+		void perform_leave() { unlink_all(); }
+	    input_iterator find_input(id_type address) const {
+            for(input_iterator it = inputs.begin(); it!=inputs.end(); ++it) 
+                if(it->get_address() == address) break;
+            return it;
+        }
+        void remove_hook(id_type address) {
+            std::remove_if(outputs.begin(), outputs.end(), [address](const output_port_type& port) {
+                return port.get_address() == address; 
+            });
+        }
+        
 	public:
 		//For the ctors lacking an id_type argument, Singleton automatically generates a unique ID.
 		//This generated ID is only guaranteed to be unique if that generation method is used exclusively.
@@ -102,55 +94,70 @@ namespace ben {
 			}
 		}
 		virtual ~Node() { 
-            clear(); 
-            auto it = outputs.begin(), ite = outputs.end();
-            while(it != ite) {
-                walk(it).remove(ID());
-                ++it;
-            }
+            if(!is_managed()) return;
+            //need to lock this node
+            unlink_all(); 
+            for(auto iter=outputs.begin(); iter != outputs.end(); ++iter) 
+                get_index()->look_up(iter->get_address())->unlink(ID()); //need to lock other node
         } //might want to lock while deleting links 
 	
-		//locking should probably be internal when I do add it...	
-		//void lock() { node_mutex.lock(); }
-		//bool try_lock() { return node_mutex.try_lock(); }
-		//void unlock() { node_mutex.unlock(); }
-		
 		bool join_index(std::shared_ptr<index_type> ptr) { return base_type::join_index(ptr); }
-		std::shared_ptr<index_type> get_index() const 
-			{ return std::static_pointer_cast<index_type>(base_type::get_index()); }
+		std::shared_ptr<index_type> get_index() const { 
+            return std::static_pointer_cast<index_type>(base_type::get_index()); 
+        }
+
+        template<class FUNCTION>
+        FUNCTION for_inputs(FUNCTION f) const {
+            //lock this node
+            for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) 
+                f(*iter);
+            return f;
+            //unlock
+        }
+        template<class FUNCTION>
+        FUNCTION for_outputs(FUNCTION f) const {
+            //lock this node
+            for(auto iter=outputs.begin(); iter!=outputs.end(); ++iter) 
+                f(*iter);
+            return f;
+            //unlock
+        }
 
 		template<typename... ARGS>	
-		bool add(const id_type address, ARGS... args) {
+		bool link(id_type address, ARGS... args) {
             //lock this node
-			auto node_iter = get_index()->find(address);
+            if(!is_managed()) return false;
+			auto node_ptr = get_index()->look_up(address);
             //is there a node with this address?
-			if( node_iter == get_index()->end() ) return false;
+			if(!node_ptr) return false;
             //is there already a link to this other Node?
-            if( !inputs.contains(address) ) return false;
-            auto& new_port = inputs.add(address, args...);
+            if(linked_to(address)) return false;
+            input_port_type new_port(address, args...);
+            inputs.push_back(new_port);
             //unlock this node here, or at the end? do I need a pair lock? probably
             //lock other node
-            node_iter->outputs.add(new_port, ID());
+            node_iter->outputs.push_back( output_port_type(new_port, ID()) );
             //unlock other node
             return true;
 		}
-		void remove(const id_type address) {
+		void unlink(id_type address) {
 			//O(n), must search for the right port
             //lock this node
-			auto node_iter = get_index()->find(address);
-            //is there a node with this address?
-			if( node_iter == get_index()->end() ) return;
-            //do I have a link to this node?
-            if( !inputs.contains(address) ) return;
-			inputs.remove(address);
+            auto port_iter = find_input(address);
+            if(port_iter == inputs.end()) return; //do nothing if the link does not exist
+            //checking for address validity is unnecessary if the link exists
+			inputs.erase(port_iter);
             //unlock this node here, or at the end? should match pattern in add
-            node_iter->outputs.remove(ID());
+            get_index()->look_up(address)->remove_hook(ID());
 		}
-		void clear() { 
+		void unlink_all() { 
 			//cleaning up after all links before deleting them prevents iterator invalidation
-			for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) walk(iter).outputs.clean_up(ID());
+			for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) 
+                get_index()->look_up(iter->get_address())->remove_hook(ID());
 			inputs.clear();
 		}
+        bool linked_to(id_type address) { return inputs.end() != find_input(address); }
+        size_t size() const { return inputs.size(); }
         //pass in a function that clones links?
         //bool mirror(const self_type& other) { //should other be guaranteed const?
 		//	//a way to copy the pattern of links instead of the links themselves
@@ -224,11 +231,11 @@ namespace ben {
 	
 	//typedefs to hide default Port and Buffer choices for message-passing graph
 	template<typename S, typename IndexBase::id_type L = 1> 
-	using stdMessageNode = Node< InPort< Buffer<S,L> >, OutPort< Buffer<S,L> > >;
+	using MessageNode = Node< InPort< Buffer<S,L> >, OutPort< Buffer<S,L> > >;
 
 	//default node for value graphs
 	template<typename V>
-	using stdNode = Node< Path<V>, Path<V> >;
+	using DirectedNode = Node< Path<V>, Path<V> >;
 
 } //namespace ben
 

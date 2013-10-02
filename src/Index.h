@@ -44,10 +44,10 @@ namespace ben {
  */
 
 	//Singleton forward declares this
-	template<typename S>
+	template<typename SINGLETON>
 	class Index : public IndexBase {
 	public:
-		typedef S singleton_type;
+        typedef SINGLETON singleton_type;
 		typedef typename S::id_type id_type;
 		//iterator is not nested because I need to forward declare the output operator			
 		class iterator;
@@ -55,7 +55,7 @@ namespace ben {
 	private:
 		typedef IndexBase base_type;
 		typedef Index self_type;
-		//typedef std::unordered_map<id_type, singleton_type*> map_type;
+		//typedef std::unordered_map<id_type, SINGLETON*> map_type;
 		using base_type::index; //hiding this field
 		using base_type::add;
 		using base_type::remove;
@@ -74,73 +74,24 @@ namespace ben {
 		Index(self_type&& rhs) = delete;
 		Index& operator=(self_type&& rhs) = delete;
 	
-		iterator find(const id_type address) const { 
+		SINGLETON* look_up(const id_type address) const { 
 		//this is ok as const because Index does not own the Singletons is manages
-			return iterator( index.find(address) ); 
+            auto record_iter = index.find(address);
+            if(record_iter == index.end()) return nullptr;
+			return static_cast<SINGLETON*>(record_iter->second); 
 		}
-		singleton_type& elem(const id_type address) const {
-		//throw an exception if address does not exist?
-		//this is not safe to use unless you already know that address exists in this index
-			auto iter = index.find(address);
-			return *static_cast<singleton_type*>(iter->second);
-		}
-		
-		iterator begin() const { return iterator( index.begin() ); }
-		iterator end() const { return iterator( index.end() ); }
 	}; //class Index
 	
 	
-	template<typename U> 
-	std::ostream& operator<<(std::ostream& out, const typename Index<U>::iterator& iter);
-
-	template<typename S>
-	class Index<S>::iterator : public std::iterator<std::forward_iterator_tag, singleton_type> {
-	protected:
-		typename map_type::iterator current;
-		friend class Index;
-		friend std::ostream& operator<< <S>(std::ostream& out, const iterator& iter);
-		iterator(const typename map_type::iterator iter)
-			: current(iter) {}
-			
-	public:
-		iterator() = default;
-		iterator(const iterator& rhs) = default;
-		iterator& operator=(const iterator& rhs) = default;
-		~iterator() = default;
-		
-		singleton_type& operator*() const 
-			{ return *static_cast<singleton_type*>(current->second); } 
-		singleton_type* operator->() const 
-			{ return static_cast<singleton_type*>(current->second); }
-		
-		iterator& operator++() { ++current; return *this; }
-		iterator  operator++(int) { 
-			auto temp = current;
-			++current;
-			return temp;
-		}
-		
-		bool operator==(const iterator& rhs) const
-			{ return current==rhs.current; }
-		bool operator!=(const iterator& rhs) const
-			{ return !( (*this) == rhs ); }
-	}; //class iterator
-
-	template<typename U>
-	std::ostream& operator<<(std::ostream& out, const typename Index<U>::const_iterator& iter) {
-		out << iter.current;
-		return out;
-	}
-
 	//Singleton forward declares this
-	template<typename T>
-	bool merge(std::shared_ptr<T> one, std::shared_ptr<T> two) {
+	template<typename INDEX>
+	bool merge(std::shared_ptr<INDEX> one, std::shared_ptr<INDEX> two) {
 	//transfers management of all Singletons to other, first checking for redundancy
 	//returns false if any Singletons had redundant IDs in other (reassign ID?), true else
 	//either transfers all Singletons or none
 	//this method can be used to emulate move semantics
-		typedef typename T::singleton_type singleton_type;
-		static_assert(std::is_base_of<Index<singleton_type>, T>::value,
+		typedef typename INDEX::singleton_type singleton_type;
+		static_assert(std::is_base_of<Index<singleton_type>, INDEX>::value,
 				"Only Index-derived classes can be used");
 
 		if(two == one) return false; //redundant, but clear
