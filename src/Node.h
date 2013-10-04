@@ -74,12 +74,12 @@ namespace ben {
 	public:
 		//For the ctors lacking an id_type argument, Singleton automatically generates a unique ID.
 		//This generated ID is only guaranteed to be unique if that generation method is used exclusively.
-		Node() : base_type(), inputs(ID()), outputs(ID()) {} 
-		explicit Node(id_type id) : base_type(id), inputs(id), outputs(id) {}
+		Node() : base_type(), inputs(), outputs() {} 
+		explicit Node(id_type id) : base_type(id), inputs(), outputs() {}
 		explicit Node(std::shared_ptr<index_type> graph) 
-            : base_type(graph), inputs(ID()), outputs(ID()) {}
+            : base_type(graph), inputs(), outputs() {}
 		Node(std::shared_ptr<index_type> graph, const id_type id) 
-            : base_type(graph, id), inputs(id), outputs(id) {}
+            : base_type(graph, id), inputs(), outputs() {}
 		Node(const self_type& rhs) = delete; //identity semantics
 		Node& operator=(const self_type& rhs) = delete;
 		Node(self_type&& rhs) 
@@ -132,11 +132,10 @@ namespace ben {
 			if(!node_ptr) return false;
             //is there already a link to this other Node?
             if(linked_to(address)) return false;
-            input_port_type new_port(address, args...);
-            inputs.push_back(new_port);
+            inputs.push_back(input_port_type(address, args...));
             //unlock this node here, or at the end? do I need a pair lock? probably
             //lock other node
-            node_iter->outputs.push_back( output_port_type(new_port, ID()) );
+            node_iter->outputs.push_back( output_port_type(inputs.back(), ID()) );
             //unlock other node
             return true;
 		}
@@ -159,74 +158,28 @@ namespace ben {
         bool linked_to(id_type address) { return inputs.end() != find_input(address); }
         size_t size() const { return inputs.size(); }
         //pass in a function that clones links?
-        //bool mirror(const self_type& other) { //should other be guaranteed const?
-		//	//a way to copy the pattern of links instead of the links themselves
-		//	//links-to-self are preserved as such, links between this and other are untouched, as 
-		//	//this would violate const-ness of other and the principle of least surprise
-		//	if( get_index() == other.get_index() ) {
-		//		//the code in each of these lambdas would have to be written twice
-		//		auto clear_inputs_except = [this](const id_type id, const index_type& index) {
-		//			for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) 
-		//				if(iter->get_address() != id) 
-		//					index.elem(iter->get_address()).outputs.clean_up(ID());
-		//			inputs.clear();
-		//		};
-
-		//		auto clear_outputs_except = [this](const id_type id, const index_type& index) {
-		//			for(auto iter=outputs.begin(); iter!=outputs.end(); ++iter) 
-		//				if(iter->get_address() != id) 
-		//					index.elem(iter->get_address()).inputs.clean_up(ID());
-		//			outputs.clear();
-		//		};
-
-		//		//take care of links between this and other, which would ordinarily
-		//		//be deleted before the mirror operation
-		//		auto input_iter = inputs.find(ID());
-		//		auto output_iter = outputs.find(ID());
-		//		if(input_iter != inputs.end() and output_iter != outputs.end()) {
-		//			//this case saves both links
-		//			auto input_temp = *input_iter;
-		//			auto output_temp = *output_iter; 
-		//			clear_inputs_except(other.ID(), *get_index());
-		//			clear_outputs_except(other.ID(), *get_index());
-		//			inputs.restore(input_temp, other.outputs); 
-		//			outputs.restore(output_temp, other.inputs);
-		//		} else if(input_iter != inputs.end() and output_iter == outputs.end()) { 
-		//			//if other had an input from this, but not an output...
-		//			auto input_temp = *input_iter; //save a copy of the Port
-		//			clear_inputs_except(other.ID(), *get_index()); //deletes all Ports, but does not clean up after other
-		//			inputs.restore(input_temp, other.outputs); //add the copy back
-		//		} else if(input_iter == inputs.end() and output_iter != outputs.end()) { 
-		//			//mirror of the last case
-		//			auto output_temp = *output_iter;
-		//			clear_outputs_except(other.ID(), *get_index());
-		//			outputs.restore(output_temp, other.inputs);
-		//		} else clear(); //no unusual problems
-
-		//		//copy the rest of the inputs
-		//		for(const auto& x : other.inputs) {
-		//			id_type currentID = x.get_address();
-		//			if(currentID != ID()) { //these links shouldn't be touched 
-		//				if(currentID == other.ID()) inputs.add_clone_of(x, outputs); //only do this once 
-		//				else {
-		//					auto& source = get_index()->elem(currentID);
-		//					inputs.add_clone_of(x, source.outputs);
-		//				}
-		//			}
-		//		}
-
-		//		//and the rest of the outputs
-		//		for(const auto& x : other.outputs) {
-		//			id_type currentID = x.get_address();
-		//			if(currentID != ID() and currentID != other.ID()) { //links-to-self already copied
-		//				auto& target = get_index()->elem(currentID);
-		//				outputs.add_clone_of(x, target.inputs);
-		//			}
-		//		}
-
-		//		return true;
-		//	} else return false;
-		//}
+        template<typename FUNCTION>
+        bool mirror(const self_type& other, FUNCTION clone) { //should other be guaranteed const?
+			//a way to copy the pattern of links instead of the links themselves
+			//links-to-self are preserved as such, links between this and other are untouched, as 
+			//this would violate const-ness of other and the principle of least surprise
+            if(!is_managed()) return false;
+            auto graph_ptr = get_index();
+            //new version of node-internal vector of input ports
+            std::vector<input_port_type> new_inputs;
+            new_inputs.reserve(other.size());
+            for(const auto& port : other.inputs) {
+                if( !graph_ptr->look_up(port.get_address()) ) return false;
+                new_inputs.push_back(clone(port));
+            }
+            unlink_all();
+            inputs = std::move(new_inputs);
+            for(const auto& port : inputs) {
+                auto node_ptr = graph_ptr->look_up(port.get_address());
+                node_ptr->outputs.push_back( output_port_type(inputs.back(), ID()) );
+            }
+            return true;
+		}
 	}; //Node
 	
 	//typedefs to hide default Port and Buffer choices for message-passing graph

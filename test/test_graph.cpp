@@ -25,11 +25,10 @@
 #include <iostream>
 #include <vector>
 #include <random>
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include "Port.h"
 #include "Graph.h"
-#include "DirectedNode.h"
-#include "UndirectedNode.h"
+#include "Node.h"
 
 namespace {
 

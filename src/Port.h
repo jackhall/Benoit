@@ -93,7 +93,6 @@ namespace ben {
 	class InPort : public Port<BUFFER> {
     /*This version allows popping but not pushing, enforcing the directedness of messages
      */
-		typedef InPort self_type;
         typedef Port<BUFFER> base_type;
 
     public:
@@ -102,14 +101,6 @@ namespace ben {
 
         template<typename... ARGS>
         InPort(id_type sourceID, ARGS... args) : base_type(sourceID, args...) {}
-        InPort(const complement_type& complement, id_type sourceID)
-            : base_type(complement, sourceID) {}
-
-        InPort(const self_type& rhs) = default;
-        InPort(self_type&& rhs) = default;
-        self_type& operator=(const self_type& rhs) = default;
-        self_type& operator=(self_type&& rhs) = default; 
-        ~InPort() = default;
 
         using base_type::pop;
         using base_type::get_address;
@@ -119,23 +110,14 @@ namespace ben {
 	class OutPort : public Port<BUFFER> {
     /*This version allows pushing but not popping, enforcing the directedness of messages
      */
-		typedef OutPort self_type;
         typedef Port<BUFFER> base_type;
 
     public:
         typedef typename base_type::id_type id_type;
 		typedef InPort<BUFFER> complement_type;
 
-        template<typename... ARGS>
-        OutPort(id_type targetID, ARGS... args) : base_type(targetID, args...) {}
         OutPort(const complement_type& complement, id_type targetID) 
             : base_type(complement, targetID) {}
-
-        OutPort(const self_type& rhs) = default;
-        OutPort(self_type&& rhs) = default;
-        self_type& operator=(const self_type& rhs) = default;
-        self_type& operator=(self_type&& rhs) = default;
-        ~OutPort() = default;
 
         using base_type::push;
         using base_type::get_address;
