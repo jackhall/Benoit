@@ -48,7 +48,7 @@ namespace ben {
 	class Index : public IndexBase {
 	public:
         typedef SINGLETON singleton_type;
-		typedef typename S::id_type id_type;
+		typedef typename SINGLETON::id_type id_type;
 		//iterator is not nested because I need to forward declare the output operator			
 		class iterator;
 

@@ -56,14 +56,14 @@ namespace ben {
 	private:
 		std::vector<input_port_type> inputs; 
 		std::vector<output_port_type> outputs;
-		typedef typename vector<input_port_type>::iterator input_iterator;
+		typedef typename std::vector<input_port_type>::iterator input_iterator;
 		//std::mutex node_mutex; //would need this to alter graph structure in multiple threads
         
 		void perform_leave() { unlink_all(); }
 	    input_iterator find_input(id_type address) const {
             for(input_iterator it = inputs.begin(); it!=inputs.end(); ++it) 
-                if(it->get_address() == address) break;
-            return it;
+                if(it->get_address() == address) return it;
+            return inputs.end();
         }
         void remove_hook(id_type address) {
             std::remove_if(outputs.begin(), outputs.end(), [address](const output_port_type& port) {
@@ -135,7 +135,7 @@ namespace ben {
             inputs.push_back(input_port_type(address, args...));
             //unlock this node here, or at the end? do I need a pair lock? probably
             //lock other node
-            node_iter->outputs.push_back( output_port_type(inputs.back(), ID()) );
+            node_ptr->outputs.push_back( output_port_type(inputs.back(), ID()) );
             //unlock other node
             return true;
 		}
