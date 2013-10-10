@@ -341,64 +341,53 @@ namespace {
 			EXPECT_EQ(index2_ptr, singleton8.get_index());
 	}
 
+    class Buffers : public ::testing::Test {
+        template<typename SIGNAL>
+        void test_message(SIGNAL received, SIGNAL sent) {
+            using namespace ben;
+            Buffer<SIGNAL, 1> link;
+            EXPECT_FALSE(link.pop(received));
+            EXPECT_TRUE(link.push(send));
+            EXPECT_TRUE(link.pop(received));
+            EXPECT_EQ(send, received);
+        }
+    };
 
-	class Buffers : public ::testing::Test {
-	protected:
-		std::vector<double> signals;
-		void PrepareSignals(const unsigned int n) {
-			std::default_random_engine gen;
-  			std::uniform_real_distribution<double> random_real(0.0,1.0);
-			signals.resize(n);
-			for(double& x : signals) { x = random_real(gen); }
-		}
-		template<unsigned int N>
-		void TestBuffer(ben::Buffer<double, N>& link) {
-			double test_signal;
-			EXPECT_FALSE(link.pop(test_signal));
-			PrepareSignals(3*N);
-			for(int i = 0; i<signals.size(); ++i) {
-				if(i >= N) {
-					EXPECT_TRUE(link.pop(test_signal));
-					EXPECT_EQ(signals[i-N], test_signal);
-				}
-				EXPECT_FALSE(link.pop(test_signal));
-				EXPECT_TRUE(link.push(signals[i]));
-			}
-		}
-	};
-
-	TEST_F(Buffers, All) {
+	TEST_F(Buffers, DoubleInstance) {
 		using namespace ben;
-
-		//this mostly just has to compile
-		//Buffer<std::vector<double>,3> vector_link;
-		
-		//these will actually be used	
-		Buffer<double, 1> link1;
-		Buffer<double, 2> link2;
-		Buffer<double, 4> link4;
-		
-		//Buffer 
-		{
-			SCOPED_TRACE("Buffer length = 1");
-			TestBuffer<1>(link1); 
-		} {
-			SCOPED_TRACE("Buffer length = 2");
-			TestBuffer<2>(link2);
-		} {
-			SCOPED_TRACE("Buffer length = 4");
-			TestBuffer<4>(link4);
-		}
+        std::default_random_engine gen;
+        std::uniform_real_distribution<double> random_real(0.0, 1.0);
+        double received, sent = random_real(gen);
+        test_message(received, sent);
 	}
+    TEST(Buffers, VectorInstance) {
+		using namespace ben;
+        std::default_random_engine gen;
+        std::uniform_real_distribution<double> random_real(0.0, 1.0);
+        std::vector<double> received, sent = {random_real(gen), random_real(gen)};
+        test_message(received, sent);
+    }
+    TEST(Buffers, ArrayInstance) {
+		using namespace ben;
+        std::default_random_engine gen;
+        std::uniform_real_distribution<double> random_real(0.0, 1.0);
+        std::array<double, 2> received, sent = {random_real(gen), random_real(gen)};
+        test_message(received, sent);
+    }
+    TEST(Buffers, FunctionInstance) {
+		using namespace ben;
+        std::function<double()> received, sent = []() { return 3.14159 };
+        test_message(received, sent);
+    }
 
 
-	class PortPath : public ::testing::Test {
+	class Port : public ::testing::Test {
 	protected:
-		template<typename I, typename O, typename... Args> 
-		void test_construction(Args... args) { 
+		template<typename IN, typename OUT, typename... ARGS> 
+		void test_normal_construction(ARGS... args) { 
 			using namespace ben;
-			typedef I input_type;
-			typedef O output_type;
+			typedef IN input_type;
+			typedef OUT output_type;
 	
 			//normal construction
 			auto input_port_ptr = new input_type(5, args...);
@@ -467,15 +456,23 @@ namespace {
 			EXPECT_FALSE(output_port2.is_ghost());
 			EXPECT_FALSE(output_port3.is_ghost());
 		}	
-	};
+	    template<typename IN>
+        void test_complement_construction(const IN& input_port) {}
+        template<typename PORT>
+        void test_copy_and_assign(const PORT& port) {}
+        template<typename IN, typename OUT>
+        void test_destruction(IN input_port, OUT output_port) {}
+        template<typename IN, typename OUT, typename GENERATOR>
+        void test_data_passing(IN input_port, OUT output_port, GENERATOR gen) {}
+    };
 
-	TEST_F(PortPath, Port_Construction) {
+	TEST_F(Port, Port_Construction) {
 		SCOPED_TRACE("Ports");
 		typedef ben::InPort<ben::Buffer<double, 2>>  input_type;
 		typedef ben::OutPort<ben::Buffer<double, 2>> output_type;
 		test_construction<input_type, output_type>();
 	}
-	TEST_F(PortPath, Path_Construction) {
+	TEST_F(Port, Path_Construction) {
 		SCOPED_TRACE("Paths");
 		typedef ben::Path<double> input_type;
 		typedef ben::Path<double> output_type;
@@ -498,33 +495,9 @@ namespace {
 		EXPECT_TRUE(input_port.pop(test_signal));
 		EXPECT_EQ(signal2, test_signal);
 	}
-	
-	TEST(Paths, Values) {
-		//getting and setting values, verifying clones
-		using namespace ben;
-		Path<double> path1(3, 0.0);
-		Path<double> path2(path1, 5);
-
-		double value1(1.23), value2(4.56);
-		
-		EXPECT_EQ(0, path1.get_value());
-		EXPECT_EQ(0, path2.get_value());
-		path1.set_value(value1);
-		EXPECT_EQ(value1, path1.get_value());
-		EXPECT_EQ(value1, path2.get_value());
-		path2.set_value(value2);
-		EXPECT_EQ(value2, path1.get_value());
-		EXPECT_EQ(value2, path2.get_value());
-
-		auto path3 = path1.clone(7);
-		Path<double> path4(path3, 11);
-		EXPECT_EQ(value2, path3.get_value());
-		EXPECT_EQ(value2, path4.get_value());
-		path4.set_value(value1);
-	}
 
 
-	class DirectedNodes : public ::testing::Test {
+	class Nodes : public ::testing::Test {
 	protected:
 		template<typename N>
 		void test_construction() {
@@ -652,7 +625,7 @@ namespace {
 		}
 	};
 
-	TEST_F(DirectedNodes, MessageNode_Construction) {
+	TEST_F(Nodes, MessageNode_Construction) {
 		typedef ben::MessageNode<double, 1> node_type;
 		test_construction<node_type>();
 	}

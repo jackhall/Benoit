@@ -64,15 +64,7 @@ namespace ben {
 		
 		Port() = delete;
 		Port(const self_type& rhs) = default;
-		Port(self_type&& rhs) : buffer_ptr(std::move(rhs.buffer_ptr)), otherID(rhs.otherID) {}
 		self_type& operator=(const self_type& rhs) = default;
-		self_type& operator=(self_type&& rhs) { 
-            if(this != &rhs) {
-			    buffer_ptr = std::move( rhs.buffer_ptr );
-                otherID = rhs.otherID;
-            }
-			return *this;
-		}
 		virtual ~Port() = default;
 		bool push(const signal_type& signal) { return buffer_ptr->push(signal); } //take another look at const requirements
 		bool pop(signal_type& signal) const { return buffer_ptr->pop(signal); }
