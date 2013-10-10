@@ -24,6 +24,7 @@
 
 #include <iostream>
 #include <vector>
+#include <memory>
 #include <random>
 #include <gtest/gtest.h>
 #include "Port.h"
@@ -340,7 +341,8 @@ namespace {
 			EXPECT_TRUE(index2_ptr->check(5000, &singleton8));
 			EXPECT_EQ(index2_ptr, singleton8.get_index());
 	}
-
+///////////////////////////
+////////////// Buffer tests
     class Buffers : public ::testing::Test {
         template<typename SIGNAL>
         void test_message(SIGNAL received, SIGNAL sent) {
@@ -360,143 +362,131 @@ namespace {
         double received, sent = random_real(gen);
         test_message(received, sent);
 	}
-    TEST(Buffers, VectorInstance) {
+    TEST_F(Buffers, VectorInstance) {
 		using namespace ben;
         std::default_random_engine gen;
         std::uniform_real_distribution<double> random_real(0.0, 1.0);
         std::vector<double> received, sent = {random_real(gen), random_real(gen)};
         test_message(received, sent);
     }
-    TEST(Buffers, ArrayInstance) {
+    TEST_F(Buffers, ArrayInstance) {
 		using namespace ben;
         std::default_random_engine gen;
         std::uniform_real_distribution<double> random_real(0.0, 1.0);
         std::array<double, 2> received, sent = {random_real(gen), random_real(gen)};
         test_message(received, sent);
     }
-    TEST(Buffers, FunctionInstance) {
+    TEST_F(Buffers, FunctionInstance) {
 		using namespace ben;
         std::function<double()> received, sent = []() { return 3.14159 };
         test_message(received, sent);
     }
-
-
+////////////////////////////
+//////////////// Port tests
 	class Port : public ::testing::Test {
 	protected:
-		template<typename IN, typename OUT, typename... ARGS> 
-		void test_normal_construction(ARGS... args) { 
-			using namespace ben;
-			typedef IN input_type;
-			typedef OUT output_type;
-	
-			//normal construction
-			auto input_port_ptr = new input_type(5, args...);
+		template<typename IN, typename... ARGS> 
+		auto test_normal_construction(ARGS... args) { 
+			std::unique_ptr<IN> input_port_ptr(new IN(5, args...));
 			EXPECT_EQ(5, input_port_ptr->get_address());
 			EXPECT_TRUE(input_port_ptr->is_ghost());
-			
-			//complement constructors
-			auto output_port_ptr = new output_type(*input_port_ptr, 19);
-			EXPECT_EQ(19, output_port_ptr->get_address());
-			EXPECT_FALSE(input_port_ptr->is_ghost());
-			EXPECT_FALSE(output_port_ptr->is_ghost());
-		
-			//copy constructor
-			auto input_port_ptr2 = new input_type(*input_port_ptr);
-			EXPECT_EQ(5, input_port_ptr2->get_address());
-			EXPECT_FALSE(input_port_ptr2->is_ghost());
-			EXPECT_FALSE(input_port_ptr->is_ghost());
-
-			output_type output_port2(*output_port_ptr);
-			EXPECT_EQ(11, output_port2.get_address());
-			EXPECT_FALSE(output_port2.is_ghost());
-
-			//destruction
-			delete input_port_ptr; input_port_ptr = nullptr;
-			EXPECT_FALSE(output_port_ptr->is_ghost());
-			EXPECT_FALSE(output_port2.is_ghost());
-			EXPECT_FALSE(input_port_ptr2->is_ghost());
-            
-            //delete input_port_ptr2; input_port_ptr2 = nullptr;
-            //EXPECT_FALSE(output_port_ptr->is_ghost());
-            //EXPECT_FALSE(output_port2.is_ghost());
-
-            //delete output_port_ptr; output_port_ptr = nullptr;
-            //EXPECT_TRUE(output_port2.is_ghost());
-
-			//move constructor
-			input_type input_port3(std::move(*input_port_ptr2));
-			EXPECT_EQ(17, input_port3.get_address());
-			EXPECT_FALSE(input_port3.is_ghost());
-			EXPECT_TRUE(input_port_ptr2->is_ghost()); 
-
-			output_type output_port3(std::move(output_port2));
-			EXPECT_EQ(19, output_port3.get_address());
-			EXPECT_FALSE(output_port3.is_ghost());
-			EXPECT_TRUE(output_port2.is_ghost()); 
-
-			//move assignment
-			*input_port_ptr2 = std::move(input_port3);
-			EXPECT_EQ(17, input_port_ptr2->get_address());
-			EXPECT_FALSE(input_port_ptr2->is_ghost());
-			EXPECT_TRUE(input_port3.is_ghost()); 
-
-			output_port2 = std::move(output_port3);
-			EXPECT_EQ(19, output_port2.get_address());
-			EXPECT_FALSE(output_port2.is_ghost());
-			EXPECT_TRUE(output_port3.is_ghost()); //fails
-		
-			//assignment
-			input_port3 = *input_port_ptr2;
-			EXPECT_EQ(17, input_port3.get_address());
-			EXPECT_FALSE(input_port_ptr2->is_ghost());
-			EXPECT_FALSE(input_port3.is_ghost());
-
-			output_port3 = output_port2;
-			EXPECT_EQ(19, output_port3.get_address());
-			EXPECT_FALSE(output_port2.is_ghost());
-			EXPECT_FALSE(output_port3.is_ghost());
+            return input_port_ptr;
 		}	
 	    template<typename IN>
-        void test_complement_construction(const IN& input_port) {}
+        auto test_complement_construction(const IN& input_port, unsigned int ID) {
+			std::unique_ptr<typename IN::complement_type> output_port_ptr(input_port, ID);
+			EXPECT_EQ(ID, output_port_ptr->get_address());
+			EXPECT_FALSE(input_port.is_ghost());
+			EXPECT_FALSE(output_port_ptr->is_ghost());
+            return output_port_ptr;
+        }
         template<typename PORT>
-        void test_copy_and_assign(const PORT& port) {}
-        template<typename IN, typename OUT>
-        void test_destruction(IN input_port, OUT output_port) {}
-        template<typename IN, typename OUT, typename GENERATOR>
-        void test_data_passing(IN input_port, OUT output_port, GENERATOR gen) {}
+        auto test_copy(const PORT& port) {
+			std::unique_ptr<PORT> port_ptr(new PORT(port));
+			EXPECT_EQ(port.get_address(), port_ptr->get_address());
+			EXPECT_FALSE(port_ptr->is_ghost());
+			EXPECT_FALSE(port.is_ghost());
+            return port_ptr;
+        }
+        template<typename PORT>
+        void test_assign(const PORT& port1, PORT& port2) {
+            EXPECT_NE(port1.get_address(), port2.get_address());
+			port2 = *port1;
+			EXPECT_EQ(port1.get_address(), port2.get_address());
+			EXPECT_FALSE(port1.is_ghost());
+			EXPECT_FALSE(port2.is_ghost());
+        }
+        template<typename FIRST, typename... ARGS>
+        void test_destruction(FIRST* port_ptr, ARGS... args) {
+            //takes a set of ports that all point to the same link
+            //all port objects will be deleted
+            auto n = sizeof...(ARGS);
+            if(n > 0) {
+                EXPECT_FALSE(port_ptr->is_ghost());
+			    delete port_ptr; port_ptr = nullptr;
+                test_destruction(args...);
+            } else {
+                EXPECT_TRUE(port_ptr->is_ghost());
+                delete port_ptr; port_ptr = nullptr;
+            }
+        }
+        template<typename IN, typename OUT, typename SIGNAL>
+        void test_data_passing(IN input_port, OUT output_port, SIGNAL sent) {
+            EXPECT_FALSE(input_port.is_ghost());
+            EXPECT_FALSE(output_port.is_ghost());
+            EXPECT_TRUE(output_port.push(signal));
+            decltype(sent) received;
+            EXPECT_NE(sent, received);
+            EXPECT_TRUE(input_port.pop(received));
+            EXPECT_EQ(sent, received);
+        }
     };
 
-	TEST_F(Port, Port_Construction) {
-		SCOPED_TRACE("Ports");
-		typedef ben::InPort<ben::Buffer<double, 2>>  input_type;
-		typedef ben::OutPort<ben::Buffer<double, 2>> output_type;
-		test_construction<input_type, output_type>();
+	TEST_F(Port, Standard) {
+        using namespace ben;
+        typedef Buffer<double,1> buffer_type;
+		typedef InPort<buffer_type> input_port_type;
+		typedef OutPort<buffer_type> output_port_type;
+        typedef typename input_port_type::id_type id_type;
+
+        //with original ports
+        {
+            SCOPED_TRACE("originals");
+            //create first link (pair of ports)
+            auto input_port_ptr = test_normal_construction<input_port_type, id_type>(1);
+            auto output_port_ptr = test_complement_construction(*input_port_ptr, 2);
+
+            //test message passing through this first pair
+            std::default_random_engine gen;
+            std::uniform_real_distribution<double> random_real(0.0, 1.0);
+            test_data_passing(*input_port_ptr, *output_port_ptr, random_real());
+        }
+        //with copies
+        {
+            SCOPED_TRACE("copies");
+            //copy each of the original ports and test message passing again
+            auto input_port_ptr2 = test_copy(*input_port_ptr);
+            auto output_port_ptr2 = test_copy(*output_port_ptr);
+            test_data_passing(*input_port_ptr2, *output_port_ptr2* random_real()); 
+
+            //test assignment and data passing
+            auto input_port2_ptr = test_normal_construction<input_port_type, id_type>(3); 
+            auto output_port2_ptr = test_complement_construction(*input_port2_ptr, 4);
+
+            test_assign(*input_port_ptr, *input_port2_ptr);
+            EXPECT_TRUE(output_port2_ptr->is_ghost());
+            test_data_passing(*input_port2_ptr, *output_port_ptr, random_real());
+
+            test_assign(*output_port_ptr, *output_port2_ptr);
+            test_data_passing(*input_port_ptr, *output_port2_ptr, random_real());
+        }
+        
+        test_destruction(input_port_ptr.release(), output_port_ptr.release(),
+                         input_port_ptr2.release(), output_port_ptr2.release(),
+                         input_port2_ptr.release(), output_port2_ptr.release());
 	}
-	TEST_F(Port, Path_Construction) {
-		SCOPED_TRACE("Paths");
-		typedef ben::Path<double> input_type;
-		typedef ben::Path<double> output_type;
-		test_construction<input_type, output_type>(3.14159);
-	}
-
-	TEST(Ports, Data) {
-		//sending and receiving data
-		using namespace ben;
-		InPort<Buffer<double,2>> input_port(3);
-		OutPort<Buffer<double,2>> output_port(input_port, 5);
-		
-		double test_signal, signal1(1.23), signal2(4.56), signal3(7.89);
-
-		EXPECT_FALSE(input_port.pop(test_signal));
-		EXPECT_TRUE(output_port.push(signal1));
-		EXPECT_FALSE(input_port.pop(test_signal));
-		EXPECT_TRUE(output_port.push(signal2));
-		EXPECT_FALSE(output_port.push(signal3));
-		EXPECT_TRUE(input_port.pop(test_signal));
-		EXPECT_EQ(signal2, test_signal);
-	}
-
-
+//////////////////////////
+///////////////Node tests
 	class Nodes : public ::testing::Test {
 	protected:
 		template<typename N>
@@ -649,8 +639,8 @@ namespace {
 		typedef ben::DirectedNode<double> node_type;
 		test_move_destruction<node_type>(3.14159);
 	}
-
-
+///////////////////////////
+///////////////Graph tests
 	class Graphs : public ::testing::Test {
 	protected:
 		template<typename N> 
@@ -748,8 +738,9 @@ namespace {
 		typedef MessageNode<double, 1> node_type;
 		test_merge_move_destruction<node_type>();
 	}
+//////////////////////////
 
-} //anonymous namespace 
+} 
 
 int main(int argc, char **argv) {
 	::testing::InitGoogleTest(&argc, argv);
