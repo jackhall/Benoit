@@ -489,129 +489,97 @@ namespace {
 ///////////////Node tests
 	class Nodes : public ::testing::Test {
 	protected:
-		template<typename N>
-		void test_construction() {
-			using namespace ben;
-			typedef N node_type;
-			typedef Graph<node_type> graph_type;
-			auto graph1_ptr = std::make_shared<graph_type>();
+        template<typename NODE>
+        auto test_default_construction() {
+            std::unique_ptr<NODE> node_ptr(new NODE());
+            EXPECT_EQ(0, node_ptr->size());
+            EXPECT_FALSE(node_ptr->get_index());
+            return node_ptr;
+        }
+		template<typename NODE>
+		auto test_graph_construction(std::shared_ptr< Graph<NODE> > graph_ptr, NODE::id_type id) {
+			typedef Graph<NODE> graph_type;
 			
-			auto node1_ptr = new node_type(graph1_ptr);
-			EXPECT_EQ(0, node1_ptr->size());
-			EXPECT_TRUE(graph1_ptr->check(node1_ptr->ID(), node1_ptr));
+			NODE node(graph_ptr);
+			EXPECT_EQ(0, node.size());
+			EXPECT_TRUE(graph_ptr->check(node.ID(), &node));
+            EXPECT_EQ(node.get_index(), graph_ptr);
 
-			auto node2_ptr = new node_type(graph1_ptr, 3);
-			EXPECT_TRUE(graph1_ptr->check(3, node2_ptr));
-
-			auto node3_ptr = new node_type();
-			EXPECT_FALSE(node3_ptr->is_managed());
-			auto node4_ptr = new node_type(7);
-			EXPECT_FALSE(node4_ptr->is_managed());
+			std::unique_ptr<NODE> node_ptr(new NODE(graph_ptr, id));
+			EXPECT_TRUE(graph_ptr->check(3, node_ptr));
+			EXPECT_EQ(0, node_ptr->size());
+			EXPECT_TRUE(graph_ptr->check(node_ptr->ID(), node_ptr));
+            EXPECT_EQ(node_ptr->get_index(), graph_ptr);
+            return node_ptr;
 		}
-		template<typename N, typename... Args>
-		void test_add_remove(Args... args) {
-			using namespace ben;
-			typedef N node_type;
-			typedef Graph<node_type> graph_type;
-			auto graph1_ptr = std::make_shared<graph_type>();
+        template<typename NODE>
+        auto test_map_inputs(const NODE& node) {
+            std::vector<typename NODE::id_type> link_addresses;
+            node.for_inputs([&link_addresses] (const NODE::input_port_type& port) { 
+                link_addresses.push_back(port.get_address()); } );
+            EXPECT_EQ(node.size(), link_addresses.size());
+            for(auto id : link_addresses) EXPECT_TRUE(node.linked_to(id));
+            return link_addresses;
+        }
+		template<typename NODE, typename... Args>
+		void test_link_unlink(NODE&, NODE& Args... args) {
 
-			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7), node4(graph1_ptr, 11);
-			EXPECT_TRUE(node1.link(3, args...)); //creates Port/Path
-			EXPECT_TRUE(node1.linked_to(3));
-			EXPECT_TRUE(node1.outputs.contains(3));
-			EXPECT_TRUE(node1.link(5, args...)); //creates Port/Path
-			EXPECT_TRUE(node1.linked_to(5));
-			EXPECT_TRUE(node2.outputs.contains(3));
-			EXPECT_FALSE(node1.link(5, args...)); //creates Port/Path
-			EXPECT_TRUE(node1.add_output(7, args...)); //creates Port/Path
-			EXPECT_TRUE(node1.outputs.contains(7));
-			EXPECT_TRUE(node3.linked_to(3));
-			EXPECT_FALSE(node1.linked_to(11)); 
-			EXPECT_FALSE(node1.outputs.contains(5)); 
-			
-			EXPECT_TRUE(node4.mirror(node1)); //clone_links cannot be well-defined for DirectedNode
-			EXPECT_FALSE(node4.linked_to(3));
-			EXPECT_FALSE(node1.outputs.contains(11));
-			EXPECT_FALSE(node4.outputs.contains(3));
-			EXPECT_FALSE(node1.linked_to(11));
-			EXPECT_TRUE(node4.linked_to(5));
-			EXPECT_TRUE(node2.outputs.contains(11));
-			EXPECT_TRUE(node4.outputs.contains(7));
-			EXPECT_TRUE(node4.linked_to(11));
-			EXPECT_TRUE(node4.outputs.contains(11));
-			EXPECT_FALSE(node4.outputs.contains(5));
-			
-			node_type node5(13);
-			EXPECT_FALSE(node5.mirror(node1));
-			EXPECT_FALSE(node5.linked_to(3));
-
-			node4.unlink(7);
-			EXPECT_FALSE(node4.linked_to(7));
-			EXPECT_FALSE(node3.outputs.contains(11));
-			node4.remove_output(7);
-			EXPECT_FALSE(node4.outputs.contains(7));	
-			EXPECT_FALSE(node3.linked_to(11));	
-
-			node1.clear();
-			EXPECT_FALSE(node1.linked_to(3));
-			EXPECT_FALSE(node1.linked_to(5));
-			EXPECT_FALSE(node1.linked_to(7));
-			EXPECT_FALSE(node1.outputs.contains(7));
-
-			//testing ownership semantics of graph
-			graph1_ptr.reset();
-			EXPECT_EQ(0, node1.size() + node1.outputs.size());
-			EXPECT_EQ(1, node2.size() + node2.outputs.size());
-			EXPECT_EQ(0, node3.size() + node3.outputs.size());
-			EXPECT_EQ(3, node4.size() + node4.outputs.size());
-			EXPECT_TRUE(node1.is_managed());
-			EXPECT_TRUE(node2.is_managed());
-			EXPECT_TRUE(node3.is_managed());
-			EXPECT_TRUE(node4.is_managed());
 		}
-		template<typename N, typename... Args>
-		void test_move_destruction(Args... args) {
-			using namespace ben;
-			typedef N node_type;
-			typedef Graph<node_type> graph_type;
-			auto graph1_ptr = std::make_shared<graph_type>();
+		template<typename NODE>
+        void test_mirror(const NODE& node) {
+            SCOPED_TRACE("mirror");
+            NODE node2(node.get_index());
+            auto link_addresses = test_map_inputs(node);
+            node2.mirror(node);
+            for(auto id : link_addresses) {
+                EXPECT_TRUE(node.linked_to(id));
+                EXPECT_TRUE(node2.linked_to(id));
+            }
+        }
+        template<typename NODE>
+        void test_move(NODE& source, NODE::id_type input_id, const NODE& output_node) {
+            SCOPED_TRACE("move");
+            //source should have an input link to "input_id" and an output link to "output_id" 
+            EXPECT_TRUE(source.linked_to(input_id));
+            auto node_id = source.ID();
+            auto graph_ptr = source.get_index();
+            EXPECT_TRUE(output_node.linked_to(node_id));
 
-			node_type node1(graph1_ptr, 3), node2(graph1_ptr, 5), node3(graph1_ptr, 7);
-			auto node4_ptr = new node_type(graph1_ptr, 11);
-			node1.link(3, args...);
-			node1.link(5, args...);
-			node1.link(7, args...);
-			node1.add_output(7, args...);
-			node4_ptr->mirror(node1); //changed from clone_links, may need to adjust tests
+            NODE target(std::move(source));
+            EXPECT_FALSE(source.get_index());
+            EXPECT_FALSE(source.linked_to(input_id));
+            EXPECT_EQ(node_id, target.ID());
+            EXPECT_EQ(graph_ptr, target.get_index());
+            EXPECT_TRUE(target.linked_to(input_id));
+            EXPECT_TRUE(output_node.linked_to(node_id));
+            //test data passing?
 
-			node_type node5 = std::move(node1);
-			EXPECT_EQ(3, node5.ID());
-			EXPECT_TRUE(graph1_ptr->check(3, &node5));
-			EXPECT_FALSE(node1.is_managed());
-			EXPECT_EQ(0, node1.size() + node1.outputs.size());
-			EXPECT_TRUE(node5.linked_to(3));
-			EXPECT_TRUE(node5.outputs.contains(3));
-			EXPECT_TRUE(node5.linked_to(5));
-			EXPECT_TRUE(node5.linked_to(7));
-			EXPECT_TRUE(node5.outputs.contains(7));
-			EXPECT_EQ(5, node5.size() + node5.outputs.size());
+            source = std::move(target);
+            EXPECT_FALSE(target.get_index());
+            EXPECT_FALSE(target.linked_to(input_id));
+            EXPECT_EQ(node_id, source.ID());
+            EXPECT_EQ(graph_ptr, source.get_index());
+            EXPECT_TRUE(source.linked_to(input_id));
+            EXPECT_TRUE(output_node.linked_to(node_id));
+            //test data passing?
+        }
+        template<typename FIRST, typename... ARGS>
+		void test_destruction(std::vector<typename FIRST::id_type> deleted_ids, 
+                              FIRST* node_ptr, ARGS... args) {
+			auto graph_ptr = node_ptr->get_index();
+            auto node_id = node_ptr->ID();
+            EXPECT_TRUE(graph_ptr);
+            if(graph_ptr) EXPECT_TRUE(graph_ptr->check(node_id, node_ptr));
+            for(auto id : deleted_ids) EXPECT_FALSE(node_ptr->linked_to(id));
 
-			node1 = std::move(node5);
-			EXPECT_TRUE(graph1_ptr->check(3, &node1));
-			EXPECT_FALSE(node5.is_managed());
-			EXPECT_EQ(0, node5.size() + node5.outputs.size());
-			EXPECT_TRUE(node1.linked_to(3));
-			EXPECT_TRUE(node1.outputs.contains(3));
-			EXPECT_TRUE(node1.linked_to(5));
-			EXPECT_TRUE(node1.linked_to(7));
-			EXPECT_TRUE(node1.outputs.contains(7));
-			EXPECT_EQ(5, node1.size() + node1.outputs.size());
+            delete node_ptr; node_ptr = nullptr;
+            EXPECT_FALSE(graph_ptr->look_up(node_id));
 
-			delete node4_ptr;
-			node4_ptr = nullptr;
-			EXPECT_FALSE(graph1_ptr->manages(11));
-			EXPECT_FALSE(node1.linked_to(11));
-			EXPECT_FALSE(node1.outputs.contains(11));
+            auto n = sizeof...(ARGS);
+            if(n > 0) {
+                deleted_ids.push_back(node_id);
+                test_destruction(deleted_ids, args...);
+            }
 		}
 	};
 
@@ -619,25 +587,13 @@ namespace {
 		typedef ben::MessageNode<double, 1> node_type;
 		test_construction<node_type>();
 	}
-	TEST_F(DirectedNodes, MessageNode_Add_Remove) {
+	TEST_F(Nodes, MessageNode_Add_Remove) {
 		typedef ben::MessageNode<double, 1> node_type;
 		test_add_remove<node_type>();
 	}
-	TEST_F(DirectedNodes, MessageNode_Move_Destruction) {
+	TEST_F(Nodes, MessageNode_Move_Destruction) {
 		typedef ben::MessageNode<double, 1> node_type;
 		test_move_destruction<node_type>();
-	}
-	TEST_F(DirectedNodes, value_Node_Construction) {
-		typedef ben::DirectedNode<double> node_type;
-		test_construction<node_type>();
-	}
-	TEST_F(DirectedNodes, value_Node_Add_Remove) {
-		typedef ben::DirectedNode<double> node_type;
-		test_add_remove<node_type>(3.14159);
-	}
-	TEST_F(DirectedNodes, value_Node_Move_Destruction) {
-		typedef ben::DirectedNode<double> node_type;
-		test_move_destruction<node_type>(3.14159);
 	}
 ///////////////////////////
 ///////////////Graph tests

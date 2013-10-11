@@ -74,25 +74,15 @@ namespace ben {
 	public:
 		//For the ctors lacking an id_type argument, Singleton automatically generates a unique ID.
 		//This generated ID is only guaranteed to be unique if that generation method is used exclusively.
-		Node() : base_type(), inputs(), outputs() {} 
-		explicit Node(id_type id) : base_type(id), inputs(), outputs() {}
+		Node() = default;
 		explicit Node(std::shared_ptr<index_type> graph) 
             : base_type(graph), inputs(), outputs() {}
 		Node(std::shared_ptr<index_type> graph, const id_type id) 
             : base_type(graph, id), inputs(), outputs() {}
 		Node(const self_type& rhs) = delete; //identity semantics
 		Node& operator=(const self_type& rhs) = delete;
-		Node(self_type&& rhs) 
-			: base_type(std::move(rhs)), 
-			  inputs(std::move(rhs.inputs)),
-		      outputs(std::move(rhs.outputs)) {}
-		Node& operator=(self_type&& rhs) {
-			if(this != &rhs) {
-				base_type::operator=( std::move(rhs) );
-				inputs = std::move(rhs.inputs);
-				outputs = std::move(rhs.outputs);
-			}
-		}
+		Node(self_type&& rhs) = default;
+		Node& operator=(self_type&& rhs) = default;
 		virtual ~Node() { 
             if(!is_managed()) return;
             //need to lock this node
@@ -108,19 +98,13 @@ namespace ben {
 
         template<class FUNCTION>
         FUNCTION for_inputs(FUNCTION f) const {
-            //lock this node
-            for(auto iter=inputs.begin(); iter!=inputs.end(); ++iter) 
-                f(*iter);
-            return f;
-            //unlock
+            //lock this node (use RAII lock)
+            return std::for_each(inputs.begin(), inputs.end(), f);
         }
         template<class FUNCTION>
         FUNCTION for_outputs(FUNCTION f) const {
-            //lock this node
-            for(auto iter=outputs.begin(); iter!=outputs.end(); ++iter) 
-                f(*iter);
-            return f;
-            //unlock
+            //lock this node (use RAII lock)
+            return std::for_each(outputs.begin(), outputs.end(), f);
         }
 
 		template<typename... ARGS>	
