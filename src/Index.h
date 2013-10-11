@@ -80,7 +80,10 @@ namespace ben {
             if(record_iter == index.end()) return nullptr;
 			return static_cast<SINGLETON*>(record_iter->second); 
 		}
-	}; //class Index
+	    using base_type::size;
+        using base_type::check;
+        using base_type::manages;
+    }; //class Index
 	
 	
 	//Singleton forward declares this

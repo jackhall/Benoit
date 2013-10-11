@@ -97,12 +97,12 @@ namespace ben {
         }
 
         template<class FUNCTION>
-        FUNCTION for_inputs(FUNCTION f) const {
+        FUNCTION map_inputs(FUNCTION f) const {
             //lock this node (use RAII lock)
             return std::for_each(inputs.begin(), inputs.end(), f);
         }
         template<class FUNCTION>
-        FUNCTION for_outputs(FUNCTION f) const {
+        FUNCTION map_outputs(FUNCTION f) const {
             //lock this node (use RAII lock)
             return std::for_each(outputs.begin(), outputs.end(), f);
         }

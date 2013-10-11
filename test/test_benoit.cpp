@@ -459,7 +459,7 @@ namespace {
             //test message passing through this first pair
             std::default_random_engine gen;
             std::uniform_real_distribution<double> random_real(0.0, 1.0);
-            test_data_passing(*input_port_ptr, *output_port_ptr, random_real());
+            test_data_passing(*input_port_ptr, *output_port_ptr, random_real(gen));
         }
         //with copies
         {
@@ -467,7 +467,7 @@ namespace {
             //copy each of the original ports and test message passing again
             auto input_port_ptr2 = test_copy(*input_port_ptr);
             auto output_port_ptr2 = test_copy(*output_port_ptr);
-            test_data_passing(*input_port_ptr2, *output_port_ptr2* random_real()); 
+            test_data_passing(*input_port_ptr2, *output_port_ptr2* random_real(gen)); 
 
             //test assignment and data passing
             auto input_port2_ptr = test_normal_construction<input_port_type, id_type>(3); 
@@ -475,10 +475,10 @@ namespace {
 
             test_assign(*input_port_ptr, *input_port2_ptr);
             EXPECT_TRUE(output_port2_ptr->is_ghost());
-            test_data_passing(*input_port2_ptr, *output_port_ptr, random_real());
+            test_data_passing(*input_port2_ptr, *output_port_ptr, random_real(gen));
 
             test_assign(*output_port_ptr, *output_port2_ptr);
-            test_data_passing(*input_port_ptr, *output_port2_ptr, random_real());
+            test_data_passing(*input_port_ptr, *output_port2_ptr, random_real(gen));
         }
         
         test_destruction(input_port_ptr.release(), output_port_ptr.release(),
@@ -499,6 +499,8 @@ namespace {
 		template<typename NODE>
 		auto test_graph_construction(std::shared_ptr< Graph<NODE> > graph_ptr, NODE::id_type id) {
 			typedef Graph<NODE> graph_type;
+            ASSERT_TRUE(graph_ptr);
+            ASSERT_FALSE(graph_ptr->look_up(id));
 			
 			NODE node(graph_ptr);
 			EXPECT_EQ(0, node.size());
@@ -506,12 +508,24 @@ namespace {
             EXPECT_EQ(node.get_index(), graph_ptr);
 
 			std::unique_ptr<NODE> node_ptr(new NODE(graph_ptr, id));
-			EXPECT_TRUE(graph_ptr->check(3, node_ptr));
+			EXPECT_TRUE(graph_ptr->check(id, node_ptr));
 			EXPECT_EQ(0, node_ptr->size());
 			EXPECT_TRUE(graph_ptr->check(node_ptr->ID(), node_ptr));
             EXPECT_EQ(node_ptr->get_index(), graph_ptr);
             return node_ptr;
 		}
+		template<typename NODE, typename... ARGS>
+        void test_link(NODE& target, NODE::id_type source_id, ARGS... args) {
+            EXPECT_FALSE(target.linked_to(source_id));
+            EXPECT_TRUE(target.link(source_id, args...));
+            EXPECT_TRUE(target.linked_to(source_id));
+        }
+        template<typename NODE>
+        void test_unlink(NODE& target, NODE::id_type source_id) {
+            EXPECT_TRUE(target.linked_to(source_id));
+            target.unlink(source_id);
+            EXPECT_FALSE(target.linked_to(source_id));
+        }
         template<typename NODE>
         auto test_map_inputs(const NODE& node) {
             std::vector<typename NODE::id_type> link_addresses;
@@ -519,15 +533,41 @@ namespace {
                 link_addresses.push_back(port.get_address()); } );
             EXPECT_EQ(node.size(), link_addresses.size());
             for(auto id : link_addresses) EXPECT_TRUE(node.linked_to(id));
+            std::sort(link_addresses.begin(), link_addresses.end());
             return link_addresses;
         }
-		template<typename NODE, typename... Args>
-		void test_link_unlink(NODE&, NODE& Args... args) {
+        template<typename NODE, typename SIGNAL>
+        bool test_signal(const NODE& source, const NODE& target, SIGNAL sent) {
+            //source and target are not necessarily linked
+            typedef typename NODE::output_port_type output_port_type;
+            typedef typename NODE::input_port_type input_port_type;
 
-		}
+            auto target_id = target.ID();
+            source.map_outputs([sent, target_id](const output_port_type& port) { 
+                if(port.get_address() == target_id) 
+                    EXPECT_TRUE(port.push(sent)); 
+            } );
+
+            auto source_id = source.ID();
+            bool pop_successful = false;
+            target.map_inputs([sent, source_id, pop_successful](const input_port_type& port) {
+                if(port.get_address() == source_id) {
+                    decltype(sent) received;
+                    pop_successful = port.pop(received);
+                    if(pop_successful) EXPECT_EQ(sent, received);
+                }
+            } );
+
+            if(pop_successful) {
+                EXPECT_EQ(source.get_index(), target.get_index());
+                EXPECT_TRUE(target.linked_to(source.ID()));
+            }
+            return pop_successful;
+        }
 		template<typename NODE>
         void test_mirror(const NODE& node) {
             SCOPED_TRACE("mirror");
+            ASSERT_TRUE(node.get_index());
             NODE node2(node.get_index());
             auto link_addresses = test_map_inputs(node);
             node2.mirror(node);
@@ -538,12 +578,12 @@ namespace {
         }
         template<typename NODE>
         void test_move(NODE& source, NODE::id_type input_id, const NODE& output_node) {
-            SCOPED_TRACE("move");
             //source should have an input link to "input_id" and an output link to "output_id" 
-            EXPECT_TRUE(source.linked_to(input_id));
+            ASSERT_TRUE(source.linked_to(input_id));
             auto node_id = source.ID();
             auto graph_ptr = source.get_index();
-            EXPECT_TRUE(output_node.linked_to(node_id));
+            ASSERT_TRUE(graph_ptr);
+            ASSERT_TRUE(output_node.linked_to(node_id));
 
             NODE target(std::move(source));
             EXPECT_FALSE(source.get_index());
@@ -581,19 +621,109 @@ namespace {
                 test_destruction(deleted_ids, args...);
             }
 		}
-	};
+	    template<typename IN, typename OUT, typename FUNCTION>
+        void test_with_basic_ports(FUNCTION signal_generator) {
+            //test Node with ports that need only an ID for instantiation
+            typedef ben::Node<IN, OUT> node_type;
+            typedef typename node_type::id_type id_type;
+            typedef typename node_type::index_type graph_type;
 
-	TEST_F(Nodes, MessageNode_Construction) {
-		typedef ben::MessageNode<double, 1> node_type;
-		test_construction<node_type>();
+            auto node1_ptr = test_default_construction<node_type>();
+            EXPECT_FALSE(node1_ptr->get_index());
+
+            auto graph_ptr = std::make_shared<graph_type>();
+            auto node2_ptr = test_graph_construction(graph_ptr, 2);
+            auto node3_ptr = test_graph_construction(graph_ptr, 3);
+            auto node4_ptr = test_graph_construction(graph_ptr, 4);
+
+            { 
+                SCOPED_TRACE("link creation");
+                test_link(*node4_ptr, node2_ptr->ID());
+                test_link(*node4_ptr, node3_ptr->ID());
+                auto node4_input_ids = test_map_inputs(*node4_ptr);
+                EXPECT_EQ(2, node4_input_ids.size());
+
+                EXPECT_TRUE(test_signal(*node2_ptr, *node4_ptr, signal_generator()));
+                EXPECT_TRUE(test_signal(*node3_ptr, *node4_ptr, signal_generator()));
+                EXPECT_FALSE(test_signal(*node4_ptr, *node3_ptr, signal_generator()));
+            }
+
+            {
+                SCOPED_TRACE("link deletion");
+                test_unlink(*node4_ptr, node2_ptr->ID());
+                EXPECT_FALSE(test_signal(*node2_ptr, *node4_ptr, signal_generator()));
+            }
+
+            {
+                SCOPED_TRACE("move");
+                test_link(*node2_ptr, node4_ptr->ID());
+                test_move(*node4_ptr, node3_ptr->ID(), *node2_ptr);
+                EXPECT_TRUE(node4_ptr->linked_to(node3_ptr->ID()));
+                EXPECT_TRUE(node2_ptr->linked_to(node4_ptr->ID()));
+            }
+
+            {
+                SCOPED_TRACE("mirror");
+                test_mirror(*node4_ptr);
+            }
+
+            test_destruction(std::vector<id_type>(), 
+                             node1_ptr.release(),
+                             node2_ptr.release(),
+                             node3_ptr.release(),
+                             node4_ptr.release());
+            EXPECT_EQ(0, graph_ptr->size());
+        }
+    };
+
+	TEST_F(Nodes, DoubleInstance) {
+        typedef ben::Buffer<double, 1> link_type;
+        typedef ben::InPort<link_type> input_port_type;
+        typedef ben::OutPort<link_type> output_port_type;
+
+        std::default_random_engine gen;
+        std::uniform_real_distribution<double> random_real(0.0, 1.0);
+		test_with_basic_ports<input_port_type, output_port_type>([random_real, gen]() { 
+            return random_real(gen); 
+        } );
 	}
-	TEST_F(Nodes, MessageNode_Add_Remove) {
-		typedef ben::MessageNode<double, 1> node_type;
-		test_add_remove<node_type>();
+	TEST_F(Nodes, VectorInstance) {
+        typedef ben::Buffer<std::vector<double>, 1> link_type;
+        typedef ben::InPort<link_type> input_port_type;
+        typedef ben::OutPort<link_type> output_port_type;
+
+        std::default_random_engine gen;
+        std::uniform_real_distribution<double> random_real(0.0, 1.0);
+		test_with_basic_ports<input_port_type, output_port_type>([random_real, gen]() { 
+            std::vector<double> signal(5);
+            for(auto& element : signal) element = random_real(gen);
+            return signal; 
+        } );
 	}
-	TEST_F(Nodes, MessageNode_Move_Destruction) {
-		typedef ben::MessageNode<double, 1> node_type;
-		test_move_destruction<node_type>();
+    TEST_F(Nodes, ArrayInstance) {
+        typedef ben::Buffer<std::array<double,5>, 1> link_type;
+        typedef ben::InPort<link_type> input_port_type;
+        typedef ben::OutPort<link_type> output_port_type;
+
+        std::default_random_engine gen;
+        std::uniform_real_distribution<double> random_real(0.0, 1.0);
+		test_with_basic_ports<input_port_type, output_port_type>([random_real, gen]() { 
+            std::array<double, 5> signal;
+            for(auto& element : signal) element = random_real(gen);
+            return signal; 
+        } );
+    }
+	TEST_F(Nodes, FunctionInstance) {
+        typedef ben::Buffer<std::function<double()>, 1> link_type;
+        typedef ben::InPort<link_type> input_port_type;
+        typedef ben::OutPort<link_type> output_port_type;
+
+        std::default_random_engine gen;
+        std::uniform_real_distribution<double> random_real(0.0, 1.0);
+		test_with_basic_ports<input_port_type, output_port_type>([random_real, gen]() { 
+            double signal = random_real(gen);
+            return [signal](){ return signal; }; 
+        } );
 	}
 ///////////////////////////
 ///////////////Graph tests
