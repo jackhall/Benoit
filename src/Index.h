@@ -75,7 +75,7 @@ namespace ben {
 		Index& operator=(self_type&& rhs) = delete;
 	
 		SINGLETON* look_up(const id_type address) const { 
-		//this is ok as const because Index does not own the Singletons is manages
+		//this is ok as const because Index does not own the Singletons it manages
             auto record_iter = index.find(address);
             if(record_iter == index.end()) return nullptr;
 			return static_cast<SINGLETON*>(record_iter->second); 

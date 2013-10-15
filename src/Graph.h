@@ -58,6 +58,9 @@ namespace ben {
 		Graph(Graph&& rhs) = delete;
 		Graph& operator=(Graph&& rhs) = delete;
 		~Graph() = default; 
+
+        using base_type::look_up;
+        using base_type::size;
 	}; //class Graph
 
 } //namespace ben

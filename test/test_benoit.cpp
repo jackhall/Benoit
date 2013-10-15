@@ -344,14 +344,15 @@ namespace {
 ///////////////////////////
 ////////////// Buffer tests
     class Buffers : public ::testing::Test {
+    protected:
         template<typename SIGNAL>
         void test_message(SIGNAL received, SIGNAL sent) {
             using namespace ben;
             Buffer<SIGNAL, 1> link;
             EXPECT_FALSE(link.pop(received));
-            EXPECT_TRUE(link.push(send));
+            EXPECT_TRUE(link.push(sent));
             EXPECT_TRUE(link.pop(received));
-            EXPECT_EQ(send, received);
+            EXPECT_EQ(sent, received);
         }
     };
 
@@ -378,7 +379,7 @@ namespace {
     }
     TEST_F(Buffers, FunctionInstance) {
 		using namespace ben;
-        std::function<double()> received, sent = []() { return 3.14159 };
+        std::function<double()> received, sent = []() { return 3.14159; };
         test_message(received, sent);
     }
 ////////////////////////////
@@ -744,14 +745,14 @@ namespace {
 			auto node2_ptr = new node_type(5);
 			auto node3_ptr = new node_type(7);
 			
-			EXPECT_TRUE(graph1_ptr->check(3, node1_ptr));
-			EXPECT_FALSE(graph1_ptr->check(5, node2_ptr));
+			EXPECT_EQ(node1_ptr, graph1_ptr->look_up(3));
+			EXPECT_NE(node2_ptr, graph1_ptr->look_up(5));
 			EXPECT_TRUE(node2_ptr->join_index(graph1_ptr));
 
 			EXPECT_EQ(3, graph1_ptr.use_count());
 			EXPECT_EQ(1, graph2_ptr.use_count());
 
-			EXPECT_TRUE(graph1_ptr->check(5, node2_ptr));
+			EXPECT_EQ(node2_ptr, graph1_ptr->look_up(5));
 			EXPECT_TRUE(node3_ptr->join_index(graph1_ptr));
 
 			EXPECT_EQ(0, graph2_ptr->size());
@@ -760,7 +761,7 @@ namespace {
 			EXPECT_EQ(3, graph1_ptr.use_count());
 			EXPECT_EQ(2, graph2_ptr.use_count());
 
-			EXPECT_TRUE(graph2_ptr->check(5, node2_ptr));
+			EXPECT_EQ(node2_ptr, graph2_ptr->check(5));
 			EXPECT_EQ(1, graph2_ptr->size());
 			EXPECT_EQ(2, graph1_ptr->size());
 
